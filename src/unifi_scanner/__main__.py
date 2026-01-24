@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import signal
 import sys
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -134,6 +135,122 @@ def print_banner(
         print(line)
 
 
+def run_report_job() -> None:
+    """Execute one report generation and delivery cycle.
+
+    This function is called by the scheduler on each scheduled run,
+    or once in one-shot mode. It runs the complete pipeline:
+    1. Connect to UniFi API
+    2. Collect logs
+    3. Analyze logs
+    4. Generate report
+    5. Deliver via configured channels
+    """
+    from unifi_scanner.analysis import AnalysisEngine
+    from unifi_scanner.analysis.rules import get_default_registry
+    from unifi_scanner.api import UnifiClient
+    from unifi_scanner.config.loader import get_config
+    from unifi_scanner.delivery import DeliveryManager, EmailDelivery, FileDelivery
+    from unifi_scanner.health import HealthStatus, update_health_status
+    from unifi_scanner.logging import get_logger
+    from unifi_scanner.logs.collector import LogCollector
+    from unifi_scanner.models.enums import DeviceType
+    from unifi_scanner.models.report import Report
+    from unifi_scanner.reports.generator import ReportGenerator
+
+    log = get_logger()
+    config = get_config()
+
+    log.info("job_starting")
+    update_health_status(HealthStatus.HEALTHY, {"last_run": "starting"})
+
+    try:
+        # Connect and collect logs
+        with UnifiClient(config) as client:
+            site = client.select_site(config.site)
+
+            # Collect logs
+            collector = LogCollector(
+                client=client,
+                settings=config,
+                site=site,
+            )
+            log_entries = collector.collect()
+            log.info("logs_collected", count=len(log_entries))
+
+            # Analyze logs with default rules
+            registry = get_default_registry()
+            engine = AnalysisEngine(registry=registry)
+            findings = engine.analyze(log_entries)
+            log.info("analysis_complete", findings_count=len(findings))
+
+            # Build report
+            now = datetime.now(timezone.utc)
+            report = Report(
+                period_start=now - timedelta(hours=24),
+                period_end=now,
+                site_name=site,
+                controller_type=client.device_type or DeviceType.UNKNOWN,
+                findings=findings,
+                log_entry_count=len(log_entries),
+            )
+
+            # Generate report content
+            generator = ReportGenerator(
+                display_timezone=config.schedule_timezone,
+            )
+            html_content = generator.generate_html(report)
+            text_content = generator.generate_text(report)
+
+            # Set up delivery
+            email_delivery = None
+            if config.email_enabled and config.smtp_host:
+                email_delivery = EmailDelivery(
+                    smtp_host=config.smtp_host,
+                    smtp_port=config.smtp_port,
+                    smtp_user=config.smtp_user,
+                    smtp_password=config.smtp_password,
+                    use_tls=config.smtp_use_tls,
+                    from_addr=config.email_from,
+                    timezone=config.schedule_timezone,
+                )
+
+            file_delivery = None
+            if config.file_enabled and config.file_output_dir:
+                file_delivery = FileDelivery(
+                    output_dir=config.file_output_dir,
+                    file_format=config.file_format,
+                    retention_days=config.file_retention_days,
+                    timezone=config.schedule_timezone,
+                )
+
+            # Deliver
+            manager = DeliveryManager(
+                email_delivery=email_delivery,
+                file_delivery=file_delivery,
+            )
+
+            recipients = config.get_email_recipients()
+
+            success = manager.deliver(
+                report=report,
+                html_content=html_content,
+                text_content=text_content,
+                email_recipients=recipients,
+            )
+
+            if success:
+                log.info("job_complete", status="success")
+                update_health_status(HealthStatus.HEALTHY, {"last_run": "success"})
+            else:
+                log.warning("job_complete", status="delivery_failed")
+                update_health_status(HealthStatus.UNHEALTHY, {"last_run": "delivery_failed"})
+
+    except Exception as e:
+        log.error("job_failed", error=str(e))
+        update_health_status(HealthStatus.UNHEALTHY, {"last_run": str(e)})
+
+
 def main() -> int:
     """Main entry point for unifi-scanner.
 
@@ -148,6 +265,7 @@ def main() -> int:
     from unifi_scanner.config.loader import ConfigurationError, load_config
     from unifi_scanner.health import HealthStatus, clear_health_status, update_health_status
     from unifi_scanner.logging import configure_logging, get_logger
+    from unifi_scanner.scheduler import ScheduledRunner
 
     # Load configuration
     try:
@@ -202,20 +320,27 @@ def main() -> int:
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, handle_sighup)
 
-    # Main service loop (placeholder for Phase 5 - scheduling)
-    log.info("service_starting", poll_interval=config.poll_interval)
+    # Initialize scheduler
+    runner = ScheduledRunner(timezone=config.schedule_timezone)
+
+    log.info(
+        "service_starting",
+        schedule_preset=config.schedule_preset,
+        schedule_cron=config.schedule_cron,
+        timezone=config.schedule_timezone,
+    )
+
     try:
-        # TODO: Phase 5 will add scheduling loop here
-        log.info(
-            "service_ready",
-            message="UniFi Scanner ready. Scheduling not yet implemented.",
+        runner.run(
+            func=run_report_job,
+            cron_expr=config.schedule_cron,
+            preset=config.schedule_preset,
         )
-        update_health_status(HealthStatus.HEALTHY, {"poll_interval": config.poll_interval})
-        # For now, just exit cleanly
         return EXIT_SUCCESS
     except KeyboardInterrupt:
         log.info("shutdown", reason="keyboard interrupt")
         print("\nShutdown requested, exiting...")
+        runner.shutdown()
         clear_health_status()
         return EXIT_SUCCESS
 
