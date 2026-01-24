@@ -9,29 +9,29 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 
 ## Current Position
 
-Phase: 2 of 5 (Log Collection & Parsing)
-Plan: 2 of 3 in current phase (02-01, 02-02 complete)
-Status: In progress
-Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Timestamp Normalization & Log Parsing)
+Phase: 2 of 5 (Log Collection & Parsing) - COMPLETE
+Plan: 3 of 3 in current phase (02-01, 02-02, 02-03 complete)
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 02-03-PLAN.md (SSH Fallback & Log Collectors)
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5 min
-- Total execution time: 29 min
+- Total execution time: 32 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
-| 02-log-collection | 2 | 7 min | 4 min |
+| 02-log-collection | 3 | 10 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (4 min), 01-04 (5 min), 02-01 (3 min), 02-02 (4 min)
+- Last 5 plans: 01-04 (5 min), 02-01 (3 min), 02-02 (4 min), 02-03 (3 min)
 - Trend: Stable/Improving
 
 *Updated after each plan completion*
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - Millisecond auto-detection: timestamps > 1e12 are milliseconds
 - Defensive fallbacks: invalid timestamp -> now(UTC), missing event_type -> UNKNOWN
 - Syslog event_type format: SYSLOG_{PROGRAM} in uppercase
+- SSH credentials default to API credentials if not set
+- Channel timeout via paramiko settimeout() prevents SSH hangs
+- Fallback triggers when API returns < min_entries (default 10)
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-24T16:17:08Z
-Stopped at: Completed 02-02-PLAN.md (Timestamp Normalization & Log Parsing)
+Last session: 2026-01-24T16:22:33Z
+Stopped at: Completed 02-03-PLAN.md (SSH Fallback & Log Collectors) - Phase 2 Complete
 Resume file: None
