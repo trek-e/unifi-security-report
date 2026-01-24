@@ -1,0 +1,129 @@
+# UniFi Scanner Configuration
+# ============================
+#
+# This file documents all available configuration options.
+# Copy this file to your config location and customize as needed.
+#
+# Configuration precedence (highest to lowest):
+#   1. Environment variables (UNIFI_ prefix)
+#   2. Docker secrets (_FILE suffix pattern)
+#   3. This YAML file
+#   4. Default values
+#
+# Example usage:
+#   CONFIG_PATH=/etc/unifi-scanner/config.yaml unifi-scanner
+#
+# For Docker secrets, set UNIFI_PASSWORD_FILE=/run/secrets/unifi_password
+# instead of putting the password in this file.
+
+# =============================================================================
+# Required Settings
+# =============================================================================
+
+# UniFi Controller hostname or IP address (required)
+# Can be overridden with UNIFI_HOST environment variable
+host: "192.168.1.1"
+
+# UniFi admin username (required)
+# IMPORTANT: Must be a LOCAL admin account, not Ubiquiti cloud SSO
+# Can be overridden with UNIFI_USERNAME environment variable
+username: "admin"
+
+# UniFi admin password (required unless using _FILE pattern)
+# Can be overridden with UNIFI_PASSWORD environment variable
+# For Docker, prefer UNIFI_PASSWORD_FILE=/run/secrets/unifi_password
+password: "your-password-here"
+
+# =============================================================================
+# Connection Settings
+# =============================================================================
+
+# Controller port
+# If not specified, will auto-detect from common ports: 443, 8443, 11443
+# Can be overridden with UNIFI_PORT environment variable
+# port: 8443
+
+# SSL certificate verification
+# Set to false for self-signed certificates (common on home setups)
+# Can be overridden with UNIFI_VERIFY_SSL environment variable
+# Default: true
+# verify_ssl: true
+
+# UniFi site name
+# If not specified, will auto-discover from available sites
+# If only one site exists, it will be used automatically
+# If multiple sites exist and none specified, startup will fail with list
+# Can be overridden with UNIFI_SITE environment variable
+# site: "default"
+
+# =============================================================================
+# Timeout and Retry Settings
+# =============================================================================
+
+# Connection timeout in seconds
+# How long to wait when establishing connection to controller
+# Can be overridden with UNIFI_CONNECT_TIMEOUT environment variable
+# Default: 10
+# connect_timeout: 10
+
+# Maximum retry attempts on connection failure
+# Uses exponential backoff: 1s, 2s, 4s, 8s... up to max
+# Can be overridden with UNIFI_MAX_RETRIES environment variable
+# Default: 5
+# max_retries: 5
+
+# Polling interval in seconds
+# How often to check for new logs
+# Can be overridden with UNIFI_POLL_INTERVAL environment variable
+# Default: 300 (5 minutes)
+# poll_interval: 300
+
+# =============================================================================
+# Logging Settings
+# =============================================================================
+
+# Logging level: DEBUG, INFO, WARNING, ERROR
+# DEBUG shows detailed request/response information
+# INFO shows normal operation events
+# WARNING shows non-fatal issues
+# ERROR shows only errors
+# Can be overridden with UNIFI_LOG_LEVEL environment variable
+# Default: INFO
+# log_level: "INFO"
+
+# Log output format: json or text
+# json: Structured JSON output, ideal for production/log aggregation
+# text: Human-readable colored output, ideal for development
+# Can be overridden with UNIFI_LOG_FORMAT environment variable
+# Default: json
+# log_format: "json"
+
+# =============================================================================
+# Docker Secrets Pattern
+# =============================================================================
+#
+# For sensitive values in Docker environments, use the _FILE suffix pattern.
+# Instead of setting UNIFI_PASSWORD, set UNIFI_PASSWORD_FILE to a path:
+#
+#   docker run -e UNIFI_PASSWORD_FILE=/run/secrets/unifi_password \
+#              -v ./secrets:/run/secrets:ro \
+#              unifi-scanner
+#
+# The scanner will read the file contents and use them as the value.
+# This prevents sensitive data from appearing in docker inspect output.
+#
+# Supported _FILE variables:
+#   - UNIFI_PASSWORD_FILE
+#   - UNIFI_USERNAME_FILE (if you need it)
+#   - UNIFI_HOST_FILE (unusual but supported)
+
+# =============================================================================
+# Hot Reload
+# =============================================================================
+#
+# Send SIGHUP to the scanner process to reload configuration without restart:
+#
+#   kill -HUP $(pidof unifi-scanner)
+#
+# This will re-read this YAML file and apply any changes.
+# Note: Some settings may require restart to take effect.
