@@ -71,28 +71,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COLL-01 | Phase ? | Pending |
-| COLL-02 | Phase ? | Pending |
-| COLL-03 | Phase ? | Pending |
-| COLL-04 | Phase ? | Pending |
-| ANLZ-01 | Phase ? | Pending |
-| ANLZ-02 | Phase ? | Pending |
-| ANLZ-03 | Phase ? | Pending |
-| ANLZ-04 | Phase ? | Pending |
-| REPT-01 | Phase ? | Pending |
-| REPT-02 | Phase ? | Pending |
-| REPT-03 | Phase ? | Pending |
-| REPT-04 | Phase ? | Pending |
-| DEPL-01 | Phase ? | Pending |
-| DEPL-02 | Phase ? | Pending |
-| DEPL-03 | Phase ? | Pending |
-| DEPL-04 | Phase ? | Pending |
+| COLL-01 | Phase 1 | Pending |
+| COLL-02 | Phase 1 | Pending |
+| COLL-03 | Phase 1 | Pending |
+| COLL-04 | Phase 2 | Pending |
+| ANLZ-01 | Phase 3 | Pending |
+| ANLZ-02 | Phase 3 | Pending |
+| ANLZ-03 | Phase 3 | Pending |
+| ANLZ-04 | Phase 3 | Pending |
+| REPT-01 | Phase 4 | Pending |
+| REPT-02 | Phase 4 | Pending |
+| REPT-03 | Phase 5 | Pending |
+| REPT-04 | Phase 5 | Pending |
+| DEPL-01 | Phase 5 | Pending |
+| DEPL-02 | Phase 1 | Pending |
+| DEPL-03 | Phase 1 | Pending |
+| DEPL-04 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 (pending roadmap creation)
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after initial definition*
+*Last updated: 2026-01-24 after roadmap creation*
