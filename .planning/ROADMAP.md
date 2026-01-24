@@ -120,10 +120,11 @@ Plans:
   2. User sees no duplicate events across multiple scheduled runs (same event never appears in two reports)
   3. First-time service startup processes events from the last 24 hours (or configurable initial lookback)
   4. If state file is corrupted or missing, service logs a warning and falls back to default lookback (no crash)
-**Plans**: 0 plans
+**Plans**: 2 plans
 
 Plans:
-(None yet - phase not started)
+- [ ] 06-01-PLAN.md — StateManager module with atomic writes and configuration
+- [ ] 06-02-PLAN.md — Log collector integration and pipeline state lifecycle
 
 ## Progress
 
@@ -137,7 +138,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Analysis Engine | 4/4 | Complete | 2026-01-24 |
 | 4. Report Generation | 3/3 | Complete | 2026-01-24 |
 | 5. Delivery & Scheduling | 5/5 | Complete | 2026-01-24 |
-| 6. State Persistence | 0/0 | Pending | — |
+| 6. State Persistence | 0/2 | Planned | — |
 
 ---
 *Roadmap created: 2026-01-24 (v0.2-alpha)*
@@ -152,5 +153,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 *Phase 5 planned: 2026-01-24*
 *Phase 5 complete: 2026-01-24*
 *v0.3-alpha Phase 6 added: 2026-01-24*
+*Phase 6 planned: 2026-01-24*
 *Depth: comprehensive*
-*Total requirements: 25 (16 v0.2 + 9 v0.3) | Total phases: 6 | Total plans: 19*
+*Total requirements: 25 (16 v0.2 + 9 v0.3) | Total phases: 6 | Total plans: 21*
