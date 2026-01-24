@@ -23,8 +23,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Reports
 
-- [ ] **REPT-01**: Service generates HTML formatted reports
-- [ ] **REPT-02**: Service generates plain text reports
+- [x] **REPT-01**: Service generates HTML formatted reports
+- [x] **REPT-02**: Service generates plain text reports
 - [ ] **REPT-03**: Service delivers reports via SMTP email
 - [ ] **REPT-04**: Service saves reports to configurable directory
 
@@ -79,8 +79,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANLZ-02 | Phase 3 | Complete |
 | ANLZ-03 | Phase 3 | Complete |
 | ANLZ-04 | Phase 3 | Complete |
-| REPT-01 | Phase 4 | Pending |
-| REPT-02 | Phase 4 | Pending |
+| REPT-01 | Phase 4 | Complete |
+| REPT-02 | Phase 4 | Complete |
 | REPT-03 | Phase 5 | Pending |
 | REPT-04 | Phase 5 | Pending |
 | DEPL-01 | Phase 5 | Pending |
@@ -95,4 +95,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after Phase 3 completion*
+*Last updated: 2026-01-24 after Phase 4 completion*
