@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 2 of 5 (Log Collection & Parsing)
-Plan: 1 of 3 in current phase (02-01 complete)
+Plan: 2 of 3 in current phase (02-01, 02-02 complete)
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-01-PLAN.md (Event and Alarm API Methods)
+Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Timestamp Normalization & Log Parsing)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 5 min
-- Total execution time: 25 min
+- Total execution time: 29 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4 | 22 min | 6 min |
-| 02-log-collection | 1 | 3 min | 3 min |
+| 02-log-collection | 2 | 7 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (5 min), 01-03 (4 min), 01-04 (5 min), 02-01 (3 min)
-- Trend: Improving
+- Last 5 plans: 01-03 (4 min), 01-04 (5 min), 02-01 (3 min), 02-02 (4 min)
+- Trend: Stable/Improving
 
 *Updated after each plan completion*
 
@@ -56,6 +56,10 @@ Recent decisions affecting current work:
 - Events endpoint uses POST with JSON body for query parameters
 - 3000 event limit enforced client-side (API maximum)
 - Truncation logged as warning when meta.count exceeds data length
+- python-dateutil for flexible timestamp parsing
+- Millisecond auto-detection: timestamps > 1e12 are milliseconds
+- Defensive fallbacks: invalid timestamp -> now(UTC), missing event_type -> UNKNOWN
+- Syslog event_type format: SYSLOG_{PROGRAM} in uppercase
 
 ### Pending Todos
 
@@ -68,6 +72,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-24T16:16:46Z
-Stopped at: Completed 02-01-PLAN.md (Event and Alarm API Methods)
+Last session: 2026-01-24T16:17:08Z
+Stopped at: Completed 02-02-PLAN.md (Timestamp Normalization & Log Parsing)
 Resume file: None
