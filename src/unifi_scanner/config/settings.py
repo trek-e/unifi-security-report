@@ -200,6 +200,20 @@ class UnifiSettings(BaseSettings):
         ge=0,
     )
 
+    # Schedule settings
+    schedule_preset: Optional[str] = Field(
+        default=None,
+        description="Schedule preset: daily_8am, daily_6pm, weekly_monday_8am, weekly_friday_5pm",
+    )
+    schedule_cron: Optional[str] = Field(
+        default=None,
+        description="Custom cron expression (5-field format: min hour day month weekday)",
+    )
+    schedule_timezone: str = Field(
+        default="UTC",
+        description="Timezone for schedule (IANA format, e.g., America/New_York)",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
@@ -254,6 +268,25 @@ class UnifiSettings(BaseSettings):
         if not v or not v.strip():
             raise ValueError("Username cannot be empty")
         return v.strip()
+
+    @field_validator("schedule_preset")
+    @classmethod
+    def validate_schedule_preset(cls, v: Optional[str]) -> Optional[str]:
+        """Validate schedule preset is a known preset."""
+        if v is None:
+            return None
+        valid_presets = {
+            "daily_8am",
+            "daily_6pm",
+            "weekly_monday_8am",
+            "weekly_friday_5pm",
+        }
+        if v not in valid_presets:
+            raise ValueError(
+                f"Invalid schedule preset '{v}'. "
+                f"Must be one of: {', '.join(sorted(valid_presets))}"
+            )
+        return v
 
     @model_validator(mode="after")
     def validate_email_config(self) -> "UnifiSettings":
