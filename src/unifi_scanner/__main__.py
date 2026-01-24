@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import signal
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from types import FrameType
@@ -68,7 +68,7 @@ Examples:
     return parser.parse_args()
 
 
-def handle_sighup(signum: int, frame: FrameType | None) -> None:
+def handle_sighup(signum: int, frame: Optional[FrameType]) -> None:
     """Handle SIGHUP signal for configuration reload."""
     from unifi_scanner.config.loader import reload_config
     from unifi_scanner.logging import get_logger
@@ -82,7 +82,7 @@ def handle_sighup(signum: int, frame: FrameType | None) -> None:
         log.error("config_reload_failed", error=str(e))
 
 
-def print_banner(config_path: str | None, log_level: str) -> None:
+def print_banner(config_path: Optional[str], log_level: str) -> None:
     """Print startup banner with version and configuration summary."""
     from unifi_scanner.logging import get_logger
 
