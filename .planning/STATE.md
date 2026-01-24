@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 5 of 5 (Delivery & Scheduling)
-Plan: 1 of 3 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 05-01-PLAN.md (SMTP Email Delivery)
+Last activity: 2026-01-24 - Completed 05-03-PLAN.md (APScheduler Integration)
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 18
 - Average duration: 4 min
-- Total execution time: 63 min
+- Total execution time: 68 min
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [████████░░] 84%
 | 02-log-collection | 3 | 10 min | 3 min |
 | 03-analysis-engine | 4 | 19 min | 5 min |
 | 04-report-generation | 3 | 10 min | 3 min |
-| 05-delivery-scheduling | 1 | 2 min | 2 min |
+| 05-delivery-scheduling | 3 | 7 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (3 min), 04-02 (4 min), 04-03 (3 min), 05-01 (2 min)
+- Last 5 plans: 04-02 (4 min), 04-03 (3 min), 05-01 (2 min), 05-02 (2 min), 05-03 (3 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -100,6 +100,10 @@ Recent decisions affecting current work:
 - Severity-aware subject line: [N SEVERE] prefix when severe_count > 0
 - Dual TLS support: port 587 (STARTTLS) and 465 (implicit TLS)
 - Email delivery fails gracefully (returns bool, never crashes)
+- APScheduler 3.x (not 4.0 alpha) for stable blocking scheduler
+- CronTrigger.from_crontab() requires explicit timezone parameter
+- Misfire grace time 3600s with coalesce=True for missed runs
+- One-shot mode: schedule 1s in future with auto-shutdown listener
 
 ### Pending Todos
 
@@ -113,5 +117,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 05-01-PLAN.md (SMTP Email Delivery)
+Stopped at: Completed 05-03-PLAN.md (APScheduler Integration)
 Resume file: None
