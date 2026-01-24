@@ -88,18 +88,21 @@ class ReportGenerator:
         }
 
     def generate_html(self, report: Report) -> str:
-        """Generate an HTML report from findings.
+        """Generate HTML report from Report model.
+
+        HTML reports display findings organized by severity (SEVERE first,
+        then MEDIUM, then LOW) with an executive summary and professional
+        UniFi-inspired styling. All CSS is inline for email compatibility.
 
         Args:
-            report: Report containing findings to render
+            report: Report object containing findings to render
 
         Returns:
-            HTML string of the rendered report
-
-        Raises:
-            NotImplementedError: HTML template not yet implemented
+            Complete HTML document as string
         """
-        raise NotImplementedError("HTML template not yet implemented")
+        template = self.env.get_template("report.html")
+        context = self._build_context(report)
+        return template.render(**context)
 
     def generate_text(self, report: Report) -> str:
         """Generate plain text report from Report model.

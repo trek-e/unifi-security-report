@@ -163,19 +163,18 @@ class TestBuildContext:
         assert "generated_at" in context
 
 
-class TestNotImplementedMethods:
-    """Tests for stub methods that raise NotImplementedError."""
+class TestGenerateMethods:
+    """Tests for generate methods now that they are implemented."""
 
-    def test_generate_html_not_implemented(self, sample_report):
-        """Verify raises NotImplementedError with message."""
+    def test_generate_html_returns_string(self, sample_report):
+        """Verify generate_html returns string (detailed tests in test_reports_html.py)."""
         rg = ReportGenerator()
-        with pytest.raises(NotImplementedError) as excinfo:
-            rg.generate_html(sample_report)
-        assert "HTML template not yet implemented" in str(excinfo.value)
+        result = rg.generate_html(sample_report)
+        assert isinstance(result, str)
+        assert "<!DOCTYPE html>" in result
 
-    def test_generate_text_not_implemented(self, sample_report):
-        """Verify raises NotImplementedError with message."""
+    def test_generate_text_returns_string(self, sample_report):
+        """Verify generate_text returns string."""
         rg = ReportGenerator()
-        with pytest.raises(NotImplementedError) as excinfo:
-            rg.generate_text(sample_report)
-        assert "Text template not yet implemented" in str(excinfo.value)
+        result = rg.generate_text(sample_report)
+        assert isinstance(result, str)
