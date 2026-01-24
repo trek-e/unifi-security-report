@@ -2,7 +2,7 @@
 
 ## Overview
 
-UniFi Scanner transforms from empty repository to production-ready containerized service across five phases. The journey starts with reliable UniFi API integration (the hardest technical challenge), builds through log parsing and analysis (the core intelligence), and delivers through reports and scheduling (the user-facing value). Each phase delivers verifiable capability, culminating in a Docker container that polls UniFi logs and emails plain-English reports on schedule.
+UniFi Scanner transforms from empty repository to production-ready containerized service. v0.2-alpha delivered core functionality across five phases: UniFi API integration, log parsing, analysis engine, report generation, and scheduled delivery. v0.3-alpha adds state persistence to prevent duplicate event reporting across runs.
 
 ## Phases
 
@@ -12,11 +12,15 @@ UniFi Scanner transforms from empty repository to production-ready containerized
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+### v0.2-alpha (Complete)
 - [x] **Phase 1: Foundation & API Connection** - Establish reliable UniFi integration with config, models, and authentication
 - [x] **Phase 2: Log Collection & Parsing** - Fetch and normalize logs via API and SSH fallback
 - [x] **Phase 3: Analysis Engine** - Detect issues, assign severity, generate explanations and remediation
 - [x] **Phase 4: Report Generation** - Create human-readable HTML and text reports from findings
 - [x] **Phase 5: Delivery & Scheduling** - Email reports, save files, run on schedule in Docker
+
+### v0.3-alpha (Current)
+- [ ] **Phase 6: State Persistence** - Track last report timestamp to prevent duplicate event reporting
 
 ## Phase Details
 
@@ -107,10 +111,24 @@ Plans:
 - [x] 05-04-PLAN.md — Docker container build and service integration
 - [x] 05-05-PLAN.md — End-to-end integration testing with human verification
 
+### Phase 6: State Persistence
+**Goal**: Service tracks last successful report and only processes new events to prevent duplicate reporting
+**Depends on**: Phase 5
+**Requirements**: STATE-01, STATE-02, STATE-03, STATE-04, STATE-05, STATE-06, STATE-07, CONF-01, CONF-02
+**Success Criteria** (what must be TRUE):
+  1. Service remembers when the last successful report was delivered and uses it as the timestamp cutoff for the next run
+  2. User sees no duplicate events across multiple scheduled runs (same event never appears in two reports)
+  3. First-time service startup processes events from the last 24 hours (or configurable initial lookback)
+  4. If state file is corrupted or missing, service logs a warning and falls back to default lookback (no crash)
+**Plans**: 0 plans
+
+Plans:
+(None yet - phase not started)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -119,9 +137,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. Analysis Engine | 4/4 | Complete | 2026-01-24 |
 | 4. Report Generation | 3/3 | Complete | 2026-01-24 |
 | 5. Delivery & Scheduling | 5/5 | Complete | 2026-01-24 |
+| 6. State Persistence | 0/0 | Pending | — |
 
 ---
-*Roadmap created: 2026-01-24*
+*Roadmap created: 2026-01-24 (v0.2-alpha)*
 *Phase 1 planned: 2026-01-24*
 *Phase 1 complete: 2026-01-24*
 *Phase 2 planned: 2026-01-24*
@@ -132,6 +151,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 *Phase 4 complete: 2026-01-24*
 *Phase 5 planned: 2026-01-24*
 *Phase 5 complete: 2026-01-24*
+*v0.3-alpha Phase 6 added: 2026-01-24*
 *Depth: comprehensive*
-*Total requirements: 16 | Total phases: 5 | Total plans: 19*
-*PROJECT COMPLETE: 2026-01-24*
+*Total requirements: 25 (16 v0.2 + 9 v0.3) | Total phases: 6 | Total plans: 19*
