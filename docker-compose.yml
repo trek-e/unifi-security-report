@@ -22,9 +22,11 @@ services:
       # Connection (optional)
       # ===================
       # Port auto-detection tries 443, 8443, 11443
-      UNIFI_PORT: ${UNIFI_PORT:-}
+      # Uncomment and set if you need a specific port:
+      # UNIFI_PORT: 443
       # Site auto-selected if only one exists
-      UNIFI_SITE: ${UNIFI_SITE:-}
+      # Uncomment and set if you have multiple sites:
+      # UNIFI_SITE: default
       # Set to false for self-signed certificates
       UNIFI_VERIFY_SSL: ${UNIFI_VERIFY_SSL:-true}
 
@@ -43,14 +45,15 @@ services:
       # Email Delivery
       # ===================
       UNIFI_EMAIL_ENABLED: ${UNIFI_EMAIL_ENABLED:-false}
-      UNIFI_SMTP_HOST: ${UNIFI_SMTP_HOST:-}
-      UNIFI_SMTP_PORT: ${UNIFI_SMTP_PORT:-587}
-      UNIFI_SMTP_USER: ${UNIFI_SMTP_USER:-}
+      # Configure these when email is enabled:
+      # UNIFI_SMTP_HOST: smtp.gmail.com
+      # UNIFI_SMTP_PORT: 587
+      # UNIFI_SMTP_USER: your-email@gmail.com
       # UNIFI_SMTP_PASSWORD: Use secret below
       UNIFI_SMTP_USE_TLS: ${UNIFI_SMTP_USE_TLS:-true}
       UNIFI_EMAIL_FROM: ${UNIFI_EMAIL_FROM:-unifi-scanner@localhost}
       # Comma-separated list of recipients (all via BCC)
-      UNIFI_EMAIL_RECIPIENTS: ${UNIFI_EMAIL_RECIPIENTS:-}
+      # UNIFI_EMAIL_RECIPIENTS: admin@example.com,ops@example.com
 
       # ===================
       # File Output
