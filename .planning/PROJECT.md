@@ -48,13 +48,25 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - **Network access**: Requires local network access to UniFi gateway/controller
 - **API dependency**: UniFi API is not officially documented; may change between versions
 
+## Current Milestone: v0.3-alpha — No Duplicate Reports
+
+**Goal:** Prevent the same events from being reported in every scheduled run
+
+**Target features:**
+- Track last successful report timestamp
+- Only process events that occurred after last report
+- Persist state in reports directory (.last_run.json)
+
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| API-first, SSH fallback | API is cleaner but SSH ensures compatibility if API unavailable | — Pending |
-| Severity tiers (low/med/severe) | Matches user's mental model; severe gets remediation steps | — Pending |
-| Reports over dashboard for v1 | Faster to ship, dashboard is v2 | — Pending |
+| API-first, SSH fallback | API is cleaner but SSH ensures compatibility if API unavailable | ✓ Good |
+| Severity tiers (low/med/severe) | Matches user's mental model; severe gets remediation steps | ✓ Good |
+| Reports over dashboard for v1 | Faster to ship, dashboard is v2 | ✓ Good |
+| CSRF token for UniFi OS | UDM Pro requires x-csrf-token header on all requests | ✓ Good |
+| Skip already-reported events | Simple timestamp cutoff, not recurring counts | — Pending |
+| State file in reports dir | Simple, uses existing volume mount | — Pending |
 
 ---
-*Last updated: 2026-01-24 after initialization*
+*Last updated: 2026-01-24 after v0.3-alpha milestone start*
