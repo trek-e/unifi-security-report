@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 4 of 5 (Report Generation) - IN PROGRESS
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 04-01-PLAN.md (Report Generator Foundation)
+Last activity: 2026-01-24 - Completed 04-03-PLAN.md (Text Report Template)
 
-Progress: [████████░░] 83%
+Progress: [████████░░] 87%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 4 min
-- Total execution time: 54 min
+- Total execution time: 57 min
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [████████░░] 83%
 | 01-foundation | 4 | 22 min | 6 min |
 | 02-log-collection | 3 | 10 min | 3 min |
 | 03-analysis-engine | 4 | 19 min | 5 min |
-| 04-report-generation | 1 | 3 min | 3 min |
+| 04-report-generation | 2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (4 min), 03-03 (4 min), 03-02 (3 min), 03-04 (5 min), 04-01 (3 min)
+- Last 5 plans: 03-03 (4 min), 03-02 (3 min), 03-04 (5 min), 04-01 (3 min), 04-03 (3 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -92,6 +92,9 @@ Recent decisions affecting current work:
 - PackageLoader for Jinja2 template loading from installed package
 - Autoescape enabled for HTML/XML files (security default)
 - ReportGenerator composes with FindingFormatter (reuse, not reimplement)
+- Text report tiered detail: SEVERE=full, MEDIUM=summary, LOW=one-liner
+- Text template hides empty severity sections with {% if %}
+- No HTML escaping for .txt files (autoescape only for html/xml)
 
 ### Pending Todos
 
@@ -105,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 04-01-PLAN.md (Report Generator Foundation)
+Stopped at: Completed 04-03-PLAN.md (Text Report Template)
 Resume file: None
