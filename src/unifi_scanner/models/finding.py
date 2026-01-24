@@ -16,6 +16,9 @@ class Finding(BaseModel):
     links back to one or more source log entries.
     """
 
+    # Threshold for marking a finding as recurring (5+ occurrences)
+    RECURRING_THRESHOLD: int = 5
+
     model_config = ConfigDict(
         from_attributes=True,
         json_encoders={
@@ -82,3 +85,39 @@ class Finding(BaseModel):
             True if severity is SEVERE and remediation exists
         """
         return self.severity == Severity.SEVERE and self.remediation is not None
+
+    @property
+    def is_recurring(self) -> bool:
+        """Check if this finding is recurring (5+ occurrences).
+
+        A finding is recurring when the same issue has been observed
+        multiple times within the deduplication window. This is informational
+        and does not escalate severity.
+
+        Returns:
+            True if occurrence_count >= RECURRING_THRESHOLD
+        """
+        return self.occurrence_count >= self.RECURRING_THRESHOLD
+
+    def format_occurrence_summary(self) -> str:
+        """Format a human-readable occurrence summary.
+
+        Returns a string showing how many times the issue occurred
+        and the time range in a user-friendly format.
+
+        Format: "Occurred N times (first: H:MM AM/PM, last: H:MM AM/PM)"
+        For single occurrences: "Occurred 1 time at H:MM AM/PM"
+
+        Returns:
+            Formatted occurrence summary string
+        """
+        first_time = self.first_seen.strftime("%-I:%M %p")
+        last_time = self.last_seen.strftime("%-I:%M %p")
+
+        if self.occurrence_count == 1:
+            return f"Occurred 1 time at {first_time}"
+
+        summary = f"Occurred {self.occurrence_count} times (first: {first_time}, last: {last_time})"
+        if self.is_recurring:
+            summary += " [Recurring]"
+        return summary
