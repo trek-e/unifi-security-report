@@ -1,0 +1,106 @@
+# UniFi Scanner Docker Compose Configuration
+# Full reference with all available options
+
+services:
+  unifi-scanner:
+    build: .
+    image: unifi-scanner:latest
+    container_name: unifi-scanner
+    restart: unless-stopped
+
+    environment:
+      # ===================
+      # Connection (required)
+      # ===================
+      UNIFI_HOST: ${UNIFI_HOST:?UNIFI_HOST is required}
+      UNIFI_USERNAME: ${UNIFI_USERNAME:?UNIFI_USERNAME is required}
+      # UNIFI_PASSWORD: Use secret below instead of env var
+
+      # ===================
+      # Connection (optional)
+      # ===================
+      # Port auto-detection tries 443, 8443, 11443
+      UNIFI_PORT: ${UNIFI_PORT:-}
+      # Site auto-selected if only one exists
+      UNIFI_SITE: ${UNIFI_SITE:-}
+      # Set to false for self-signed certificates
+      UNIFI_VERIFY_SSL: ${UNIFI_VERIFY_SSL:-true}
+
+      # ===================
+      # Scheduling
+      # ===================
+      # Use preset OR cron, not both
+      # Presets: daily_8am, daily_6pm, weekly_monday_8am, weekly_friday_5pm
+      UNIFI_SCHEDULE_PRESET: ${UNIFI_SCHEDULE_PRESET:-daily_8am}
+      # Or use cron expression (5-field): "0 8 * * *" = 8am daily
+      # UNIFI_SCHEDULE_CRON: ${UNIFI_SCHEDULE_CRON:-}
+      # Timezone for schedule (IANA format)
+      UNIFI_SCHEDULE_TIMEZONE: ${UNIFI_SCHEDULE_TIMEZONE:-UTC}
+
+      # ===================
+      # Email Delivery
+      # ===================
+      UNIFI_EMAIL_ENABLED: ${UNIFI_EMAIL_ENABLED:-false}
+      UNIFI_SMTP_HOST: ${UNIFI_SMTP_HOST:-}
+      UNIFI_SMTP_PORT: ${UNIFI_SMTP_PORT:-587}
+      UNIFI_SMTP_USER: ${UNIFI_SMTP_USER:-}
+      # UNIFI_SMTP_PASSWORD: Use secret below
+      UNIFI_SMTP_USE_TLS: ${UNIFI_SMTP_USE_TLS:-true}
+      UNIFI_EMAIL_FROM: ${UNIFI_EMAIL_FROM:-unifi-scanner@localhost}
+      # Comma-separated list of recipients (all via BCC)
+      UNIFI_EMAIL_RECIPIENTS: ${UNIFI_EMAIL_RECIPIENTS:-}
+
+      # ===================
+      # File Output
+      # ===================
+      UNIFI_FILE_ENABLED: ${UNIFI_FILE_ENABLED:-false}
+      UNIFI_FILE_OUTPUT_DIR: ${UNIFI_FILE_OUTPUT_DIR:-/app/reports}
+      # Format: html, text, or both
+      UNIFI_FILE_FORMAT: ${UNIFI_FILE_FORMAT:-both}
+      # Days to keep old reports (0 = forever)
+      UNIFI_FILE_RETENTION_DAYS: ${UNIFI_FILE_RETENTION_DAYS:-30}
+
+      # ===================
+      # Logging
+      # ===================
+      UNIFI_LOG_LEVEL: ${UNIFI_LOG_LEVEL:-INFO}
+      # Format: json (production) or text (debugging)
+      UNIFI_LOG_FORMAT: json
+
+    secrets:
+      - unifi_password
+      - smtp_password
+
+    volumes:
+      # Persist report files
+      - ./reports:/app/reports:rw
+      # Optional: custom config file
+      # - ./config.yaml:/app/config.yaml:ro
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+# Docker secrets (create files before running)
+secrets:
+  unifi_password:
+    file: ./secrets/unifi_password.txt
+  smtp_password:
+    file: ./secrets/smtp_password.txt
+
+# Example .env file:
+# UNIFI_HOST=192.168.1.1
+# UNIFI_USERNAME=admin
+# UNIFI_SCHEDULE_PRESET=daily_8am
+# UNIFI_SCHEDULE_TIMEZONE=America/New_York
+# UNIFI_EMAIL_ENABLED=true
+# UNIFI_SMTP_HOST=smtp.gmail.com
+# UNIFI_SMTP_PORT=587
+# UNIFI_SMTP_USER=your-email@gmail.com
+# UNIFI_EMAIL_FROM=your-email@gmail.com
+# UNIFI_EMAIL_RECIPIENTS=admin@example.com,ops@example.com
+# UNIFI_FILE_ENABLED=true
