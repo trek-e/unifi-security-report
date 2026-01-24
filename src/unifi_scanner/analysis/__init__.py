@@ -1,7 +1,7 @@
 """Analysis engine for UniFi log processing."""
 
-from .store import FindingStore
+from unifi_scanner.analysis.engine import AnalysisEngine
+from unifi_scanner.analysis.rules import Rule, RuleRegistry
+from unifi_scanner.analysis.store import FindingStore
 
-__all__ = [
-    "FindingStore",
-]
+__all__ = ["AnalysisEngine", "FindingStore", "Rule", "RuleRegistry"]
