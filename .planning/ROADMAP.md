@@ -30,13 +30,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Service automatically re-authenticates when session expires (no manual intervention)
   4. Service is configurable via environment variables and YAML config file
   5. Core data models exist for LogEntry, Finding, and Report
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Project scaffolding and configuration system
-- [ ] 01-02: Core data models with Pydantic validation
-- [ ] 01-03: UniFi API client with device detection
-- [ ] 01-04: Session management and auto re-authentication
+- [ ] 01-01-PLAN.md — Project scaffolding and configuration system
+- [ ] 01-02-PLAN.md — Core data models with Pydantic validation
+- [ ] 01-03-PLAN.md — UniFi API client with device detection
+- [ ] 01-04-PLAN.md — Session management and auto re-authentication
 
 ### Phase 2: Log Collection & Parsing
 **Goal**: Service can fetch logs from any UniFi device and normalize them into structured LogEntry objects
@@ -114,7 +114,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & API Connection | 0/4 | Not started | - |
+| 1. Foundation & API Connection | 0/4 | Planned | - |
 | 2. Log Collection & Parsing | 0/3 | Not started | - |
 | 3. Analysis Engine | 0/4 | Not started | - |
 | 4. Report Generation | 0/3 | Not started | - |
@@ -122,5 +122,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 ---
 *Roadmap created: 2026-01-24*
+*Phase 1 planned: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 16 | Total phases: 5 | Total plans: 19*
