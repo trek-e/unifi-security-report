@@ -121,6 +121,26 @@ class UnifiSettings(BaseSettings):
         description="Log output format: json (production) or text (development)",
     )
 
+    # SSH fallback settings
+    ssh_username: Optional[str] = Field(
+        default=None,
+        description="SSH username for fallback (defaults to username if not set)",
+    )
+    ssh_password: Optional[str] = Field(
+        default=None,
+        description="SSH password for fallback (defaults to password if not set)",
+    )
+    ssh_timeout: float = Field(
+        default=30.0,
+        ge=5.0,
+        le=300.0,
+        description="SSH command timeout in seconds",
+    )
+    ssh_enabled: bool = Field(
+        default=True,
+        description="Enable SSH fallback when API is insufficient",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,

@@ -37,6 +37,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "orjson>=3.10",
     "python-dateutil>=2.8",
+    "paramiko>=3.4",
 ]
 
 [project.optional-dependencies]
