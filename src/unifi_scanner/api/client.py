@@ -83,6 +83,7 @@ class UnifiClient:
         self.device_type: Optional[DeviceType] = None
         self.base_url: Optional[str] = None
         self.api_prefix: Optional[str] = None
+        self._csrf_token: Optional[str] = None
 
         # Create retry decorator based on settings
         self._retry = create_retry_decorator(
@@ -128,8 +129,8 @@ class UnifiClient:
             timeout=self.settings.connect_timeout,
         )
 
-        # Authenticate
-        authenticate(
+        # Authenticate and get CSRF token
+        self._csrf_token = authenticate(
             client=self._client,
             base_url=self.base_url,
             device_type=self.device_type,
@@ -394,6 +395,12 @@ class UnifiClient:
 
         url = f"{self.base_url}{endpoint}"
 
+        # Add CSRF token header if available (required for UniFi OS devices)
+        if self._csrf_token:
+            headers = kwargs.pop("headers", {})
+            headers["x-csrf-token"] = self._csrf_token
+            kwargs["headers"] = headers
+
         try:
             return self._client.request(method, url, **kwargs)
         except httpx.RequestError as e:
@@ -417,7 +424,7 @@ class UnifiClient:
 
         logger.debug("reauthenticating", host=self.settings.host)
 
-        authenticate(
+        self._csrf_token = authenticate(
             client=self._client,
             base_url=self.base_url,
             device_type=self.device_type,

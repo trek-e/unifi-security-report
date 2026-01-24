@@ -155,7 +155,7 @@ def authenticate(
     device_type: DeviceType,
     username: str,
     password: str,
-) -> None:
+) -> Optional[str]:
     """Authenticate with the UniFi Controller.
 
     Sends credentials to the appropriate login endpoint based on device type.
@@ -167,6 +167,9 @@ def authenticate(
         device_type: The type of UniFi controller.
         username: Local admin username.
         password: Admin password.
+
+    Returns:
+        CSRF token if present in response, None otherwise.
 
     Raises:
         AuthenticationError: Authentication failed (wrong credentials, cloud account, etc.)
@@ -191,11 +194,15 @@ def authenticate(
         )
 
     if response.status_code == 200:
+        # Extract CSRF token from response headers (UniFi OS devices)
+        csrf_token = response.headers.get("x-csrf-token")
+
         logger.info(
             "authentication_successful",
             device_type=device_type.value,
+            has_csrf_token=csrf_token is not None,
         )
-        return
+        return csrf_token
 
     if response.status_code in (401, 403):
         # Try to extract error message from response
