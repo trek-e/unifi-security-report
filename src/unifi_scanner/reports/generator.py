@@ -102,15 +102,19 @@ class ReportGenerator:
         raise NotImplementedError("HTML template not yet implemented")
 
     def generate_text(self, report: Report) -> str:
-        """Generate a plain text report from findings.
+        """Generate plain text report from Report model.
+
+        Plain text reports use tiered detail levels:
+        - SEVERE: Full detail (title, description, occurrence, remediation)
+        - MEDIUM: Summary (title, brief description, occurrence, remediation)
+        - LOW: One-liner (title and occurrence count only)
 
         Args:
-            report: Report containing findings to render
+            report: Report object containing findings to render
 
         Returns:
-            Plain text string of the rendered report
-
-        Raises:
-            NotImplementedError: Text template not yet implemented
+            Plain text report as string
         """
-        raise NotImplementedError("Text template not yet implemented")
+        template = self.env.get_template("report.txt")
+        context = self._build_context(report)
+        return template.render(**context)
