@@ -54,3 +54,31 @@ class Finding(BaseModel):
         if first_seen is not None and v < first_seen:
             raise ValueError("last_seen must be >= first_seen")
         return v
+
+    def add_occurrence(self, log_id: UUID, timestamp: datetime) -> None:
+        """Record an additional occurrence of this finding.
+
+        Increments the occurrence count, updates last_seen if the timestamp
+        is more recent, and appends the log_id to source_log_ids.
+
+        Args:
+            log_id: UUID of the LogEntry that triggered this occurrence
+            timestamp: When the occurrence was detected
+        """
+        self.occurrence_count += 1
+        if timestamp > self.last_seen:
+            self.last_seen = timestamp
+        if log_id not in self.source_log_ids:
+            self.source_log_ids.append(log_id)
+
+    @property
+    def is_actionable(self) -> bool:
+        """Check if this finding requires immediate action.
+
+        A finding is actionable if it has SEVERE severity and
+        a remediation recommendation is provided.
+
+        Returns:
+            True if severity is SEVERE and remediation exists
+        """
+        return self.severity == Severity.SEVERE and self.remediation is not None

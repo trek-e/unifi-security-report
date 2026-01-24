@@ -39,3 +39,35 @@ class LogEntry(BaseModel):
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Extensibility field for additional data"
     )
+
+    @classmethod
+    def from_unifi_event(cls, event_data: Dict[str, Any]) -> "LogEntry":
+        """Factory for creating LogEntry from raw UniFi API response.
+
+        This is a stub implementation that extracts common fields.
+        Will be enhanced in Phase 2 with specific event type handling.
+
+        Args:
+            event_data: Raw event dictionary from UniFi API
+
+        Returns:
+            LogEntry instance with extracted fields
+        """
+        # Extract timestamp - UniFi uses 'time' field with milliseconds
+        timestamp_ms = event_data.get("time", event_data.get("datetime"))
+        if isinstance(timestamp_ms, (int, float)):
+            timestamp = datetime.fromtimestamp(timestamp_ms / 1000)
+        elif isinstance(timestamp_ms, str):
+            timestamp = datetime.fromisoformat(timestamp_ms.replace("Z", "+00:00"))
+        else:
+            timestamp = datetime.utcnow()
+
+        return cls(
+            timestamp=timestamp,
+            source=LogSource.API,
+            device_mac=event_data.get("ap_mac") or event_data.get("sw_mac") or event_data.get("gw_mac"),
+            device_name=event_data.get("ap_name") or event_data.get("sw_name") or event_data.get("gw_name"),
+            event_type=event_data.get("key", "UNKNOWN"),
+            message=event_data.get("msg", ""),
+            raw_data=event_data,
+        )
