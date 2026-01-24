@@ -98,14 +98,14 @@ Plans:
   3. Service runs as Docker container with all dependencies bundled
   4. Service executes on configurable schedule (daily/weekly) without manual intervention
   5. Service handles delivery failures gracefully with retry logic
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 05-01: SMTP email delivery system
-- [ ] 05-02: File output with configurable paths
-- [ ] 05-03: APScheduler integration for cron-style scheduling
-- [ ] 05-04: Docker container build and deployment
-- [ ] 05-05: End-to-end integration testing
+- [ ] 05-01-PLAN.md — SMTP email delivery with BCC recipients and severity-aware subjects
+- [ ] 05-02-PLAN.md — File output with datetime naming and retention cleanup
+- [ ] 05-03-PLAN.md — APScheduler integration with cron expressions and presets
+- [ ] 05-04-PLAN.md — Docker container build and service integration
+- [ ] 05-05-PLAN.md — End-to-end integration testing with human verification
 
 ## Progress
 
@@ -118,7 +118,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 2. Log Collection & Parsing | 3/3 | Complete | 2026-01-24 |
 | 3. Analysis Engine | 4/4 | Complete | 2026-01-24 |
 | 4. Report Generation | 3/3 | Complete | 2026-01-24 |
-| 5. Delivery & Scheduling | 0/5 | Not started | - |
+| 5. Delivery & Scheduling | 0/5 | Planned | - |
 
 ---
 *Roadmap created: 2026-01-24*
@@ -130,5 +130,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 *Phase 3 complete: 2026-01-24*
 *Phase 4 planned: 2026-01-24*
 *Phase 4 complete: 2026-01-24*
+*Phase 5 planned: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 16 | Total phases: 5 | Total plans: 19*
