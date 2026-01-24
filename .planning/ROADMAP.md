@@ -64,13 +64,13 @@ Plans:
   3. Service provides step-by-step remediation guidance for severe issues
   4. Service deduplicates repeated events and displays occurrence counts
   5. Unknown log patterns are captured gracefully without crashing
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Rules engine architecture with pattern matching
-- [ ] 03-02: Initial rule set for common issues (security, connectivity, performance)
-- [ ] 03-03: Finding store with deduplication
-- [ ] 03-04: Plain English explanation and remediation templates
+- [ ] 03-01-PLAN.md — Rules engine architecture with pattern matching and dictionary dispatch
+- [ ] 03-02-PLAN.md — Initial rule set for security, connectivity, performance, and system categories
+- [ ] 03-03-PLAN.md — Finding store with 1-hour time-window deduplication
+- [ ] 03-04-PLAN.md — Plain English explanation and remediation templates with FindingFormatter
 
 ### Phase 4: Report Generation
 **Goal**: Service can transform findings into professionally formatted, human-readable reports
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Foundation & API Connection | 4/4 | Complete | 2026-01-24 |
 | 2. Log Collection & Parsing | 3/3 | Complete | 2026-01-24 |
-| 3. Analysis Engine | 0/4 | Not started | - |
+| 3. Analysis Engine | 0/4 | Planned | - |
 | 4. Report Generation | 0/3 | Not started | - |
 | 5. Delivery & Scheduling | 0/5 | Not started | - |
 
@@ -126,5 +126,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 *Phase 1 complete: 2026-01-24*
 *Phase 2 planned: 2026-01-24*
 *Phase 2 complete: 2026-01-24*
+*Phase 3 planned: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 16 | Total phases: 5 | Total plans: 19*
