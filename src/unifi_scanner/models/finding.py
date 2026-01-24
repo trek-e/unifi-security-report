@@ -8,6 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .enums import Category, Severity
 
+# Module-level constant for recurring threshold (5+ occurrences)
+RECURRING_THRESHOLD: int = 5
+
 
 class Finding(BaseModel):
     """Represents an analysis finding from UniFi log analysis.
@@ -15,9 +18,6 @@ class Finding(BaseModel):
     A finding is a detected issue, anomaly, or noteworthy event that
     links back to one or more source log entries.
     """
-
-    # Threshold for marking a finding as recurring (5+ occurrences)
-    RECURRING_THRESHOLD: int = 5
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -97,7 +97,7 @@ class Finding(BaseModel):
         Returns:
             True if occurrence_count >= RECURRING_THRESHOLD
         """
-        return self.occurrence_count >= self.RECURRING_THRESHOLD
+        return self.occurrence_count >= RECURRING_THRESHOLD
 
     def format_occurrence_summary(self) -> str:
         """Format a human-readable occurrence summary.
