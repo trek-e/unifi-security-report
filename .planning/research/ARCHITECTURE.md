@@ -1,721 +1,396 @@
-# Architecture Patterns
+# Architecture Research: State Integration
 
-**Domain:** Network log analysis and reporting service
+**Project:** UniFi Scanner - v0.3-alpha State Persistence
 **Researched:** 2026-01-24
-**Confidence:** MEDIUM (architecture patterns verified through multiple sources; UniFi-specific integration details based on community libraries)
+**Confidence:** HIGH
 
 ## Executive Summary
 
-The UniFi Scanner service follows a classic **ETL pipeline architecture** with five distinct stages: Collection, Parsing, Analysis, Report Generation, and Delivery. This architecture separates concerns cleanly, allows independent testing of each stage, and follows established patterns for log analysis systems.
+State persistence for duplicate event filtering must integrate cleanly into the existing `run_report_job()` pipeline without disrupting the established orchestration flow. Based on analysis of the current architecture and industry patterns for idempotent data pipelines, state should be:
 
-The recommended approach uses a **scheduled batch processing model** (not real-time streaming) appropriate for the v1 periodic reporting use case. Components communicate through in-memory data structures during a single run, with optional persistence for historical analysis.
+1. **Read BEFORE log collection** to establish the filter cutoff timestamp
+2. **Written AFTER successful delivery** using an idempotent commit pattern
+3. **NOT updated on failure** to prevent data loss and ensure re-processing on retry
 
-## Recommended Architecture
+This follows the **checkpoint-after-delivery** pattern used in stream processing systems, where state commits occur only after all downstream operations succeed.
+
+## Current Pipeline Architecture
+
+### Existing Flow (from `__main__.py::run_report_job()`)
 
 ```
-+------------------+     +------------------+     +------------------+
-|                  |     |                  |     |                  |
-|   Log Collector  +---->+   Log Parser     +---->+   Analyzer       |
-|   (UniFi API/SSH)|     |   (Normalizer)   |     |   (Rule Engine)  |
-|                  |     |                  |     |                  |
-+------------------+     +------------------+     +--------+---------+
-                                                          |
-                                                          v
-+------------------+     +------------------+     +------------------+
-|                  |     |                  |     |                  |
-|   Delivery       +<----+   Report Gen     +<----+   Finding Store  |
-|   (Email/File)   |     |   (Templates)    |     |   (In-Memory)    |
-|                  |     |                  |     |                  |
-+------------------+     +------------------+     +------------------+
+1. Connect to UniFi API
+2. Select site
+3. Collect logs (LogCollector)
+   └─> collector.collect() returns List[LogEntry]
+4. Analyze logs (AnalysisEngine)
+   └─> engine.analyze(log_entries) returns List[Finding]
+5. Build report (Report)
+   └─> Report(period_start, period_end, findings, ...)
+6. Generate content (ReportGenerator)
+   └─> generator.generate_html(report)
+   └─> generator.generate_text(report)
+7. Deliver (DeliveryManager)
+   └─> manager.deliver(report, html, text, recipients)
+   └─> Returns bool (success/failure)
+8. Update health status based on delivery success
 ```
 
-### Component Boundaries
+**Current characteristics:**
+- Pipeline is **linear and synchronous** (no parallelization)
+- **Error handling via exceptions** (caught at job level)
+- **Delivery is the final success indicator** (bool return)
+- **No existing state persistence** mechanism
 
-| Component | Responsibility | Input | Output | Communicates With |
-|-----------|---------------|-------|--------|-------------------|
-| **Scheduler** | Triggers collection runs on configured intervals | Cron config | Run trigger | Log Collector |
-| **Log Collector** | Fetches raw logs from UniFi gateway/controller | API credentials, SSH config | Raw log entries | Log Parser |
-| **Log Parser** | Normalizes diverse log formats into structured data | Raw log strings | Normalized LogEntry objects | Analyzer |
-| **Analyzer** | Applies rules to detect issues, assigns severity | Normalized entries | Finding objects with severity | Finding Store |
-| **Finding Store** | Accumulates findings for report generation | Finding objects | Grouped/sorted findings | Report Generator |
-| **Report Generator** | Creates human-readable reports from findings | Findings, templates | Report content (HTML/text) | Delivery |
-| **Delivery** | Sends reports via configured channels | Report content, config | Email sent, file written | External systems |
-| **Config Manager** | Loads and validates configuration | Config file, env vars | Typed config objects | All components |
+## Integration Points
 
-### Data Flow
+### Integration Point 1: State Read (Before Log Collection)
 
-**Collection Phase:**
-```
-UniFi Gateway/Controller
-    |
-    | (HTTPS API or SSH)
-    v
-Raw Log Entries (strings)
-    |
-    | (list of raw log lines with metadata)
-    v
-Log Parser
-```
+**Location:** Between step 2 (select site) and step 3 (collect logs)
 
-**Processing Phase:**
-```
-Raw Log Entry
-    |
-    | (regex parsing, field extraction)
-    v
-Normalized LogEntry {
-    timestamp: datetime
-    source: str (device ID/name)
-    facility: str (hostapd, kernel, etc.)
-    severity: int (syslog level 0-7)
-    message: str
-    raw: str
-    metadata: dict
-}
-    |
-    | (rule matching)
-    v
-Finding {
-    id: str
-    category: str (security, connectivity, performance, etc.)
-    severity: enum (low, medium, severe)
-    title: str
-    explanation: str (plain English)
-    remediation: Optional[str] (for severe only)
-    source_entries: List[LogEntry]
-    detected_at: datetime
-}
-```
+**Purpose:** Determine the timestamp cutoff for filtering logs
 
-**Output Phase:**
-```
-List[Finding]
-    |
-    | (grouping, sorting by severity)
-    v
-Report {
-    generated_at: datetime
-    period: (start, end)
-    summary: dict (counts by severity)
-    findings_severe: List[Finding]
-    findings_medium: List[Finding]
-    findings_low: List[Finding]
-}
-    |
-    | (template rendering)
-    v
-Report Content (HTML and/or plain text)
-    |
-    | (SMTP or filesystem)
-    v
-Email / File Output
-```
-
-## Component Details
-
-### 1. Scheduler
-
-**Purpose:** Trigger log collection and analysis runs at configured intervals.
-
-**Approaches (ranked by recommendation):**
-
-1. **Built-in Python scheduler (APScheduler)** - Recommended for v1
-   - Runs within the container process
-   - No external dependencies
-   - Supports cron-like expressions
-   - Handles missed runs gracefully
-
-2. **Container-native cron (Ofelia/Supercronic)** - Alternative
-   - Separate scheduler container triggers main container
-   - More complex deployment but cleaner separation
-   - Better for multi-container orchestration
-
-3. **Kubernetes CronJob** - For K8s deployments
-   - Native K8s scheduling
-   - Out of scope for v1 Docker focus
-
-**Confidence:** MEDIUM - Based on [Ofelia](https://github.com/mcuadros/ofelia) and general containerization patterns.
-
-### 2. Log Collector
-
-**Purpose:** Retrieve logs from UniFi infrastructure.
-
-**Primary Method: UniFi Controller API**
-- Uses unofficial but well-documented community APIs
-- Python libraries available: `unifi-controller-api`, `unificontrol`, `pyunifi`
-- Provides `get_events()` and `get_alarms()` methods
-- Returns structured JSON with timestamps and metadata
-
-**Fallback Method: SSH Direct Access**
-- Connect directly to UniFi gateway via SSH
-- Read syslog files (`/var/log/messages`, device-specific logs)
-- Requires paramiko or asyncssh for Python
-- More complex parsing required
-
-**SIEM Integration Method (Alternative):**
-- Configure UniFi to forward logs via syslog (UDP)
-- Service listens on UDP port for incoming logs
-- Uses Common Event Format (CEF) standardized format
-- More complex infrastructure but real-time capable
-
-**Recommendation for v1:** API-first with SSH fallback, per PROJECT.md decision.
-
-**Data Models:**
-
+**Implementation pattern:**
 ```python
-@dataclass
-class RawLogBatch:
-    source: str  # "api" or "ssh"
-    device_id: str
-    device_name: str
-    collected_at: datetime
-    entries: List[str]  # Raw log lines
-    metadata: dict  # API response metadata
-```
-
-**Confidence:** HIGH for API method - verified via [unifi-controller-api](https://github.com/tnware/unifi-controller-api) and [unificontrol](https://unificontrol.readthedocs.io/en/latest/introduction.html).
-
-### 3. Log Parser
-
-**Purpose:** Convert raw log strings into structured, normalized data.
-
-**Challenges:**
-- UniFi logs come in multiple formats (syslog, JSON, custom)
-- Format varies by device type and firmware version
-- Multi-line log entries for stack traces
-
-**Pattern Approach:**
-1. **Format detection** - Identify log format (syslog, JSON, custom)
-2. **Field extraction** - Parse timestamp, facility, severity, message
-3. **Normalization** - Convert to common LogEntry structure
-4. **Enrichment** - Add device context, parse known message patterns
-
-**Libraries:**
-- `python-dateutil` for flexible timestamp parsing
-- `regex` (not just `re`) for advanced pattern matching
-- Custom parsers for known UniFi message types
-
-**Data Models:**
-
-```python
-@dataclass
-class LogEntry:
-    id: str  # Unique identifier
-    timestamp: datetime
-    source_device: str
-    facility: str  # hostapd, kernel, dhcpd, etc.
-    severity: int  # Syslog 0-7
-    message: str
-    raw: str  # Original unparsed line
-    parsed_fields: dict  # Extracted structured data
-
-    @property
-    def severity_name(self) -> str:
-        return ["EMERG", "ALERT", "CRIT", "ERR",
-                "WARN", "NOTICE", "INFO", "DEBUG"][self.severity]
-```
-
-**Confidence:** MEDIUM - Patterns verified via [NXLog UniFi docs](https://docs.nxlog.co/integrate/unifi.html) and syslog standards.
-
-### 4. Analyzer (Rule Engine)
-
-**Purpose:** Detect issues in normalized log entries and assign severity.
-
-**Architecture Pattern: Rules Engine**
-
-Use a lightweight rules engine pattern where rules are:
-- Declarative (can be defined in YAML/JSON or code)
-- Composable (combine simple conditions)
-- Extensible (easy to add new rules)
-
-**Rule Structure:**
-
-```python
-@dataclass
-class Rule:
-    id: str
-    name: str
-    description: str
-    category: str  # security, connectivity, performance, hardware
-    output_severity: Severity  # low, medium, severe
-
-    # Matching criteria
-    facility_match: Optional[str]  # regex
-    message_match: Optional[str]  # regex
-    severity_min: Optional[int]  # syslog level threshold
-    time_window: Optional[timedelta]  # for correlation
-    count_threshold: Optional[int]  # for frequency-based rules
-
-    # Output templates
-    explanation_template: str
-    remediation_template: Optional[str]  # for severe only
-```
-
-**Rule Categories:**
-
-| Category | Example Issues | Typical Severity |
-|----------|---------------|------------------|
-| Security | Failed auth attempts, unauthorized access, firewall blocks | Medium-Severe |
-| Connectivity | Client disconnects, AP failures, DHCP issues | Low-Medium |
-| Performance | High latency, channel congestion, interference | Low-Medium |
-| Hardware | Overheating, high CPU, memory pressure | Medium-Severe |
-| Configuration | Invalid settings, deprecated features | Low |
-
-**Severity Assignment Logic:**
-
-| Severity | Criteria | Action |
-|----------|----------|--------|
-| **Severe** | Security breach indicators, hardware failure, service outage | Include remediation steps |
-| **Medium** | Recurring issues, degraded performance, warning patterns | Flag for attention |
-| **Low** | Informational, one-off events, normal churn | Report only |
-
-**Libraries:**
-- `rule-engine` PyPI package for expression evaluation
-- Or custom implementation using strategy pattern
-
-**Confidence:** HIGH - Rules engine pattern is well-established; see [Rules Engine Design Pattern](https://tenmilesquare.com/resources/software-development/basic-rules-engine-design-pattern/).
-
-### 5. Finding Store
-
-**Purpose:** Accumulate and organize findings for reporting.
-
-**Design:** In-memory for v1 (single-run batch processing).
-
-```python
-@dataclass
-class Finding:
-    id: str
-    rule_id: str
-    category: str
-    severity: Severity
-    title: str
-    explanation: str  # Plain English
-    remediation: Optional[str]  # For severe only
-    source_entries: List[LogEntry]
-    first_seen: datetime
-    last_seen: datetime
-    occurrence_count: int
-```
-
-**Aggregation Logic:**
-- Group duplicate findings by rule_id
-- Track first/last occurrence and count
-- Sort by severity (severe first), then by recency
-
-**Future Enhancement (v2):**
-- SQLite for historical tracking
-- Trend analysis (is this issue getting worse?)
-- Deduplication across runs
-
-**Confidence:** HIGH - Standard pattern.
-
-### 6. Report Generator
-
-**Purpose:** Create human-readable reports from findings.
-
-**Template Engine:** Jinja2
-- Industry standard for Python templating
-- Supports HTML and plain text
-- Separation of content from presentation
-- Easy to customize report format
-
-**Report Structure:**
-
-```
-# Network Health Report
-Generated: 2026-01-24 08:00:00
-Period: Last 24 hours
-
-## Summary
-- Severe Issues: 1
-- Medium Issues: 3
-- Low Issues: 12
-
-## Severe Issues (Action Required)
-
-### [Security] Multiple Failed Admin Login Attempts
-**What happened:** 47 failed login attempts to the UniFi Controller
-from IP 192.168.1.105 between 02:15 and 02:45.
-
-**Why this matters:** This pattern indicates a potential brute-force
-attack on your network administration interface.
-
-**What to do:**
-1. Check if you recognize IP 192.168.1.105
-2. If unknown, block this IP in your firewall
-3. Enable two-factor authentication on your UniFi account
-4. Consider changing your admin password
-
----
-
-## Medium Issues
-
-### [Connectivity] Frequent Client Disconnections on AP-Living-Room
-...
-
-## Low Issues (Informational)
-...
-```
-
-**Templates:**
-- `report.html.j2` - HTML email version
-- `report.txt.j2` - Plain text version
-- `report_summary.txt.j2` - Short summary for subject lines
-
-**Confidence:** HIGH - Jinja2 is standard; see [Better Stack Jinja Guide](https://betterstack.com/community/guides/scaling-python/jinja-templating/).
-
-### 7. Delivery
-
-**Purpose:** Send reports via configured channels.
-
-**Channels:**
-
-1. **Email (SMTP)**
-   - Use `smtplib` + `email` stdlib
-   - Support TLS/SSL (port 587/465)
-   - HTML with plain text fallback
-   - Credentials via environment variables
-
-2. **File Output**
-   - Write to configurable directory
-   - Filename pattern: `unifi-report-{datetime}.{format}`
-   - Support HTML, plain text, JSON
-
-**Email Configuration:**
-
-```python
-@dataclass
-class EmailConfig:
-    enabled: bool
-    smtp_host: str
-    smtp_port: int
-    smtp_user: str
-    smtp_password: str  # From env var
-    use_tls: bool
-    from_address: str
-    to_addresses: List[str]
-    subject_template: str
-```
-
-**Confidence:** HIGH - Standard Python patterns; see [Python smtplib docs](https://docs.python.org/3/library/smtplib.html).
-
-### 8. Config Manager
-
-**Purpose:** Load, validate, and provide typed configuration.
-
-**Configuration Sources (priority order):**
-1. Environment variables (for secrets, container config)
-2. Config file (YAML or TOML)
-3. Defaults
-
-**Configuration Schema:**
-
-```yaml
-# unifi-scanner.yaml
-unifi:
-  controller_url: "https://192.168.1.1"
-  username: "${UNIFI_USERNAME}"  # Env var substitution
-  password: "${UNIFI_PASSWORD}"
-  site: "default"
-  verify_ssl: false
-
-  ssh_fallback:
-    enabled: true
-    host: "192.168.1.1"
-    username: "root"
-    key_file: "/config/ssh/id_rsa"
-
-schedule:
-  cron: "0 8 * * *"  # Daily at 8 AM
-  timezone: "America/New_York"
-
-analysis:
-  lookback_hours: 24
-  rules_file: "/config/rules.yaml"  # Optional custom rules
-
-output:
-  file:
-    enabled: true
-    directory: "/reports"
-    format: "html"  # html, txt, json
-
-  email:
-    enabled: true
-    smtp_host: "smtp.gmail.com"
-    smtp_port: 587
-    use_tls: true
-    from: "unifi-scanner@example.com"
-    to:
-      - "admin@example.com"
-    subject: "UniFi Report: {severe_count} severe, {medium_count} medium issues"
-
-logging:
-  level: "INFO"
-  format: "json"  # json or text
-```
-
-**Libraries:**
-- `pydantic` for config validation and typing
-- `python-dotenv` for env var loading
-- `pyyaml` for YAML parsing
-
-**Confidence:** HIGH - Standard patterns.
-
-## Patterns to Follow
-
-### Pattern 1: Pipeline Processor
-
-**What:** Each processing stage is an independent function/class that takes input and produces output, with no side effects outside its domain.
-
-**When:** All main processing stages (collect, parse, analyze, generate, deliver).
-
-**Example:**
-```python
-class LogParser:
-    def __init__(self, config: ParserConfig):
-        self.config = config
-        self.patterns = self._compile_patterns()
-
-    def parse(self, raw_batch: RawLogBatch) -> List[LogEntry]:
-        """Pure function: raw logs in, structured entries out."""
-        entries = []
-        for line in raw_batch.entries:
-            if entry := self._parse_line(line, raw_batch):
-                entries.append(entry)
-        return entries
-```
-
-### Pattern 2: Dependency Injection for Testability
-
-**What:** Components receive their dependencies through constructor, not hardcoded.
-
-**When:** Any component that depends on external systems (UniFi API, SMTP, filesystem).
-
-**Example:**
-```python
-class LogCollector:
-    def __init__(self, api_client: UnifiApiClient, ssh_client: Optional[SSHClient] = None):
-        self.api = api_client
-        self.ssh = ssh_client
-
-    def collect(self, lookback: timedelta) -> RawLogBatch:
-        try:
-            return self._collect_via_api(lookback)
-        except ApiError:
-            if self.ssh:
-                return self._collect_via_ssh(lookback)
-            raise
-```
-
-### Pattern 3: Configuration-Driven Rules
-
-**What:** Analysis rules defined in data (YAML) rather than code where possible.
-
-**When:** Rule definitions that non-developers might customize.
-
-**Example:**
-```yaml
-# rules.yaml
-rules:
-  - id: auth_failure_brute_force
-    name: "Brute Force Login Attempt"
-    category: security
-    severity: severe
-    match:
-      facility: "authpriv"
-      message_pattern: "authentication failure.*rhost=(?P<ip>[\\d.]+)"
-      count_threshold: 10
-      time_window_minutes: 30
-    explanation: >
-      {count} failed login attempts from IP {ip} in {window} minutes.
-      This pattern suggests a brute-force attack.
-    remediation: |
-      1. Verify if {ip} is a known device on your network
-      2. If unknown, block this IP in your firewall rules
-      3. Enable two-factor authentication
-      4. Consider changing admin credentials
-```
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Monolithic Run Function
-
-**What:** Single function that does collection, parsing, analysis, and delivery inline.
-
-**Why bad:**
-- Impossible to test stages independently
-- Cannot reuse components
-- Difficult to modify one stage without affecting others
-
-**Instead:** Separate pipeline stages with clear interfaces.
-
-### Anti-Pattern 2: Hardcoded Credentials
-
-**What:** Putting UniFi passwords, SMTP credentials in config files or code.
-
-**Why bad:**
-- Security vulnerability
-- Difficult to manage across environments
-- Commits secrets to version control
-
-**Instead:** Use environment variables for secrets, config files for non-sensitive settings.
-
-### Anti-Pattern 3: Regex-Only Log Parsing
-
-**What:** Relying solely on regex patterns without format detection.
-
-**Why bad:**
-- Brittle against format changes
-- Poor error handling for malformed logs
-- No fallback for unknown formats
-
-**Instead:** Format detection first, then format-specific parsers, with fallback to raw capture.
-
-### Anti-Pattern 4: Blocking Email Delivery
-
-**What:** Synchronously sending email in the main processing pipeline.
-
-**Why bad:**
-- SMTP timeouts block entire run
-- Retry logic complicates main flow
-- Single failure prevents file output
-
-**Instead:** Deliver to file first (always succeeds), then attempt email delivery separately with retries.
-
-## Build Order (Phase Implications)
-
-Based on component dependencies, recommended build order:
-
-```
-Phase 1: Foundation
-├── Config Manager (needed by everything)
-├── Data Models (LogEntry, Finding, Report)
-└── Basic container structure
-
-Phase 2: Collection
-├── Log Collector (API method)
-├── Log Parser (syslog format)
-└── Integration test: collect + parse
-
-Phase 3: Analysis
-├── Rule Engine core
-├── Initial rule set (10-20 common issues)
-├── Finding Store
-└── Integration test: full pipeline to findings
-
-Phase 4: Output
-├── Report Generator (Jinja2 templates)
-├── File Delivery
-└── Integration test: end-to-end to file
-
-Phase 5: Delivery
-├── Email Delivery
-├── Scheduler integration
-└── Production container
-
-Phase 6: Hardening
-├── SSH fallback for collection
-├── Extended rule set
-├── Error handling + logging
-└── Retry logic
+# After site selection, before log collection
+state_manager = StateManager(state_file_path)
+last_successful_run = state_manager.read_last_run()
+
+# Pass to collector for filtering
+collector = LogCollector(
+    client=client,
+    settings=config,
+    site=site,
+    since_timestamp=last_successful_run,  # NEW parameter
+)
+log_entries = collector.collect()
 ```
 
 **Rationale:**
-1. Config and models are dependencies for everything else
-2. Collection must work before parsing can be tested
-3. Analysis requires normalized log data
-4. Report generation requires findings
-5. Email is optional and can fail without blocking file output
-6. SSH fallback and hardening can be deferred
+- State read must happen **before collection** to inform what to fetch
+- Placing it immediately before `LogCollector` construction keeps related operations adjacent
+- If state file doesn't exist (first run), use default lookback period (e.g., 24 hours)
 
-## Scalability Considerations
+**Failure handling:**
+- Missing state file: Use default lookback period (safe default for first run)
+- Corrupted state file: Log warning, use default lookback period, continue
+- State file permissions error: Raise exception (configuration problem, should halt)
 
-| Concern | v1 (Single Gateway) | Future (Multi-Gateway) |
-|---------|---------------------|------------------------|
-| Log Volume | ~1000s entries/day, in-memory OK | Consider SQLite or file-based buffering |
-| Collection | Single API call per run | Parallel collection, rate limiting |
-| Analysis | Sequential rule evaluation | Batch processing, possibly parallel |
-| Reports | Single report | Per-gateway reports, aggregate summary |
-| Storage | No persistence | Historical database for trending |
+### Integration Point 2: State Write (After Successful Delivery)
 
-**v1 Design Decision:** Optimize for simplicity. In-memory processing is sufficient for single-gateway volumes. Add persistence layer in v2 if needed.
+**Location:** After step 7 (deliver) returns `True`, before step 8 (health status update)
 
-## Container Architecture
+**Purpose:** Record successful run timestamp to prevent duplicate reporting
 
-```
-unifi-scanner/
-├── Dockerfile
-├── docker-compose.yml
-├── config/
-│   ├── unifi-scanner.yaml
-│   └── rules.yaml
-├── src/
-│   └── unifi_scanner/
-│       ├── __init__.py
-│       ├── main.py           # Entry point
-│       ├── config.py         # Config Manager
-│       ├── collector/
-│       │   ├── api.py        # UniFi API client
-│       │   └── ssh.py        # SSH fallback
-│       ├── parser/
-│       │   └── syslog.py     # Log parser
-│       ├── analyzer/
-│       │   ├── engine.py     # Rule engine
-│       │   └── rules.py      # Built-in rules
-│       ├── reporter/
-│       │   ├── generator.py  # Report generator
-│       │   └── templates/    # Jinja2 templates
-│       └── delivery/
-│           ├── email.py      # SMTP delivery
-│           └── file.py       # File output
-├── templates/
-│   ├── report.html.j2
-│   └── report.txt.j2
-└── tests/
+**Implementation pattern:**
+```python
+success = manager.deliver(
+    report=report,
+    html_content=html_content,
+    text_content=text_content,
+    email_recipients=recipients,
+)
+
+if success:
+    # COMMIT PATTERN: Update state only after successful delivery
+    try:
+        state_manager.write_last_run(report.generated_at)
+        log.info("state_updated", timestamp=report.generated_at)
+    except Exception as e:
+        # State update failure is non-fatal (delivery already succeeded)
+        log.error("state_update_failed", error=str(e))
+        # Continue to health status update
+
+    log.info("job_complete", status="success")
+    update_health_status(HealthStatus.HEALTHY, {"last_run": "success"})
+else:
+    # CRITICAL: Do NOT update state on delivery failure
+    log.warning("job_complete", status="delivery_failed")
+    update_health_status(HealthStatus.UNHEALTHY, {"last_run": "delivery_failed"})
 ```
 
-**Docker Compose Example:**
+**Rationale:**
+- State update **after delivery success** ensures idempotent retry behavior
+- If delivery fails but state updates, subsequent runs would skip those events permanently
+- State update failure is logged but non-fatal (delivery already succeeded, state will lag but not lose data)
 
-```yaml
-version: "3.8"
-services:
-  unifi-scanner:
-    build: .
-    environment:
-      - UNIFI_USERNAME=${UNIFI_USERNAME}
-      - UNIFI_PASSWORD=${UNIFI_PASSWORD}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-    volumes:
-      - ./config:/config:ro
-      - ./reports:/reports
-    restart: unless-stopped
+## Data Flow with State Integration
+
+### Complete Flow Diagram
+
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│ run_report_job()                                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. Connect to UniFi API                                        │
+│  2. Select site                                                 │
+│                                                                 │
+│  ┌───────────────────────────────────────┐                     │
+│  │ STATE READ                            │                     │
+│  │ - Load .last_run.json                 │                     │
+│  │ - Extract timestamp                   │                     │
+│  │ - Default to NOW - 24h if missing     │                     │
+│  └───────────────────────────────────────┘                     │
+│         │                                                        │
+│         ▼                                                        │
+│  3. Collect logs (with timestamp filter)                        │
+│     - API request: events since <timestamp>                     │
+│     - Filter out older events                                   │
+│                                                                 │
+│  4. Analyze logs → Findings                                     │
+│  5. Build Report                                                │
+│  6. Generate HTML/Text                                          │
+│  7. Deliver                                                     │
+│         │                                                        │
+│         ├─ SUCCESS ─────────┐                                   │
+│         │                   ▼                                   │
+│         │            ┌───────────────────────────────────┐      │
+│         │            │ STATE WRITE (COMMIT)              │      │
+│         │            │ - Update .last_run.json           │      │
+│         │            │ - Write report.generated_at       │      │
+│         │            │ - Atomic write (temp + rename)    │      │
+│         │            └───────────────────────────────────┘      │
+│         │                   │                                   │
+│         │                   ▼                                   │
+│         │            8. Health: HEALTHY                         │
+│         │                                                        │
+│         └─ FAILURE ────> 8. Health: UNHEALTHY                   │
+│                          (DO NOT UPDATE STATE)                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### State File Format
+
+**Location:** `{file_output_dir}/.last_run.json` (same directory as reports)
+
+**Format:**
+```json
+{
+  "last_successful_run": "2026-01-24T14:30:00Z",
+  "last_report_count": 3,
+  "schema_version": "1.0"
+}
+```
+
+**Fields:**
+- `last_successful_run`: ISO 8601 timestamp in UTC (required)
+- `last_report_count`: Number of findings in last report (informational, optional)
+- `schema_version`: Format version for future migrations (required)
+
+**Rationale:**
+- Atomic writes prevent partial state corruption
+- Schema version supports future enhancements
+- Stored in reports directory reuses existing volume mount
+
+## Failure Handling
+
+### When NOT to Update State
+
+Critical scenarios where state must NOT be updated:
+
+| Failure Scenario | State Action | Rationale |
+|------------------|--------------|-----------|
+| **Delivery fails** | DO NOT UPDATE | Events not delivered; must retry with same events |
+| **Email fails, file fallback succeeds** | UPDATE | Fallback delivery counts as success |
+| **Report generation throws exception** | DO NOT UPDATE | Job aborted before delivery |
+| **Log collection fails** | DO NOT UPDATE | No events processed |
+| **Analysis throws exception** | DO NOT UPDATE | Processing incomplete |
+
+### When TO Update State
+
+| Success Scenario | State Action | Timestamp Value |
+|------------------|--------------|-----------------|
+| **Both email and file succeed** | UPDATE | `report.generated_at` |
+| **Email succeeds, file disabled** | UPDATE | `report.generated_at` |
+| **Email fails, file fallback succeeds** | UPDATE | `report.generated_at` |
+| **File succeeds, email disabled** | UPDATE | `report.generated_at` |
+
+### State Update Failure Handling
+
+If state update fails AFTER successful delivery:
+
+```python
+if success:
+    try:
+        state_manager.write_last_run(report.generated_at)
+    except PermissionError as e:
+        # CRITICAL: Cannot write state file
+        log.error("state_write_permission_denied", path=state_file, error=str(e))
+        # Alert admin via health status
+        update_health_status(HealthStatus.DEGRADED, {
+            "last_run": "success_but_state_write_failed",
+            "error": str(e)
+        })
+    except Exception as e:
+        # Other errors: log but don't fail the job
+        log.error("state_update_failed", error=str(e))
+```
+
+**Recovery approach:**
+- Delivery succeeded, so job is successful
+- State lag means next run will have some duplicate events
+- Better to have duplicate reports than missing events
+- Health status reflects degraded state for admin awareness
+
+### State Read Failure Handling
+
+If state read fails BEFORE collection:
+
+```python
+try:
+    last_run = state_manager.read_last_run()
+except FileNotFoundError:
+    # First run - use default lookback
+    last_run = datetime.now(timezone.utc) - timedelta(hours=24)
+    log.info("first_run_detected", using_default_lookback="24h")
+except PermissionError as e:
+    # Cannot read state - critical config issue
+    log.error("state_read_permission_denied", path=state_file, error=str(e))
+    raise  # Halt job - admin must fix permissions
+except json.JSONDecodeError as e:
+    # Corrupted state file - recoverable
+    log.warning("state_file_corrupted", error=str(e), using_default_lookback="24h")
+    last_run = datetime.now(timezone.utc) - timedelta(hours=24)
+```
+
+## Architectural Patterns Referenced
+
+### 1. Checkpoint-After-Delivery Pattern
+
+**Pattern:** State commits occur only after all downstream operations complete successfully.
+
+**Source:** Apache Flink, Kafka Streams
+- Watermark progress is checkpointed after processing completes
+- Unaligned checkpoints generate watermarks after restoring in-flight data
+
+**Application to UniFi Scanner:**
+- State file is the "checkpoint"
+- Delivery success is the "commit barrier"
+- Failed delivery means checkpoint is not advanced
+
+### 2. Idempotent Consumer Pattern
+
+**Pattern:** Track delivered event identifiers to prevent re-processing even if re-consumed.
+
+**Source:** Airbyte, Kafka exactly-once semantics
+- Log of delivered event identifiers maintained separately from data
+- Transaction flow: check log → deliver → record identifier → commit offset
+
+**Application to UniFi Scanner:**
+- Timestamp cutoff acts as the "delivered events log"
+- Events before cutoff are filtered (not re-processed)
+- State update only after delivery ensures idempotency
+
+### 3. Delete-Write Pattern for Idempotency
+
+**Pattern:** Atomic state replacement instead of incremental updates.
+
+**Source:** Modern ETL systems
+- Delete existing data before writing new data
+- Makes pipelines idempotent even with retries
+
+**Application to UniFi Scanner:**
+- Atomic file write (temp file + rename) implements this
+- Each state update completely replaces previous state
+- Retries don't create duplicate state entries
+
+## Component Boundaries
+
+### Existing Components (No Changes Required)
+
+| Component | Responsibility | Why No Change |
+|-----------|---------------|---------------|
+| `LogCollector` | Orchestrate log collection from API/SSH | Filtering logic added internally, API unchanged |
+| `AnalysisEngine` | Transform logs → findings | Operates on filtered logs, oblivious to state |
+| `ReportGenerator` | Transform findings → HTML/text | Operates on findings, oblivious to state |
+| `DeliveryManager` | Orchestrate delivery via email/file | Already returns success bool for state decision |
+
+### New Component
+
+| Component | Responsibility | Interfaces |
+|-----------|---------------|------------|
+| `StateManager` | Read/write last run timestamp | `read_last_run() -> datetime`, `write_last_run(timestamp: datetime)` |
+
+**Placement:** `src/unifi_scanner/state/manager.py`
+
+**Rationale:**
+- Single responsibility: state file management
+- Isolated from pipeline orchestration (testable independently)
+- Reusable across multiple state tracking needs (future: per-device state)
+
+## Performance Considerations
+
+### State File I/O Impact
+
+**Read operation:**
+- Frequency: Once per job execution
+- Size: ~200 bytes JSON file
+- Impact: Negligible (<1ms on modern systems)
+
+**Write operation:**
+- Frequency: Once per successful delivery
+- Size: ~200 bytes JSON file
+- Impact: Negligible (<5ms with atomic write)
+
+**Conclusion:** State I/O overhead is trivial compared to API calls (100-500ms) and report generation (50-200ms).
+
+### Log Collection Filtering
+
+**API filtering approach:**
+- UniFi Events API supports `start` parameter (epoch timestamp)
+- Filter at source reduces data transfer and parsing overhead
+- Typical reduction: 95-99% fewer events processed on subsequent runs
+
+**Example:**
+- First run: 10,000 events over 24 hours
+- Subsequent hourly runs: 100-500 events per run
+- State tracking reduces processing by ~20-100x
+
+## Migration Strategy
+
+### Transition from Current Behavior
+
+**Current behavior:** Every run processes all events from last 24 hours (API default or configured lookback)
+
+**New behavior:** Every run processes events since last successful run
+
+**Migration path:**
+1. First run with new code: No state file exists → use 24-hour lookback (same as current)
+2. State file created after first successful delivery
+3. Subsequent runs use state file timestamp
+4. Gradual transition, no manual migration needed
+
+### Backward Compatibility
+
+**State file is optional:**
+- Missing state file is NOT an error
+- System falls back to default lookback period
+- Enables rollback to old version by deleting state file
 
 ## Sources
 
-### UniFi Integration
-- [unifi-controller-api GitHub](https://github.com/tnware/unifi-controller-api) - Python API client (HIGH confidence)
-- [unificontrol documentation](https://unificontrol.readthedocs.io/en/latest/introduction.html) - Alternative Python client (HIGH confidence)
-- [NXLog UniFi Integration](https://docs.nxlog.co/integrate/unifi.html) - Syslog collection patterns (MEDIUM confidence)
-- [Ubiquiti Community - API Discussion](https://community.ui.com/questions/Ubiquiti-unifi-logs-collection-using-API/e30fb551-40e9-4172-80e4-8c729e8eb14c) - Community patterns (LOW confidence)
+Industry patterns and architecture references:
 
-### Architecture Patterns
-- [GeeksforGeeks - Centralized Logging Systems](https://www.geeksforgeeks.org/system-design/centralized-logging-systems-system-design/) - System design patterns (MEDIUM confidence)
-- [Rules Engine Design Pattern](https://tenmilesquare.com/resources/software-development/basic-rules-engine-design-pattern/) - Rules architecture (HIGH confidence)
-- [Microservices Log Aggregation Pattern](https://microservices.io/patterns/observability/application-logging.html) - Logging patterns (HIGH confidence)
+### Pipeline Architecture
+- [Data Pipeline Architecture: 5 Design Patterns with Examples | Dagster](https://dagster.io/guides/data-pipeline-architecture-5-design-patterns-with-examples)
+- [Data Pipeline Architecture: 9 Patterns & Best Practices | Alation](https://www.alation.com/blog/data-pipeline-architecture-patterns/)
+- [Data Engineering Design Patterns 2026 | AWS in Plain English](https://aws.plainenglish.io/data-engineering-design-patterns-you-must-learn-in-2026-c25b7bd0b9a7)
 
-### Containerization
-- [Ofelia Docker Scheduler](https://github.com/mcuadros/ofelia) - Container job scheduling (HIGH confidence)
-- [Running Python Tasks in Docker](https://nschdr.medium.com/running-scheduled-python-tasks-in-a-docker-container-bf9ea2e8a66c) - Docker Python patterns (MEDIUM confidence)
+### State Management & Filtering
+- [ETL Pipeline State Management Guide 2026 | Estuary](https://estuary.dev/blog/what-is-an-etl-pipeline/)
+- [ETL Pipeline Best Practices | dbt Labs](https://www.getdbt.com/blog/etl-pipeline-best-practices)
 
-### Report Generation
-- [Better Stack - Jinja Templating](https://betterstack.com/community/guides/scaling-python/jinja-templating/) - Template patterns (HIGH confidence)
-- [Real Python - Jinja Primer](https://realpython.com/primer-on-jinja-templating/) - Jinja2 usage (HIGH confidence)
+### Idempotency Patterns
+- [Understanding Idempotency in Data Pipelines | Airbyte](https://airbyte.com/data-engineering-resources/idempotency-in-data-pipelines)
+- [Importance of Idempotent Data Pipelines | Prefect](https://www.prefect.io/blog/the-importance-of-idempotent-data-pipelines-for-resilience)
+- [How to Make Data Pipelines Idempotent | Start Data Engineering](https://www.startdataengineering.com/post/why-how-idempotent-data-pipeline/)
+- [Exactly Once Semantics Using Idempotent Consumer Pattern | Medium](https://medium.com/@zdb.dashti/exactly-once-semantics-using-the-idempotent-consumer-pattern-927b2595f231)
+- [Building Idempotent Data Pipelines: Practical Guide | Medium](https://medium.com/towards-data-engineering/building-idempotent-data-pipelines-a-practical-guide-to-reliability-at-scale-2afc1dcb7251)
 
-### Email Delivery
-- [Python smtplib Documentation](https://docs.python.org/3/library/smtplib.html) - Official Python docs (HIGH confidence)
-- [Mailtrap - Python Send Email](https://mailtrap.io/blog/python-send-email/) - SMTP best practices (MEDIUM confidence)
-
-### Log Classification
-- [Better Stack - Log Levels Explained](https://betterstack.com/community/guides/logging/log-levels-explained/) - Severity classification (HIGH confidence)
-- [Datadog - How to Categorize Logs](https://www.datadoghq.com/blog/how-to-categorize-logs/) - Categorization patterns (MEDIUM confidence)
+### Checkpointing & Failure Handling
+- [How Watermarking Works in Spark Streaming](https://www.sparkcodehub.com/spark/streaming/watermarking)
+- [Apache Flink Checkpointing and Savepoints | Medium](https://medium.com/@akash.d.goel/apache-flink-series-part-6-4ef9ad38e051)
+- [What Does Checkpointing Mean | Dagster Glossary](https://dagster.io/glossary/checkpointing)
+- [Pipeline Failure and Error Handling | Azure Data Factory](https://learn.microsoft.com/en-us/azure/data-factory/tutorial-pipeline-failure-error-handling)
