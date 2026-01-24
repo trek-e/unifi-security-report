@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block header %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+    <tr>
+        <td>
+            <h1 style="margin: 0 0 10px 0; color: #ffffff; font-size: 24px; font-weight: 600;">{{ report_title }}</h1>
+            <p style="margin: 0; color: #ffffff; font-size: 14px; opacity: 0.9;">{{ site_name }}</p>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-top: 15px;">
+            <p style="margin: 0; color: #ffffff; font-size: 12px; opacity: 0.8;">
+                Period: {{ period_start }} - {{ period_end }}
+            </p>
+            <p style="margin: 5px 0 0 0; color: #ffffff; font-size: 12px; opacity: 0.8;">
+                Generated: {{ generated_at }}
+            </p>
+        </td>
+    </tr>
+</table>
+{% endblock %}
+
+{% block content %}
+<!-- Executive Summary -->
+{% include "components/executive_summary.html" %}
+
+<!-- Findings by Severity -->
+
+{% if severe_findings %}
+<!-- SEVERE Findings -->
+<div style="margin-top: 30px;">
+    {% set severity = "severe" %}
+    {% set findings = severe_findings %}
+    {% set count = counts.severe_count %}
+    {% include "components/severity_section.html" %}
+</div>
+{% endif %}
+
+{% if medium_findings %}
+<!-- MEDIUM Findings -->
+<div style="margin-top: 30px;">
+    {% set severity = "medium" %}
+    {% set findings = medium_findings %}
+    {% set count = counts.medium_count %}
+    {% include "components/severity_section.html" %}
+</div>
+{% endif %}
+
+{% if low_findings %}
+<!-- LOW Findings (Collapsible) -->
+<div style="margin-top: 30px;">
+    <input type="checkbox" id="toggle-low" style="position: absolute; left: -9999px;" />
+    <label for="toggle-low" style="cursor: pointer; color: #2282FF; text-decoration: underline; font-weight: 500; display: inline-block; padding: 10px 0;">
+        Show LOW severity findings ({{ counts.low_count }})
+    </label>
+    <div class="low-content" style="display: none;">
+        {% set severity = "low" %}
+        {% set findings = low_findings %}
+        {% set count = counts.low_count %}
+        {% include "components/severity_section.html" %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

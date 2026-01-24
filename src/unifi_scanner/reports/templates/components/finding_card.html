@@ -1,0 +1,56 @@
+<!-- Finding Card -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff; border: 1px solid #e9ecef; border-radius: 4px; {% if finding.severity == 'severe' %}border-left: 4px solid #dc3545;{% elif finding.severity == 'medium' %}border-left: 4px solid #fd7e14;{% else %}border-left: 4px solid #6c757d;{% endif %}">
+    <tr>
+        <td style="padding: 15px;">
+            <!-- Title Row with Severity Badge -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td>
+                        <h4 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #333333;">
+                            {% if finding.severity == "severe" %}
+                            <span style="display: inline-block; padding: 2px 8px; background-color: #dc3545; color: #ffffff; border-radius: 3px; font-size: 11px; text-transform: uppercase; margin-right: 6px; vertical-align: middle;">SEVERE</span>
+                            {% elif finding.severity == "medium" %}
+                            <span style="display: inline-block; padding: 2px 8px; background-color: #fd7e14; color: #ffffff; border-radius: 3px; font-size: 11px; text-transform: uppercase; margin-right: 6px; vertical-align: middle;">MEDIUM</span>
+                            {% else %}
+                            <span style="display: inline-block; padding: 2px 8px; background-color: #6c757d; color: #ffffff; border-radius: 3px; font-size: 11px; text-transform: uppercase; margin-right: 6px; vertical-align: middle;">LOW</span>
+                            {% endif %}
+                            {{ finding.title }}
+                            {% if finding.is_recurring %}
+                            <span style="display: inline-block; padding: 2px 8px; background-color: #17a2b8; color: #ffffff; border-radius: 3px; font-size: 11px; margin-left: 6px; vertical-align: middle;">[Recurring]</span>
+                            {% endif %}
+                        </h4>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Device Info -->
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">
+                <strong style="color: #333333;">Device:</strong> {{ finding.device_display }}
+            </p>
+
+            <!-- Occurrence Summary -->
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: #666666;">
+                {{ finding.occurrence_summary }}
+            </p>
+
+            {% if finding.severity != "low" %}
+            <!-- Description (full for SEVERE/MEDIUM, omitted for LOW) -->
+            <p style="margin: 10px 0; font-size: 14px; color: #333333; line-height: 1.5;">
+                {{ finding.description }}
+            </p>
+
+            {% if finding.remediation %}
+            <!-- Remediation Section -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 12px;">
+                <tr>
+                    <td style="background-color: #e7f3ff; border-left: 4px solid #2282FF; padding: 12px 15px; border-radius: 0 4px 4px 0;">
+                        <p style="margin: 0 0 8px 0; font-weight: 600; color: #0559C9; font-size: 13px;">Recommended Actions:</p>
+                        <div style="font-size: 13px; color: #333333; line-height: 1.6; white-space: pre-wrap;">{{ finding.remediation }}</div>
+                    </td>
+                </tr>
+            </table>
+            {% endif %}
+            {% endif %}
+        </td>
+    </tr>
+</table>

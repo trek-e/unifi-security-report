@@ -1,0 +1,24 @@
+<!-- Severity Section: {{ severity|upper }} -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+    <tr>
+        <td style="padding-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #333333;">
+                {% if severity == "severe" %}
+                <span style="display: inline-block; padding: 3px 10px; background-color: #dc3545; color: #ffffff; border-radius: 3px; font-size: 12px; text-transform: uppercase; margin-right: 8px;">SEVERE</span>
+                {% elif severity == "medium" %}
+                <span style="display: inline-block; padding: 3px 10px; background-color: #fd7e14; color: #ffffff; border-radius: 3px; font-size: 12px; text-transform: uppercase; margin-right: 8px;">MEDIUM</span>
+                {% else %}
+                <span style="display: inline-block; padding: 3px 10px; background-color: #6c757d; color: #ffffff; border-radius: 3px; font-size: 12px; text-transform: uppercase; margin-right: 8px;">LOW</span>
+                {% endif %}
+                {{ count }} Finding{% if count != 1 %}s{% endif %}
+            </h3>
+        </td>
+    </tr>
+    {% for finding in findings %}
+    <tr>
+        <td style="padding-bottom: 15px;">
+            {% include "components/finding_card.html" %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>

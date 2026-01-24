@@ -1,0 +1,37 @@
+<!-- Executive Summary Section -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef;">
+    <tr>
+        <td style="padding: 20px;">
+            <h2 style="margin: 0 0 15px 0; color: #333333; font-size: 18px; font-weight: 600;">Executive Summary</h2>
+
+            <!-- Severity Counts -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td style="padding: 8px 0;">
+                        <span style="display: inline-block; padding: 4px 12px; background-color: #dc3545; color: #ffffff; border-radius: 4px; font-weight: 600; font-size: 13px;">{{ counts.severe_count }} Severe</span>
+                        <span style="display: inline-block; padding: 4px 12px; background-color: #fd7e14; color: #ffffff; border-radius: 4px; font-weight: 600; font-size: 13px; margin-left: 8px;">{{ counts.medium_count }} Medium</span>
+                        <span style="display: inline-block; padding: 4px 12px; background-color: #6c757d; color: #ffffff; border-radius: 4px; font-weight: 600; font-size: 13px; margin-left: 8px;">{{ counts.low_count }} Low</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0;">
+                        <p style="margin: 0; color: #666666; font-size: 14px;">{{ counts.total }} findings total</p>
+                    </td>
+                </tr>
+            </table>
+
+            {% if counts.severe_count > 0 %}
+            <!-- Action Required Callout -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 15px;">
+                <tr>
+                    <td style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; border-radius: 0 4px 4px 0;">
+                        <p style="margin: 0; color: #856404; font-weight: 600; font-size: 14px;">
+                            Action Required: {{ counts.severe_count }} severe finding{% if counts.severe_count != 1 %}s{% endif %} need{% if counts.severe_count == 1 %}s{% endif %} immediate attention.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            {% endif %}
+        </td>
+    </tr>
+</table>
