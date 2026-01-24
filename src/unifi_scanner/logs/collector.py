@@ -4,6 +4,7 @@ Tries API collection first, falls back to SSH if API fails
 or returns insufficient entries.
 """
 
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 import structlog
@@ -79,6 +80,7 @@ class LogCollector:
         self,
         force_ssh: bool = False,
         history_hours: int = 720,
+        since_timestamp: Optional[datetime] = None,
     ) -> List[LogEntry]:
         """Collect logs from available sources.
 
@@ -87,6 +89,10 @@ class LogCollector:
         Args:
             force_ssh: Skip API and use SSH directly (default False).
             history_hours: Hours of history to retrieve via API.
+            since_timestamp: Only include events newer than this timestamp (UTC).
+                Client-side filtering is applied since UniFi API lacks
+                timestamp filter support. A 5-minute clock skew tolerance
+                is automatically applied.
 
         Returns:
             List of LogEntry objects.
@@ -105,6 +111,7 @@ class LogCollector:
                     client=self.client,
                     site=self.site,
                     history_hours=history_hours,
+                    since_timestamp=since_timestamp,
                 )
                 entries = api_collector.collect()
 
@@ -141,6 +148,20 @@ class LogCollector:
         if self.settings.ssh_enabled:
             try:
                 ssh_entries = self._collect_via_ssh()
+
+                # Filter SSH entries by since_timestamp (defensive, same as API)
+                if since_timestamp:
+                    unfiltered_count = len(ssh_entries)
+                    effective_cutoff = since_timestamp - timedelta(minutes=5)
+                    ssh_entries = [
+                        e for e in ssh_entries if e.timestamp > effective_cutoff
+                    ]
+                    logger.debug(
+                        "ssh_entries_filtered",
+                        before_filter=unfiltered_count,
+                        after_filter=len(ssh_entries),
+                        since=since_timestamp.isoformat(),
+                    )
 
                 # Merge with any API entries we got
                 if entries:
