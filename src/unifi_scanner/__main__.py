@@ -2,10 +2,11 @@
 Entry point for the unifi-scanner CLI.
 
 Usage:
-    unifi-scanner           Run the scanner service
-    unifi-scanner --test    Validate configuration and connection, then exit
-    unifi-scanner --help    Show help message
-    unifi-scanner --version Show version and exit
+    unifi-scanner             Run the scanner service (scheduled)
+    unifi-scanner --run-once  Run once immediately and exit
+    unifi-scanner --test      Validate configuration and connection, then exit
+    unifi-scanner --help      Show help message
+    unifi-scanner --version   Show version and exit
 
 Exit Codes:
     0 - Success
@@ -69,6 +70,9 @@ Examples:
   # Test configuration and connection
   unifi-scanner --test
 
+  # Run once immediately (manual trigger)
+  unifi-scanner --run-once
+
   # Run with environment variables only
   UNIFI_HOST=192.168.1.1 UNIFI_USERNAME=admin UNIFI_PASSWORD=secret unifi-scanner
 """,
@@ -82,6 +86,11 @@ Examples:
         "--test",
         action="store_true",
         help="Test configuration and connection, then exit",
+    )
+    parser.add_argument(
+        "--run-once",
+        action="store_true",
+        help="Run one report cycle immediately and exit (manual trigger)",
     )
     return parser.parse_args()
 
@@ -310,6 +319,21 @@ def main() -> int:
             return EXIT_CONFIG_ERROR
         finally:
             clear_health_status()
+
+    # Run-once mode: execute one report cycle and exit
+    if args.run_once:
+        print_banner(config)
+        log.info("run_once_mode", message="Running single report cycle")
+        update_health_status(HealthStatus.STARTING)
+        try:
+            run_report_job()
+            clear_health_status()
+            return EXIT_SUCCESS
+        except Exception as e:
+            log.error("run_once_failed", error=str(e))
+            print(f"\nReport generation failed: {e}", file=sys.stderr)
+            clear_health_status()
+            return EXIT_CONFIG_ERROR
 
     # Normal mode - print banner and start service
     print_banner(config)
