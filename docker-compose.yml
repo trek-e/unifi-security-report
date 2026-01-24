@@ -2,10 +2,12 @@
 # Full reference with all available options
 
 services:
-  unifi-scanner:
-    build: .
-    image: unifi-scanner:latest
-    container_name: unifi-scanner
+  unifi-security-report:
+    # Use pre-built image from GitHub Container Registry
+    image: ghcr.io/trek-e/unifi-security-report:latest
+    # Or build locally:
+    # build: .
+    container_name: unifi-security-report
     restart: unless-stopped
 
     environment:
