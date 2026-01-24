@@ -4,6 +4,7 @@ This module provides the UnifiClient class for connecting to UniFi controllers,
 along with supporting authentication, endpoint definitions, and custom exceptions.
 """
 
+from unifi_scanner.api.client import UnifiClient
 from unifi_scanner.api.endpoints import (
     API_PREFIXES,
     Endpoints,
@@ -19,8 +20,9 @@ from unifi_scanner.api.exceptions import (
     UnifiAPIError,
 )
 
-# UnifiClient will be added after implementation
 __all__ = [
+    # Client
+    "UnifiClient",
     # Exceptions
     "AuthenticationError",
     "ConnectionError",
