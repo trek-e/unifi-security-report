@@ -18,6 +18,7 @@ class Category(str, Enum):
     CONNECTIVITY = "connectivity"
     PERFORMANCE = "performance"
     SYSTEM = "system"
+    UNCATEGORIZED = "uncategorized"
 
 
 class LogSource(str, Enum):
