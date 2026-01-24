@@ -1,7 +1,8 @@
 """UniFi API client module.
 
 This module provides the UnifiClient class for connecting to UniFi controllers,
-along with supporting authentication, endpoint definitions, and custom exceptions.
+along with supporting authentication, endpoint definitions, custom exceptions,
+and session management with retry logic.
 """
 
 from unifi_scanner.api.client import UnifiClient
@@ -19,6 +20,7 @@ from unifi_scanner.api.exceptions import (
     SiteNotFoundError,
     UnifiAPIError,
 )
+from unifi_scanner.api.session import create_retry_decorator, request_with_session_check
 
 __all__ = [
     # Client
@@ -35,4 +37,7 @@ __all__ = [
     "Endpoints",
     "get_api_prefix",
     "get_endpoints",
+    # Session
+    "create_retry_decorator",
+    "request_with_session_check",
 ]

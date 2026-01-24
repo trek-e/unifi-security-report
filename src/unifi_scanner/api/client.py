@@ -4,6 +4,12 @@ The UnifiClient provides a high-level interface for connecting to UniFi
 controllers, handling device type detection, authentication, and site selection
 automatically.
 
+Features:
+- Automatic device type detection (UDM vs self-hosted)
+- Session management with automatic re-authentication on 401
+- Exponential backoff retry on connection failures
+- Cookie-based session persistence
+
 Example usage:
     from unifi_scanner.config import UnifiSettings
     from unifi_scanner.api import UnifiClient
@@ -31,6 +37,7 @@ from .exceptions import (
     SiteNotFoundError,
     UnifiAPIError,
 )
+from .session import create_retry_decorator, request_with_session_check
 
 logger = structlog.get_logger(__name__)
 
@@ -77,17 +84,31 @@ class UnifiClient:
         self.base_url: Optional[str] = None
         self.api_prefix: Optional[str] = None
 
+        # Create retry decorator based on settings
+        self._retry = create_retry_decorator(
+            max_retries=settings.max_retries,
+            min_wait=1,
+            max_wait=60,
+        )
+
     def connect(self) -> None:
         """Connect to the UniFi Controller.
 
         Performs device type detection, establishes connection, and authenticates.
         After successful connection, device_type, base_url, and api_prefix are set.
 
+        Uses exponential backoff retry on connection failures (1s, 2s, 4s... max 60s).
+
         Raises:
-            ConnectionError: Cannot connect to controller.
+            ConnectionError: Cannot connect to controller after all retries.
             DeviceDetectionError: Cannot determine device type.
             AuthenticationError: Authentication failed.
         """
+        # Wrap the actual connect logic with retry decorator
+        self._retry(self._connect_internal)()
+
+    def _connect_internal(self) -> None:
+        """Internal connection logic (wrapped with retry by connect())."""
         logger.info("connecting", host=self.settings.host)
 
         # Detect device type and port
@@ -223,13 +244,80 @@ class UnifiClient:
         # Multiple sites and none specified
         raise MultipleSitesError(available_sites=site_names)
 
+    def _raw_request(
+        self,
+        method: str,
+        endpoint: str,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        """Make a raw HTTP request without session handling.
+
+        This method performs the actual HTTP request without checking for
+        session expiration or handling 401 responses. Use _request() for
+        automatic session management.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            endpoint: API endpoint path.
+            **kwargs: Additional arguments passed to httpx.request().
+
+        Returns:
+            Raw response object (may be 401 if session expired).
+
+        Raises:
+            ConnectionError: Network-level request failed.
+            RuntimeError: Not connected.
+        """
+        self._ensure_connected()
+        assert self._client is not None
+        assert self.base_url is not None
+
+        url = f"{self.base_url}{endpoint}"
+
+        try:
+            return self._client.request(method, url, **kwargs)
+        except httpx.RequestError as e:
+            raise ConnectionError(
+                message=f"Request failed: {e}",
+            )
+
+    def _reauthenticate(self) -> None:
+        """Re-authenticate with the controller.
+
+        Called automatically when a 401 response is received, indicating
+        the session has expired. Performs a fresh authentication using
+        the stored credentials.
+
+        Raises:
+            AuthenticationError: Re-authentication failed.
+            RuntimeError: Not connected or missing connection info.
+        """
+        if not self._client or not self.base_url or not self.device_type:
+            raise RuntimeError("Cannot re-authenticate: not connected")
+
+        logger.debug("reauthenticating", host=self.settings.host)
+
+        authenticate(
+            client=self._client,
+            base_url=self.base_url,
+            device_type=self.device_type,
+            username=self.settings.username,
+            password=self.settings.password,
+        )
+
+        self._authenticated = True
+        logger.info("reauthenticated", host=self.settings.host)
+
     def _request(
         self,
         method: str,
         endpoint: str,
         **kwargs: Any,
     ) -> httpx.Response:
-        """Make an API request to the controller.
+        """Make an API request with automatic session management.
+
+        Uses request_with_session_check to handle 401 responses by
+        re-authenticating and retrying the request.
 
         Args:
             method: HTTP method (GET, POST, etc.)
@@ -240,27 +328,19 @@ class UnifiClient:
             Response object.
 
         Raises:
-            UnifiAPIError: Request failed.
+            UnifiAPIError: Request failed or session recovery failed.
             RuntimeError: Not connected.
         """
         self._ensure_connected()
-        assert self._client is not None
-        assert self.base_url is not None
 
-        url = f"{self.base_url}{endpoint}"
+        response = request_with_session_check(self, method, endpoint, **kwargs)
 
-        try:
-            response = self._client.request(method, url, **kwargs)
-        except httpx.RequestError as e:
-            raise ConnectionError(
-                message=f"Request failed: {e}",
-            )
-
-        # Handle common error codes
+        # Handle common error codes (401 already handled by session check)
         if response.status_code == 401:
+            # If we still get 401 after re-auth, it's a real auth failure
             raise UnifiAPIError(
-                message="Session expired or unauthorized",
-                hint="Try reconnecting to refresh the session.",
+                message="Session expired and re-authentication failed",
+                hint="Check your credentials and try reconnecting.",
             )
 
         if response.status_code == 404:
