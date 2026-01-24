@@ -47,12 +47,12 @@ Plans:
   2. Service parses multiple log formats (syslog, JSON) into normalized LogEntry objects
   3. Service falls back to SSH when API log access is insufficient
   4. All timestamps are normalized to UTC regardless of source format
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: API-based log collection (events, alarms)
-- [ ] 02-02: Multi-format log parser with defensive parsing
-- [ ] 02-03: SSH fallback for direct log access
+- [ ] 02-01-PLAN.md — API-based log collection (events, alarms endpoints)
+- [ ] 02-02-PLAN.md — Multi-format parser with UTC normalization and defensive parsing
+- [ ] 02-03-PLAN.md — SSH fallback collector with orchestration
 
 ### Phase 3: Analysis Engine
 **Goal**: Service can analyze logs, detect issues, categorize by severity, and generate human-readable explanations
@@ -115,7 +115,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & API Connection | 4/4 | Complete | 2026-01-24 |
-| 2. Log Collection & Parsing | 0/3 | Not started | - |
+| 2. Log Collection & Parsing | 0/3 | Planned | - |
 | 3. Analysis Engine | 0/4 | Not started | - |
 | 4. Report Generation | 0/3 | Not started | - |
 | 5. Delivery & Scheduling | 0/5 | Not started | - |
@@ -124,5 +124,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 *Roadmap created: 2026-01-24*
 *Phase 1 planned: 2026-01-24*
 *Phase 1 complete: 2026-01-24*
+*Phase 2 planned: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 16 | Total phases: 5 | Total plans: 19*
