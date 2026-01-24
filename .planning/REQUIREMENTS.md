@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Log Collection
 
-- [ ] **COLL-01**: Service connects to UniFi Controller via API
-- [ ] **COLL-02**: Service auto-detects device type (UDM Pro, UCG Ultra, self-hosted)
-- [ ] **COLL-03**: Service handles session expiration with automatic re-authentication
-- [ ] **COLL-04**: Service falls back to SSH when API is insufficient
+- [x] **COLL-01**: Service connects to UniFi Controller via API
+- [x] **COLL-02**: Service auto-detects device type (UDM Pro, UCG Ultra, self-hosted)
+- [x] **COLL-03**: Service handles session expiration with automatic re-authentication
+- [x] **COLL-04**: Service falls back to SSH when API is insufficient
 
 ### Analysis
 
@@ -31,8 +31,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Deployment
 
 - [ ] **DEPL-01**: Service runs as Docker container
-- [ ] **DEPL-02**: Service configurable via environment variables
-- [ ] **DEPL-03**: Service supports YAML configuration file
+- [x] **DEPL-02**: Service configurable via environment variables
+- [x] **DEPL-03**: Service supports YAML configuration file
 - [ ] **DEPL-04**: Service runs on configurable schedule (daily/weekly)
 
 ## v2 Requirements
@@ -71,10 +71,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COLL-01 | Phase 1 | Pending |
-| COLL-02 | Phase 1 | Pending |
-| COLL-03 | Phase 1 | Pending |
-| COLL-04 | Phase 2 | Pending |
+| COLL-01 | Phase 1 | Complete |
+| COLL-02 | Phase 1 | Complete |
+| COLL-03 | Phase 1 | Complete |
+| COLL-04 | Phase 2 | Complete |
 | ANLZ-01 | Phase 3 | Pending |
 | ANLZ-02 | Phase 3 | Pending |
 | ANLZ-03 | Phase 3 | Pending |
@@ -84,8 +84,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REPT-03 | Phase 5 | Pending |
 | REPT-04 | Phase 5 | Pending |
 | DEPL-01 | Phase 5 | Pending |
-| DEPL-02 | Phase 1 | Pending |
-| DEPL-03 | Phase 1 | Pending |
+| DEPL-02 | Phase 1 | Complete |
+| DEPL-03 | Phase 1 | Complete |
 | DEPL-04 | Phase 5 | Pending |
 
 **Coverage:**
@@ -95,4 +95,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after roadmap creation*
+*Last updated: 2026-01-24 after Phase 2 completion*
