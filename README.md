@@ -1,6 +1,6 @@
-# UniFi Scanner
+# UniFi Security Report
 
-A containerized service that monitors UniFi network logs and delivers plain-English reports via email or file.
+A containerized service that monitors UniFi network logs and delivers plain-English security reports via email or file.
 
 ## Features
 
@@ -31,6 +31,12 @@ ENVEOF
 
 # Run
 docker-compose up -d
+```
+
+### Pull from GitHub Container Registry
+
+```bash
+docker pull ghcr.io/trek-e/unifi-security-report:latest
 ```
 
 ### Local Installation
