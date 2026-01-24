@@ -81,12 +81,12 @@ Plans:
   2. Service generates plain text reports for email fallback
   3. Reports present severe issues first with remediation steps, then medium, then low
   4. Reports include summary section with issue counts by severity
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Jinja2 template system setup
-- [ ] 04-02: HTML report template with styling
-- [ ] 04-03: Plain text report template
+- [ ] 04-01-PLAN.md — Jinja2 template system setup with ReportGenerator foundation
+- [ ] 04-02-PLAN.md — HTML report templates with UniFi styling and email compatibility
+- [ ] 04-03-PLAN.md — Plain text report template with tiered detail levels
 
 ### Phase 5: Delivery & Scheduling
 **Goal**: Service runs as a scheduled Docker container that delivers reports via email and file
@@ -117,7 +117,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 1. Foundation & API Connection | 4/4 | Complete | 2026-01-24 |
 | 2. Log Collection & Parsing | 3/3 | Complete | 2026-01-24 |
 | 3. Analysis Engine | 4/4 | Complete | 2026-01-24 |
-| 4. Report Generation | 0/3 | Not started | - |
+| 4. Report Generation | 0/3 | Planned | - |
 | 5. Delivery & Scheduling | 0/5 | Not started | - |
 
 ---
@@ -128,5 +128,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 *Phase 2 complete: 2026-01-24*
 *Phase 3 planned: 2026-01-24*
 *Phase 3 complete: 2026-01-24*
+*Phase 4 planned: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 16 | Total phases: 5 | Total plans: 19*
