@@ -206,6 +206,14 @@ def run_report_job() -> None:
             log_entries = collector.collect(since_timestamp=since_timestamp)
             log.info("logs_collected", count=len(log_entries))
 
+            # Handle empty result (no new events since last run)
+            if not log_entries:
+                log.info(
+                    "no_new_events",
+                    since=since_timestamp.isoformat(),
+                    message="No new events since last report",
+                )
+
             # Analyze logs with default rules
             registry = get_default_registry()
             engine = AnalysisEngine(registry=registry)
