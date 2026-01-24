@@ -214,6 +214,14 @@ class UnifiSettings(BaseSettings):
         description="Timezone for schedule (IANA format, e.g., America/New_York)",
     )
 
+    # State persistence settings
+    initial_lookback_hours: int = Field(
+        default=24,
+        description="Hours of history to process on first run (when no state file exists)",
+        gt=0,
+        le=720,  # Max 30 days to match API limits
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
