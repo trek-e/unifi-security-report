@@ -21,6 +21,8 @@ class Endpoints:
         sites: Sites list endpoint (GET)
         self: Self/user info endpoint (GET)
         status: Status endpoint (GET, no auth required)
+        events: Events retrieval endpoint (POST)
+        alarms: Alarms retrieval endpoint (GET)
     """
 
     login: str
@@ -28,6 +30,8 @@ class Endpoints:
     sites: str
     self: str
     status: str
+    events: str
+    alarms: str
 
 
 # Endpoint definitions for UDM Pro, UDR, UCG Ultra, and Cloud Key Gen2+
@@ -38,6 +42,8 @@ UDM_PRO_ENDPOINTS = Endpoints(
     sites="/proxy/network/api/self/sites",
     self="/proxy/network/api/self",
     status="/status",
+    events="/proxy/network/api/s/{site}/stat/event",
+    alarms="/proxy/network/api/s/{site}/list/alarm",
 )
 
 # Endpoint definitions for self-hosted UniFi Controller
@@ -48,6 +54,8 @@ SELF_HOSTED_ENDPOINTS = Endpoints(
     sites="/api/self/sites",
     self="/api/self",
     status="/status",
+    events="/api/s/{site}/stat/event",
+    alarms="/api/s/{site}/list/alarm",
 )
 
 # API prefix required for site-specific endpoints
