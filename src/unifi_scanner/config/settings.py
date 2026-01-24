@@ -239,6 +239,22 @@ class UnifiSettings(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
         )
 
+    @field_validator("port", mode="before")
+    @classmethod
+    def parse_optional_port(cls, v: Any) -> Any:
+        """Convert empty strings to None for optional port field."""
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("smtp_port", mode="before")
+    @classmethod
+    def parse_smtp_port(cls, v: Any) -> Any:
+        """Use default for empty smtp_port."""
+        if v == "" or v is None:
+            return 587  # Return default
+        return v
+
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, v: str) -> str:
