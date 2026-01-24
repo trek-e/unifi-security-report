@@ -100,6 +100,9 @@ Recent decisions affecting current work:
 - Severity-aware subject line: [N SEVERE] prefix when severe_count > 0
 - Dual TLS support: port 587 (STARTTLS) and 465 (implicit TLS)
 - Email delivery fails gracefully (returns bool, never crashes)
+- Atomic file writes via temp file in same directory, then rename
+- Retention cleanup runs after each successful save
+- Filename format: unifi-report-YYYY-MM-DD-HHMM.ext
 - APScheduler 3.x (not 4.0 alpha) for stable blocking scheduler
 - CronTrigger.from_crontab() requires explicit timezone parameter
 - Misfire grace time 3600s with coalesce=True for missed runs
