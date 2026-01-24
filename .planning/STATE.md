@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3-alpha — State persistence to prevent duplicate event reporting
+**Current focus:** v0.3-alpha COMPLETE - State persistence to prevent duplicate event reporting
 
 ## Current Position
 
-Phase: Phase 6 - State Persistence
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-01-24 — Completed 06-01-PLAN.md (StateManager module)
+Phase: Phase 6 - State Persistence (COMPLETE)
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 06-02-PLAN.md (State Integration)
 
-Progress: [█████░░░░░] 50% (1/2 plans in phase 6)
+Progress: [██████████] 100% (2/2 plans in phase 6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: 4 min
-- Total execution time: 75 min
+- Total execution time: 79 min
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [█████░░░░░] 50% (1/2 plans in phase 6)
 | 03-analysis-engine | 4 | 19 min | 5 min |
 | 04-report-generation | 3 | 10 min | 3 min |
 | 05-delivery-scheduling | 5 | 10 min | 2 min |
-| 06-state-persistence | 1 | 4 min | 4 min |
+| 06-state-persistence | 2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (2 min), 05-02 (2 min), 05-03 (3 min), 05-04 (3 min), 06-01 (4 min)
+- Last 5 plans: 05-02 (2 min), 05-03 (3 min), 05-04 (3 min), 06-01 (4 min), 06-02 (4 min)
 - Trend: Stable at 2-4 min per plan
 
 *Updated after each plan completion*
@@ -124,18 +124,36 @@ Recent decisions affecting current work:
 - Schema version 1.0 in state file for future migration support
 - Timezone-naive timestamps rejected (must be UTC-aware)
 - Corrupted/invalid state returns None with warning (graceful degradation)
+- Client-side timestamp filtering (UniFi API lacks timestamp filter support)
+- 5-minute clock skew tolerance for time drift between scanner and controller
+- Empty reports still delivered (user confirmation + state update prevents repeats)
 
 ### Pending Todos
 
-- Issue #1: Don't Send Previous Logs (v0.3-alpha scope - Phase 6)
+- ~~Issue #1: Don't Send Previous Logs (v0.3-alpha scope - Phase 6)~~ RESOLVED
 
 ### Blockers/Concerns
 
 - Pydantic deprecation warning for json_encoders (future migration needed)
 - System Python is 3.9.6, may want to consider pyenv/venv for newer Python
+- 2 pre-existing test failures in test_models.py (timezone-aware vs naive datetime assertions)
 
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 06-01-PLAN.md (StateManager module)
-Resume file: .planning/phases/06-state-persistence/06-02-PLAN.md
+Stopped at: Completed 06-02-PLAN.md (State Integration) - Phase 6 COMPLETE
+Resume file: None (v0.3-alpha feature complete)
+
+## v0.3-alpha Release Status
+
+All Phase 6 plans complete. v0.3-alpha feature (state persistence) is ready:
+
+- [x] 06-01: StateManager module with atomic writes
+- [x] 06-02: State integration in pipeline with timestamp filtering
+
+**Key deliverables:**
+- Service reads last run timestamp before collecting logs
+- Service only processes events newer than last successful run
+- First run with no state processes events from initial_lookback_hours
+- State is only updated after successful delivery
+- Empty report (no new events) sends confirmation message
