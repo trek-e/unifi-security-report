@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Literal, Optional, Tuple, Type
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type
 
 import yaml
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -141,6 +141,65 @@ class UnifiSettings(BaseSettings):
         description="Enable SSH fallback when API is insufficient",
     )
 
+    # Email delivery settings
+    email_enabled: bool = Field(
+        default=False,
+        description="Enable email delivery of reports",
+    )
+    smtp_host: Optional[str] = Field(
+        default=None,
+        description="SMTP server hostname",
+    )
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port (587 for STARTTLS, 465 for implicit TLS)",
+        ge=1,
+        le=65535,
+    )
+    smtp_user: Optional[str] = Field(
+        default=None,
+        description="SMTP authentication username",
+    )
+    smtp_password: Optional[str] = Field(
+        default=None,
+        description="SMTP authentication password",
+    )
+    smtp_use_tls: bool = Field(
+        default=True,
+        description="Use TLS for SMTP connection",
+    )
+    email_from: str = Field(
+        default="unifi-scanner@localhost",
+        description="From address for sent emails",
+    )
+    email_recipients: str = Field(
+        default="",
+        description="Comma-separated list of recipient email addresses (all via BCC)",
+    )
+    timezone: str = Field(
+        default="UTC",
+        description="Timezone for report timestamps and email subjects",
+    )
+
+    # File output settings
+    file_enabled: bool = Field(
+        default=False,
+        description="Enable file output of reports",
+    )
+    file_output_dir: Optional[str] = Field(
+        default=None,
+        description="Directory path for report file output",
+    )
+    file_format: Literal["html", "text", "both"] = Field(
+        default="both",
+        description="Report format(s) to save: html, text, or both",
+    )
+    file_retention_days: int = Field(
+        default=30,
+        description="Number of days to retain report files (0 = keep forever)",
+        ge=0,
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
@@ -195,3 +254,33 @@ class UnifiSettings(BaseSettings):
         if not v or not v.strip():
             raise ValueError("Username cannot be empty")
         return v.strip()
+
+    @model_validator(mode="after")
+    def validate_email_config(self) -> "UnifiSettings":
+        """Validate email configuration consistency.
+
+        If email_enabled is True, smtp_host must be set.
+        """
+        if self.email_enabled and not self.smtp_host:
+            raise ValueError("smtp_host is required when email_enabled is True")
+        return self
+
+    @model_validator(mode="after")
+    def validate_file_config(self) -> "UnifiSettings":
+        """Validate file output configuration consistency.
+
+        If file_enabled is True, file_output_dir must be set.
+        """
+        if self.file_enabled and not self.file_output_dir:
+            raise ValueError("file_output_dir is required when file_enabled is True")
+        return self
+
+    def get_email_recipients(self) -> List[str]:
+        """Parse email_recipients string into a list of addresses.
+
+        Returns:
+            List of email addresses, filtered for empty strings.
+        """
+        if not self.email_recipients:
+            return []
+        return [addr.strip() for addr in self.email_recipients.split(",") if addr.strip()]
