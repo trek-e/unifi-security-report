@@ -244,6 +244,126 @@ class UnifiClient:
         # Multiple sites and none specified
         raise MultipleSitesError(available_sites=site_names)
 
+    def get_events(
+        self,
+        site: str,
+        history_hours: int = 720,
+        start: int = 0,
+        limit: int = 3000,
+    ) -> List[Dict[str, Any]]:
+        """Get event logs from the controller for a specific site.
+
+        Retrieves events sorted by time (newest first) within the specified
+        time window. The UniFi API limits responses to 3000 events maximum.
+
+        Args:
+            site: Site name to retrieve events from.
+            history_hours: Number of hours of history to retrieve (default: 720 = 30 days).
+            start: Starting offset for pagination (default: 0).
+            limit: Maximum number of events to retrieve (default/max: 3000).
+
+        Returns:
+            List of event dictionaries, each containing time, key (event type),
+            msg (message), and device-specific fields.
+
+        Raises:
+            UnifiAPIError: API request failed.
+            RuntimeError: Not connected.
+
+        Note:
+            If the response indicates truncation (meta.count > len(data)),
+            a warning is logged. Use start parameter for pagination.
+
+        Example:
+            >>> events = client.get_events("default", history_hours=24)
+            >>> for event in events[:5]:
+            ...     print(f"{event['key']}: {event.get('msg', 'No message')}")
+        """
+        self._ensure_connected()
+        assert self.device_type is not None  # For type checker
+
+        endpoints = get_endpoints(self.device_type)
+        endpoint = endpoints.events.format(site=site)
+
+        # Build request body - API enforces 3000 max
+        body = {
+            "_sort": "-time",
+            "within": history_hours,
+            "_start": start,
+            "_limit": min(limit, 3000),
+        }
+
+        response = self._request("POST", endpoint, json=body)
+        data = response.json()
+
+        # Extract events from response wrapper
+        if isinstance(data, dict) and "data" in data:
+            events = data["data"]
+        else:
+            events = data if isinstance(data, list) else []
+
+        # Check for truncation
+        if isinstance(data, dict) and "meta" in data:
+            meta = data["meta"]
+            total_count = meta.get("count", len(events))
+            if total_count > len(events):
+                logger.warning(
+                    "events_truncated",
+                    retrieved=len(events),
+                    total_available=total_count,
+                    site=site,
+                )
+
+        logger.debug("events_retrieved", count=len(events), site=site)
+        return events
+
+    def get_alarms(
+        self,
+        site: str,
+        archived: Optional[bool] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get alarms from the controller for a specific site.
+
+        Args:
+            site: Site name to retrieve alarms from.
+            archived: Filter by archived status. None returns all alarms,
+                     True returns only archived, False returns only active.
+
+        Returns:
+            List of alarm dictionaries, each containing time, key (alarm type),
+            msg (message), and severity information.
+
+        Raises:
+            UnifiAPIError: API request failed.
+            RuntimeError: Not connected.
+
+        Example:
+            >>> active_alarms = client.get_alarms("default", archived=False)
+            >>> print(f"Found {len(active_alarms)} active alarms")
+        """
+        self._ensure_connected()
+        assert self.device_type is not None  # For type checker
+
+        endpoints = get_endpoints(self.device_type)
+        endpoint = endpoints.alarms.format(site=site)
+
+        # Build query params
+        params: Dict[str, str] = {}
+        if archived is not None:
+            params["archived"] = "true" if archived else "false"
+
+        response = self._request("GET", endpoint, params=params if params else None)
+        data = response.json()
+
+        # Extract alarms from response wrapper
+        if isinstance(data, dict) and "data" in data:
+            alarms = data["data"]
+        else:
+            alarms = data if isinstance(data, list) else []
+
+        logger.debug("alarms_retrieved", count=len(alarms), site=site)
+        return alarms
+
     def _raw_request(
         self,
         method: str,
