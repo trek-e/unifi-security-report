@@ -16,10 +16,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Analysis
 
-- [ ] **ANLZ-01**: Service categorizes issues by severity (low, medium, severe)
-- [ ] **ANLZ-02**: Service generates plain English explanations for log events
-- [ ] **ANLZ-03**: Service provides step-by-step remediation for severe issues
-- [ ] **ANLZ-04**: Service deduplicates repeated events and shows occurrence counts
+- [x] **ANLZ-01**: Service categorizes issues by severity (low, medium, severe)
+- [x] **ANLZ-02**: Service generates plain English explanations for log events
+- [x] **ANLZ-03**: Service provides step-by-step remediation for severe issues
+- [x] **ANLZ-04**: Service deduplicates repeated events and shows occurrence counts
 
 ### Reports
 
@@ -75,10 +75,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COLL-02 | Phase 1 | Complete |
 | COLL-03 | Phase 1 | Complete |
 | COLL-04 | Phase 2 | Complete |
-| ANLZ-01 | Phase 3 | Pending |
-| ANLZ-02 | Phase 3 | Pending |
-| ANLZ-03 | Phase 3 | Pending |
-| ANLZ-04 | Phase 3 | Pending |
+| ANLZ-01 | Phase 3 | Complete |
+| ANLZ-02 | Phase 3 | Complete |
+| ANLZ-03 | Phase 3 | Complete |
+| ANLZ-04 | Phase 3 | Complete |
 | REPT-01 | Phase 4 | Pending |
 | REPT-02 | Phase 4 | Pending |
 | REPT-03 | Phase 5 | Pending |
@@ -95,4 +95,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after Phase 2 completion*
+*Last updated: 2026-01-24 after Phase 3 completion*
