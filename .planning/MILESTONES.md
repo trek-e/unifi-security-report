@@ -1,5 +1,30 @@
 # Project Milestones: UniFi Scanner
 
+## v0.4-alpha Cybersecure Integration (Shipped: 2026-01-25)
+
+**Delivered:** Proofpoint ET PRO (Cybersecure) signature detection with visual badge in threat reports
+
+**Phases completed:** 12 (3 plans total)
+
+**Key accomplishments:**
+- ET PRO signature detection via SID range 2800000-2899999
+- is_cybersecure computed field on IPSEvent with automatic JSON serialization
+- ThreatSummary Cybersecure attribution tracking (is_cybersecure flag + count)
+- Purple CYBERSECURE badge in threat report templates (detected + blocked sections)
+- Full TDD test coverage (13 tests) for boundary cases and aggregation scenarios
+
+**Stats:**
+- 5 files modified
+- 335 lines added (models + analyzer + template + tests)
+- 1 phase, 3 plans, 5 tasks
+- 1 day (2026-01-24 → 2026-01-25)
+
+**Git range:** `e399a9b` (phase plan) → `5fbc0df` (milestone audit)
+
+**What's next:** All v0.4 phases complete — ready for v0.5 planning
+
+---
+
 ## v0.3-alpha No Duplicate Reports (Shipped: 2026-01-24)
 
 **Delivered:** State persistence to prevent duplicate event reporting across scheduled runs

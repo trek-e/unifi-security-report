@@ -25,13 +25,21 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - Configurable initial lookback hours for first run — v0.3-alpha
 - Graceful handling of missing/corrupted state — v0.3-alpha
 
+### Validated (v0.4-alpha)
+
+- Extended wireless analysis rules (roaming, channels, DFS radar, flapping) — v0.3.1-alpha
+- Enhanced IDS/IPS with plain English threat explanations — v0.3.2-alpha
+- Device health monitoring (temperature, PoE, uptime, CPU/memory) — v0.3.3-alpha
+- Optional Cybersecure integration (ET PRO signature detection, badge) — v0.4-alpha
+- Optional Cloudflare integration (WAF, DNS analytics, tunnel status) — v0.3.5-alpha
+- WebSocket support for UniFi Network 10.x+ — v0.3.15-alpha
+
 ### Active
 
-- [ ] Extended wireless analysis rules (roaming, channels, interference)
-- [ ] Enhanced IDS/IPS with plain English threat explanations
-- [ ] Device health monitoring (temperature, PoE, uptime)
-- [ ] Optional Cybersecure integration (enhanced threat signatures)
-- [ ] Optional Cloudflare integration (WAF, DNS analytics)
+- [ ] Interference pattern detection (WIFI-07)
+- [ ] Wireless survey recommendations (WIFI-08)
+- [ ] Threat intelligence enrichment (SECR-06)
+- [ ] Anomaly detection for unusual traffic (SECR-07)
 
 ### Out of Scope
 
@@ -55,28 +63,31 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - **Network access**: Requires local network access to UniFi gateway/controller
 - **API dependency**: UniFi API is not officially documented; may change between versions
 
-## Current Milestone: v0.3.1-alpha — Extended Wireless Analysis
-
-**Goal:** Users gain visibility into wireless client behavior and AP radio changes
-
-**Target features:**
-- Client roaming detection between APs
-- Radio band switching (2.4GHz ↔ 5GHz)
-- AP channel changes with reasons
-- DFS radar event detection
-- RSSI to signal quality translation
-- Excessive roaming (flapping) detection
-
-**Roadmap:** v0.3.1 → v0.3.2 (security) → v0.3.3 (health) → v0.3.4 (infra) → v0.3.5 (Cloudflare) → v0.4 (Cybersecure)
-
 ## Current State
 
-**Shipped:** v0.3-alpha (2026-01-24)
+**Shipped:** v0.4-alpha (2026-01-25)
 
-**Codebase:**
-- 6 phases, 21 plans completed
-- ~3,000 lines of Python
-- 14 StateManager tests, 491 total tests passing
+All planned phases complete. Project has shipped:
+- v0.2-alpha: Production-ready containerized service (Phases 1-5)
+- v0.3-alpha: State persistence (Phase 6)
+- v0.3.1-alpha: Extended wireless analysis (Phase 7)
+- v0.3.2-alpha: Enhanced security analysis (Phase 8)
+- v0.3.3-alpha: Device health monitoring (Phase 9)
+- v0.3.4-alpha: Integration infrastructure (Phase 10)
+- v0.3.5-alpha: Cloudflare integration (Phase 11)
+- v0.3.15-alpha: WebSocket support (Phase 13)
+- v0.4-alpha: Cybersecure integration (Phase 12)
+
+**Next Milestone Goals:**
+- v0.5 planning not started
+- Potential features: Interference detection, threat intelligence enrichment, anomaly detection
+
+## Codebase
+
+**Stats:**
+- 13 phases, 48 plans completed
+- ~11,800 lines of Python
+- Full test coverage across all modules
 - Docker image: ghcr.io/trek-e/unifi-security-report
 
 ## Key Decisions
@@ -93,5 +104,10 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 | Client-side timestamp filtering | UniFi API lacks timestamp filter support | Good |
 | 5-minute clock skew tolerance | Handles time drift between scanner and controller | Good |
 
+| Pydantic computed_field | JSON serialization for derived properties | Good |
+| ET PRO SID range (2800000-2899999) | Standard Proofpoint ET PRO signature range | Good |
+| Any-True Cybersecure aggregation | If any event in group is Cybersecure, mark summary | Good |
+| Purple badge for Cybersecure | Differentiates from severity badges | Good |
+
 ---
-*Last updated: 2026-01-24 after v0.3.1-alpha milestone start*
+*Last updated: 2026-01-25 after v0.4-alpha milestone completion*

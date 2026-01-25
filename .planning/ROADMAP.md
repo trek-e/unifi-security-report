@@ -4,13 +4,13 @@
 
 - **v0.2-alpha** -- Phases 1-5 (shipped 2026-01-24) -- Production-ready containerized service
 - **v0.3-alpha** -- Phase 6 (shipped 2026-01-24) -- State persistence to prevent duplicate events
-- **v0.3.1-alpha** -- Phase 7 (planned) -- Extended wireless analysis
-- **v0.3.2-alpha** -- Phase 8 (planned) -- Enhanced security analysis
-- **v0.3.3-alpha** -- Phase 9 (planned) -- Device health monitoring
-- **v0.3.4-alpha** -- Phase 10 (planned) -- Integration infrastructure
-- **v0.3.15-alpha** -- Phase 13 (planned) -- WebSocket support for UniFi Network 10.x events
+- **v0.3.1-alpha** -- Phase 7 (shipped 2026-01-25) -- Extended wireless analysis
+- **v0.3.2-alpha** -- Phase 8 (shipped 2026-01-25) -- Enhanced security analysis
+- **v0.3.3-alpha** -- Phase 9 (shipped 2026-01-25) -- Device health monitoring
+- **v0.3.4-alpha** -- Phase 10 (shipped 2026-01-25) -- Integration infrastructure
 - **v0.3.5-alpha** -- Phase 11 (shipped 2026-01-25) -- Cloudflare integration
-- **v0.4-alpha** -- Phase 12 (planned) -- Cybersecure integration
+- **v0.3.15-alpha** -- Phase 13 (shipped 2026-01-25) -- WebSocket support
+- **v0.4-alpha** -- Phase 12 (shipped 2026-01-25) -- Cybersecure integration
 
 See `.planning/MILESTONES.md` for detailed milestone history.
 See `.planning/milestones/` for archived roadmap and requirements per milestone.
@@ -237,3 +237,4 @@ Plans:
 *Phase 10 planned: 2026-01-25*
 *Phase 11 planned: 2026-01-25*
 *Phase 12 planned: 2026-01-25*
+*v0.4-alpha milestone complete: 2026-01-25*
