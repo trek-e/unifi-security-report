@@ -299,3 +299,65 @@ class TestLogCollector:
 
         # Should return empty list (not raise error)
         assert entries == []
+
+    def test_collector_without_websocket_still_works(self) -> None:
+        """Should work identically with ws_manager=None (backward compatibility).
+
+        This test verifies that the API->SSH fallback chain works unchanged
+        when no WebSocket manager is provided. Existing code that doesn't use
+        WebSocket should work identically to before.
+        """
+        mock_client = MagicMock()
+        mock_client.device_type = DeviceType.UDM_PRO
+        mock_client.get_events.return_value = [
+            {"time": 1705084800000 + i, "key": f"EVT_{i}", "msg": f"Event {i}"}
+            for i in range(20)
+        ]
+        mock_client.get_alarms.return_value = []
+
+        settings = self._create_settings(ssh_enabled=True)
+        collector = LogCollector(
+            client=mock_client,
+            settings=settings,
+            site="default",
+            min_entries=10,
+            ws_manager=None,  # Explicitly no WebSocket
+        )
+
+        with patch.object(collector, "_collect_via_ssh") as mock_ssh:
+            entries = collector.collect()
+
+            # Should have 20 entries from API (no WS contribution)
+            assert len(entries) == 20
+            # SSH should NOT be called (API returned sufficient entries)
+            mock_ssh.assert_not_called()
+
+    def test_collector_explicit_none_ws_manager_same_as_default(self) -> None:
+        """Explicit ws_manager=None behaves same as omitting parameter."""
+        mock_client = MagicMock()
+        mock_client.device_type = DeviceType.UDM_PRO
+        mock_client.get_events.return_value = [
+            {"time": 1705084800000, "key": "EVT_1", "msg": "Single event"},
+        ]
+        mock_client.get_alarms.return_value = []
+
+        settings = self._create_settings(ssh_enabled=False)
+
+        # Create without ws_manager (default)
+        collector_default = LogCollector(
+            client=mock_client,
+            settings=settings,
+            site="default",
+        )
+
+        # Create with explicit ws_manager=None
+        collector_explicit = LogCollector(
+            client=mock_client,
+            settings=settings,
+            site="default",
+            ws_manager=None,
+        )
+
+        # Both should have ws_manager as None
+        assert collector_default._ws_manager is None
+        assert collector_explicit._ws_manager is None
