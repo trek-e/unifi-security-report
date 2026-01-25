@@ -143,9 +143,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Integration Protocol, result models, and registry (INTG-01 foundation)
-- [ ] 10-02-PLAN.md — IntegrationRunner with circuit breakers and parallel execution (INTG-02, INTG-03)
-- [ ] 10-03-PLAN.md — Tests for integration infrastructure
+- [x] 10-01-PLAN.md — Integration Protocol, result models, and registry (INTG-01 foundation)
+- [x] 10-02-PLAN.md — IntegrationRunner with circuit breakers and parallel execution (INTG-02, INTG-03)
+- [x] 10-03-PLAN.md — Tests for integration infrastructure
 
 ### Phase 11: Cloudflare Integration
 **Goal**: Users with Cloudflare see WAF and DNS events in their UniFi security report
@@ -156,11 +156,13 @@ Plans:
   2. Report shows WAF block events from Cloudflare with threat details
   3. Report shows DNS analytics including blocked query counts
   4. Report shows Cloudflare tunnel status (up/down) when tunnels exist
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 11-01: TBD
-- [ ] 11-02: TBD
+- [ ] 11-01-PLAN.md — Cloudflare SDK, settings fields, data models, and API client
+- [ ] 11-02-PLAN.md — CloudflareIntegration implementing Integration Protocol
+- [ ] 11-03-PLAN.md — Cloudflare section template and report wiring
+- [ ] 11-04-PLAN.md — Tests and report generator integration
 
 ### Phase 12: Cybersecure Integration
 **Goal**: Users with Cybersecure subscription see enhanced threat intelligence in reports
@@ -208,7 +210,7 @@ Plans:
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
 | 10. Integration Infrastructure | v0.3.4-alpha | 3/3 | Complete | 2026-01-25 |
-| 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
+| 11. Cloudflare Integration | v0.3.5-alpha | 0/4 | Planned | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
@@ -225,3 +227,4 @@ Plans:
 *Phase 9 planned: 2026-01-25*
 *Phase 9 complete: 2026-01-25*
 *Phase 10 planned: 2026-01-25*
+*Phase 11 planned: 2026-01-25*
