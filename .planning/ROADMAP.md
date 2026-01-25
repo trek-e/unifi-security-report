@@ -42,9 +42,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.3.2-alpha Enhanced Security Analysis (Planned)
+<details>
+<summary>v0.3.2-alpha Enhanced Security Analysis (Phase 8) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 8: Enhanced Security Analysis** - Suricata signature parsing, threat categorization, source IP summaries
+- [x] Phase 8: Enhanced Security Analysis (5/5 plans) -- completed 2026-01-25
+
+</details>
 
 ### v0.3.3-alpha Device Health Monitoring (Planned)
 
@@ -104,7 +107,7 @@ Plans:
 - [x] 08-02-PLAN.md — TDD: IPSAnalyzer with threshold-based IP aggregation
 - [x] 08-03-PLAN.md — Remediation templates and report section templates
 - [x] 08-04-PLAN.md — Service integration and end-to-end tests
-- [ ] 08-05-PLAN.md — Gap closure: Wire remediation into ThreatSummary and templates (SECR-05)
+- [x] 08-05-PLAN.md — Gap closure: Wire remediation into ThreatSummary and templates (SECR-05)
 
 ### Phase 9: Device Health Monitoring
 **Goal**: Users receive proactive alerts about device health before failures occur
@@ -192,14 +195,14 @@ Plans:
 | 5. Delivery & Scheduling | v0.2-alpha | 5/5 | Complete | 2026-01-24 |
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
-| 8. Enhanced Security Analysis | v0.3.2-alpha | 4/5 | In progress | - |
+| 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
 | 9. Device Health Monitoring | v0.3.3-alpha | 0/TBD | Not started | - |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 8 complete, 5 planned across v0.3.2 through v0.4
+**Summary:** 13 phases total -- 9 complete, 4 planned across v0.3.3 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*

@@ -18,11 +18,11 @@ Requirements for extended analysis rules and optional integrations milestone.
 
 ### Security Analysis (IDS/IPS)
 
-- [ ] **SECR-01**: Service parses Suricata signature categories from IPS alerts
-- [ ] **SECR-02**: Service provides plain English explanations for threat categories
-- [ ] **SECR-03**: Service distinguishes between blocked and detected threats
-- [ ] **SECR-04**: Service summarizes top threat source IPs in report
-- [ ] **SECR-05**: Service provides category-specific remediation guidance
+- [x] **SECR-01**: Service parses Suricata signature categories from IPS alerts
+- [x] **SECR-02**: Service provides plain English explanations for threat categories
+- [x] **SECR-03**: Service distinguishes between blocked and detected threats
+- [x] **SECR-04**: Service summarizes top threat source IPs in report
+- [x] **SECR-05**: Service provides category-specific remediation guidance
 
 ### Device Health
 
@@ -94,11 +94,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WIFI-04 | Phase 7 | Complete |
 | WIFI-05 | Phase 7 | Complete |
 | WIFI-06 | Phase 7 | Complete |
-| SECR-01 | Phase 8 | Pending |
-| SECR-02 | Phase 8 | Pending |
-| SECR-03 | Phase 8 | Pending |
-| SECR-04 | Phase 8 | Pending |
-| SECR-05 | Phase 8 | Pending |
+| SECR-01 | Phase 8 | Complete |
+| SECR-02 | Phase 8 | Complete |
+| SECR-03 | Phase 8 | Complete |
+| SECR-04 | Phase 8 | Complete |
+| SECR-05 | Phase 8 | Complete |
 | HLTH-01 | Phase 9 | Pending |
 | HLTH-02 | Phase 9 | Pending |
 | HLTH-03 | Phase 9 | Pending |
@@ -126,4 +126,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 after Phase 7 completion*
+*Last updated: 2026-01-25 after Phase 8 completion*
