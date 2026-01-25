@@ -15,6 +15,11 @@ from unifi_scanner.analysis.ips.signature_parser import (
     is_action_blocked,
     parse_signature_category,
 )
+from unifi_scanner.analysis.ips.remediation import (
+    get_remediation,
+    get_false_positive_note,
+    IPS_REMEDIATION_TEMPLATES,
+)
 
 __all__ = [
     "IPSAnalyzer",
@@ -26,4 +31,7 @@ __all__ = [
     "parse_signature_category",
     "is_action_blocked",
     "ET_CATEGORY_FRIENDLY_NAMES",
+    "get_remediation",
+    "get_false_positive_note",
+    "IPS_REMEDIATION_TEMPLATES",
 ]

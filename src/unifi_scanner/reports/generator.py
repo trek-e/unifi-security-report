@@ -4,11 +4,12 @@ Provides the ReportGenerator class for generating HTML and plain text
 reports from analysis findings using Jinja2 templates.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from unifi_scanner.analysis.formatter import FindingFormatter
+from unifi_scanner.analysis.ips import ThreatAnalysisResult
 from unifi_scanner.models.report import Report
 
 
@@ -47,7 +48,11 @@ class ReportGenerator:
             lstrip_blocks=True,
         )
 
-    def _build_context(self, report: Report) -> Dict[str, Any]:
+    def _build_context(
+        self,
+        report: Report,
+        ips_analysis: Optional[ThreatAnalysisResult] = None,
+    ) -> Dict[str, Any]:
         """Build template context from a Report.
 
         Groups findings by severity and prepares all data needed for
@@ -55,6 +60,7 @@ class ReportGenerator:
 
         Args:
             report: Report containing findings to format
+            ips_analysis: Optional IPS threat analysis results
 
         Returns:
             Dictionary with template context:
@@ -67,6 +73,7 @@ class ReportGenerator:
             - medium_findings: List of formatted medium findings
             - low_findings: List of formatted low findings
             - counts: Dictionary with severity counts and total
+            - ips_analysis: IPS threat analysis results (or None)
         """
         grouped = self.formatter.format_grouped_findings(report.findings)
 
@@ -85,9 +92,14 @@ class ReportGenerator:
                 "low_count": len(grouped["low"]),
                 "total": len(report.findings),
             },
+            "ips_analysis": ips_analysis,
         }
 
-    def generate_html(self, report: Report) -> str:
+    def generate_html(
+        self,
+        report: Report,
+        ips_analysis: Optional[ThreatAnalysisResult] = None,
+    ) -> str:
         """Generate HTML report from Report model.
 
         HTML reports display findings organized by severity (SEVERE first,
@@ -96,15 +108,20 @@ class ReportGenerator:
 
         Args:
             report: Report object containing findings to render
+            ips_analysis: Optional IPS threat analysis results
 
         Returns:
             Complete HTML document as string
         """
         template = self.env.get_template("report.html")
-        context = self._build_context(report)
+        context = self._build_context(report, ips_analysis)
         return template.render(**context)
 
-    def generate_text(self, report: Report) -> str:
+    def generate_text(
+        self,
+        report: Report,
+        ips_analysis: Optional[ThreatAnalysisResult] = None,
+    ) -> str:
         """Generate plain text report from Report model.
 
         Plain text reports use tiered detail levels:
@@ -114,10 +131,11 @@ class ReportGenerator:
 
         Args:
             report: Report object containing findings to render
+            ips_analysis: Optional IPS threat analysis results
 
         Returns:
             Plain text report as string
         """
         template = self.env.get_template("report.txt")
-        context = self._build_context(report)
+        context = self._build_context(report, ips_analysis)
         return template.render(**context)
