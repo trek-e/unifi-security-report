@@ -570,6 +570,34 @@ class UnifiClient:
                 "Not connected. Call connect() first or use as context manager."
             )
 
+    def get_session_cookies(self) -> dict[str, str]:
+        """Get session cookies for WebSocket authentication.
+
+        Returns cookies from the authenticated REST session, allowing
+        the WebSocket client to reuse the same authentication without
+        requiring a separate login.
+
+        Returns:
+            Dictionary mapping cookie name to cookie value.
+            Empty dict if not connected.
+
+        Example:
+            >>> cookies = client.get_session_cookies()
+            >>> ws_manager.start(
+            ...     base_url=client.base_url,
+            ...     cookies=cookies,
+            ...     ...
+            ... )
+        """
+        if self._client is None or not self._authenticated:
+            return {}
+
+        return {
+            cookie.name: cookie.value
+            for cookie in self._client.cookies.jar
+            if cookie.value is not None
+        }
+
     def __enter__(self) -> "UnifiClient":
         """Enter context manager - connect to controller."""
         self.connect()
