@@ -332,6 +332,180 @@ class TestIPSEventModel:
             )
 
 
+class TestCybersecureDetection:
+    """Tests for Cybersecure (Proofpoint ET PRO) signature detection."""
+
+    def test_is_cybersecure_boundary_min(self):
+        """signature_id=2800000 (boundary min) should be is_cybersecure=True."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs1",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET PRO MALWARE Test",
+            signature_id=2800000,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        assert event.is_cybersecure is True
+
+    def test_is_cybersecure_middle_range(self):
+        """signature_id=2850000 (middle) should be is_cybersecure=True."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs2",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET PRO MALWARE Test",
+            signature_id=2850000,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        assert event.is_cybersecure is True
+
+    def test_is_cybersecure_boundary_max(self):
+        """signature_id=2899999 (boundary max) should be is_cybersecure=True."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs3",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET PRO MALWARE Test",
+            signature_id=2899999,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        assert event.is_cybersecure is True
+
+    def test_is_cybersecure_just_below_range(self):
+        """signature_id=2799999 (just below) should be is_cybersecure=False."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs4",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET MALWARE Test",
+            signature_id=2799999,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        assert event.is_cybersecure is False
+
+    def test_is_cybersecure_just_above_range(self):
+        """signature_id=2900000 (just above) should be is_cybersecure=False."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs5",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET MALWARE Test",
+            signature_id=2900000,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        assert event.is_cybersecure is False
+
+    def test_is_cybersecure_et_open_range(self):
+        """signature_id=2001000 (ET Open) should be is_cybersecure=False."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs6",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET SCAN Nmap",
+            signature_id=2001000,
+            category_raw="Scan",
+            severity=2,
+            action="allowed",
+        )
+
+        assert event.is_cybersecure is False
+
+    def test_is_cybersecure_custom_rule(self):
+        """signature_id=100 (custom) should be is_cybersecure=False."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs7",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="Custom Rule Test",
+            signature_id=100,
+            category_raw="Custom",
+            severity=3,
+            action="allowed",
+        )
+
+        assert event.is_cybersecure is False
+
+    def test_is_cybersecure_serializes_to_dict(self):
+        """is_cybersecure computed field should serialize to dict/JSON."""
+        from unifi_scanner.analysis.ips.models import IPSEvent
+
+        event = IPSEvent(
+            id="cs8",
+            timestamp=datetime.now(timezone.utc),
+            src_ip="192.168.1.1",
+            dest_ip="10.0.0.1",
+            proto="TCP",
+            signature="ET PRO MALWARE Test",
+            signature_id=2850000,
+            category_raw="Malware",
+            severity=1,
+            action="blocked",
+        )
+
+        data = event.model_dump()
+        assert "is_cybersecure" in data
+        assert data["is_cybersecure"] is True
+
+
+class TestCybersecureConstants:
+    """Tests for ET PRO SID range constants."""
+
+    def test_et_pro_sid_min_exported(self):
+        """ET_PRO_SID_MIN constant should be exported from models."""
+        from unifi_scanner.analysis.ips.models import ET_PRO_SID_MIN
+
+        assert ET_PRO_SID_MIN == 2800000
+
+    def test_et_pro_sid_max_exported(self):
+        """ET_PRO_SID_MAX constant should be exported from models."""
+        from unifi_scanner.analysis.ips.models import ET_PRO_SID_MAX
+
+        assert ET_PRO_SID_MAX == 2899999
+
+
 class TestModuleExports:
     """Tests for module-level exports."""
 
