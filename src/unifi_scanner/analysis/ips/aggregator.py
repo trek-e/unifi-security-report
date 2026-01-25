@@ -1,5 +1,7 @@
 """IP aggregation utilities for IPS analysis."""
 
+import ipaddress
+from collections import defaultdict
 from typing import Dict, List, NamedTuple, Set
 
 from unifi_scanner.analysis.ips.models import IPSEvent
@@ -23,6 +25,23 @@ class SourceIPSummary(NamedTuple):
     sample_signatures: Set[str]
 
 
+def _is_internal_ip(ip_str: str) -> bool:
+    """Check if an IP address is internal (RFC1918 private).
+
+    Args:
+        ip_str: IP address string
+
+    Returns:
+        True if private/internal, False if public/external
+    """
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return ip.is_private
+    except ValueError:
+        # Invalid IP format - treat as external for safety
+        return False
+
+
 def aggregate_source_ips(
     events: List[IPSEvent],
     threshold: int = 10,
@@ -39,5 +58,37 @@ def aggregate_source_ips(
     Returns:
         List of SourceIPSummary for IPs meeting threshold
     """
-    # Stub - will fail tests
-    raise NotImplementedError("aggregate_source_ips not implemented")
+    if not events:
+        return []
+
+    # Aggregate events by source IP
+    # Use src_ip to match the pydantic IPSEvent model
+    ip_data: Dict[str, Dict] = defaultdict(lambda: {
+        "count": 0,
+        "categories": defaultdict(int),
+        "signatures": set(),
+    })
+
+    for event in events:
+        data = ip_data[event.src_ip]
+        data["count"] += 1
+        data["categories"][event.category_raw] += 1
+        data["signatures"].add(event.signature)
+
+    # Filter by threshold and create summaries
+    summaries = []
+    for ip, data in ip_data.items():
+        if data["count"] >= threshold:
+            summary = SourceIPSummary(
+                ip=ip,
+                total_events=data["count"],
+                category_breakdown=dict(data["categories"]),
+                is_internal=_is_internal_ip(ip),
+                sample_signatures=data["signatures"],
+            )
+            summaries.append(summary)
+
+    # Sort by total events descending
+    summaries.sort(key=lambda s: s.total_events, reverse=True)
+
+    return summaries

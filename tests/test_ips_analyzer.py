@@ -3,6 +3,7 @@
 import pytest
 from datetime import datetime, timezone
 from typing import List
+from uuid import uuid4
 
 from unifi_scanner.models.enums import Severity
 from unifi_scanner.analysis.ips.analyzer import (
@@ -19,22 +20,32 @@ from unifi_scanner.analysis.ips.models import IPSEvent
 
 def make_ips_event(
     signature: str = "ET SCAN Nmap Scripting Engine",
-    category: str = "scan",
-    source_ip: str = "192.168.1.100",
+    category_raw: str = "scan",
+    src_ip: str = "192.168.1.100",
     dest_ip: str = "10.0.0.1",
     is_blocked: bool = False,
-    severity: Severity = Severity.MEDIUM,
+    severity: int = 2,  # 1=high, 2=medium, 3=low
     timestamp: datetime = None,
 ) -> IPSEvent:
-    """Factory for creating test IPS events."""
+    """Factory for creating test IPS events.
+
+    Adapts to the pydantic IPSEvent model from 08-01.
+    """
     return IPSEvent(
+        id=str(uuid4()),
         timestamp=timestamp or datetime.now(timezone.utc),
-        signature=signature,
-        category=category,
-        source_ip=source_ip,
+        src_ip=src_ip,
+        src_port=12345,
         dest_ip=dest_ip,
-        is_blocked=is_blocked,
+        dest_port=443,
+        proto="TCP",
+        signature=signature,
+        signature_id=2000001,
+        category_raw=category_raw,
         severity=severity,
+        action="blocked" if is_blocked else "allowed",
+        category_friendly="",  # Will be parsed
+        is_blocked=is_blocked,
     )
 
 
@@ -95,7 +106,7 @@ class TestIPAggregation:
         """Test that IPs with 10+ events are included in aggregation."""
         # Create 15 events from same IP - should be highlighted
         events = [
-            make_ips_event(source_ip="192.168.1.50") for _ in range(15)
+            make_ips_event(src_ip="192.168.1.50") for _ in range(15)
         ]
 
         result = aggregate_source_ips(events, threshold=10)
@@ -108,7 +119,7 @@ class TestIPAggregation:
         """Test that IPs with fewer than threshold events are excluded."""
         # Create 5 events from same IP - below threshold
         events = [
-            make_ips_event(source_ip="192.168.1.50") for _ in range(5)
+            make_ips_event(src_ip="192.168.1.50") for _ in range(5)
         ]
 
         result = aggregate_source_ips(events, threshold=10)
@@ -118,7 +129,7 @@ class TestIPAggregation:
     def test_aggregate_exact_threshold(self):
         """Test that exactly threshold events are included."""
         events = [
-            make_ips_event(source_ip="192.168.1.50") for _ in range(10)
+            make_ips_event(src_ip="192.168.1.50") for _ in range(10)
         ]
 
         result = aggregate_source_ips(events, threshold=10)
@@ -130,11 +141,11 @@ class TestIPAggregation:
         """Test aggregation with mix of above/below threshold IPs."""
         events = []
         # IP with 15 events - included
-        events.extend([make_ips_event(source_ip="1.2.3.4") for _ in range(15)])
+        events.extend([make_ips_event(src_ip="1.2.3.4") for _ in range(15)])
         # IP with 5 events - excluded
-        events.extend([make_ips_event(source_ip="5.6.7.8") for _ in range(5)])
+        events.extend([make_ips_event(src_ip="5.6.7.8") for _ in range(5)])
         # IP with 12 events - included
-        events.extend([make_ips_event(source_ip="9.10.11.12") for _ in range(12)])
+        events.extend([make_ips_event(src_ip="9.10.11.12") for _ in range(12)])
 
         result = aggregate_source_ips(events, threshold=10)
 
@@ -147,12 +158,12 @@ class TestIPAggregation:
     def test_aggregate_category_breakdown(self):
         """Test that category breakdown is provided in summary."""
         events = [
-            make_ips_event(source_ip="192.168.1.50", category="scan"),
-            make_ips_event(source_ip="192.168.1.50", category="scan"),
-            make_ips_event(source_ip="192.168.1.50", category="scan"),
-            make_ips_event(source_ip="192.168.1.50", category="malware"),
-            make_ips_event(source_ip="192.168.1.50", category="malware"),
-            make_ips_event(source_ip="192.168.1.50", category="policy"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="scan"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="scan"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="scan"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="malware"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="malware"),
+            make_ips_event(src_ip="192.168.1.50", category_raw="policy"),
         ] * 2  # 12 events total
 
         result = aggregate_source_ips(events, threshold=10)
@@ -171,10 +182,10 @@ class TestInternalExternalSeparation:
         """Test that internal (RFC1918) and external IPs are separated."""
         events = []
         # Internal IPs (RFC1918: 10.x.x.x, 172.16-31.x.x, 192.168.x.x)
-        events.extend([make_ips_event(source_ip="192.168.1.50") for _ in range(15)])
-        events.extend([make_ips_event(source_ip="10.0.0.100") for _ in range(12)])
+        events.extend([make_ips_event(src_ip="192.168.1.50") for _ in range(15)])
+        events.extend([make_ips_event(src_ip="10.0.0.100") for _ in range(12)])
         # External IPs
-        events.extend([make_ips_event(source_ip="8.8.8.8") for _ in range(11)])
+        events.extend([make_ips_event(src_ip="8.8.8.8") for _ in range(11)])
 
         analyzer = IPSAnalyzer(event_threshold=10)
         result = analyzer.process_events(events)
@@ -190,7 +201,7 @@ class TestInternalExternalSeparation:
 
     def test_is_internal_flag_in_summary(self):
         """Test that SourceIPSummary has correct is_internal flag."""
-        events = [make_ips_event(source_ip="192.168.1.50") for _ in range(15)]
+        events = [make_ips_event(src_ip="192.168.1.50") for _ in range(15)]
 
         result = aggregate_source_ips(events, threshold=10)
 
@@ -198,7 +209,7 @@ class TestInternalExternalSeparation:
 
     def test_external_ip_not_internal(self):
         """Test that external IPs have is_internal=False."""
-        events = [make_ips_event(source_ip="8.8.8.8") for _ in range(15)]
+        events = [make_ips_event(src_ip="8.8.8.8") for _ in range(15)]
 
         result = aggregate_source_ips(events, threshold=10)
 
@@ -206,7 +217,7 @@ class TestInternalExternalSeparation:
 
     def test_172_16_range_is_internal(self):
         """Test that 172.16.x.x through 172.31.x.x are internal."""
-        events = [make_ips_event(source_ip="172.20.1.50") for _ in range(15)]
+        events = [make_ips_event(src_ip="172.20.1.50") for _ in range(15)]
 
         result = aggregate_source_ips(events, threshold=10)
 
@@ -214,7 +225,7 @@ class TestInternalExternalSeparation:
 
     def test_172_outside_range_is_external(self):
         """Test that 172.1.x.x (outside 16-31) is external."""
-        events = [make_ips_event(source_ip="172.1.1.50") for _ in range(15)]
+        events = [make_ips_event(src_ip="172.1.1.50") for _ in range(15)]
 
         result = aggregate_source_ips(events, threshold=10)
 
@@ -270,9 +281,9 @@ class TestDeduplication:
     def test_deduplicate_same_signature_source(self):
         """Test that same signature+source_ip combination is counted, not duplicated."""
         events = [
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.50"),
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.50"),
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
         ]
 
         analyzer = IPSAnalyzer()
@@ -286,8 +297,8 @@ class TestDeduplication:
     def test_different_signatures_not_deduplicated(self):
         """Test that different signatures create separate entries."""
         events = [
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.50"),
-            make_ips_event(signature="ET MALWARE Trojan", source_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET MALWARE Trojan", src_ip="192.168.1.50"),
         ]
 
         analyzer = IPSAnalyzer()
@@ -299,9 +310,9 @@ class TestDeduplication:
     def test_same_signature_different_ips_deduplicated(self):
         """Test that same signature from different IPs is still one threat entry."""
         events = [
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.50"),
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.51"),
-            make_ips_event(signature="ET SCAN Nmap", source_ip="192.168.1.52"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.51"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.52"),
         ]
 
         analyzer = IPSAnalyzer()
@@ -320,11 +331,11 @@ class TestThreatSummaryCounts:
     def test_threat_summary_counts(self):
         """Test that ThreatSummary has correct count."""
         events = [
-            make_ips_event(signature="sig1", category="scan"),
-            make_ips_event(signature="sig1", category="scan"),
-            make_ips_event(signature="sig1", category="scan"),
-            make_ips_event(signature="sig1", category="scan"),
-            make_ips_event(signature="sig1", category="scan"),
+            make_ips_event(signature="sig1", category_raw="scan"),
+            make_ips_event(signature="sig1", category_raw="scan"),
+            make_ips_event(signature="sig1", category_raw="scan"),
+            make_ips_event(signature="sig1", category_raw="scan"),
+            make_ips_event(signature="sig1", category_raw="scan"),
         ]
 
         analyzer = IPSAnalyzer()
@@ -336,7 +347,7 @@ class TestThreatSummaryCounts:
 
     def test_threat_summary_has_category_friendly(self):
         """Test that ThreatSummary has friendly category name."""
-        events = [make_ips_event(category="scan")]
+        events = [make_ips_event(category_raw="scan")]
 
         analyzer = IPSAnalyzer()
         result = analyzer.process_events(events)
@@ -360,9 +371,9 @@ class TestThreatSummaryCounts:
     def test_threat_summary_source_ips_unique(self):
         """Test that source_ips in ThreatSummary are unique."""
         events = [
-            make_ips_event(signature="sig1", source_ip="192.168.1.50"),
-            make_ips_event(signature="sig1", source_ip="192.168.1.50"),  # Duplicate
-            make_ips_event(signature="sig1", source_ip="192.168.1.51"),
+            make_ips_event(signature="sig1", src_ip="192.168.1.50"),
+            make_ips_event(signature="sig1", src_ip="192.168.1.50"),  # Duplicate
+            make_ips_event(signature="sig1", src_ip="192.168.1.51"),
         ]
 
         analyzer = IPSAnalyzer()
@@ -375,7 +386,8 @@ class TestThreatSummaryCounts:
 
     def test_threat_summary_severity(self):
         """Test that ThreatSummary includes severity."""
-        events = [make_ips_event(severity=Severity.SEVERE)]
+        # Use severity=1 (high) which maps to SEVERE
+        events = [make_ips_event(severity=1)]
 
         analyzer = IPSAnalyzer()
         result = analyzer.process_events(events)
@@ -410,8 +422,8 @@ class TestSourceIPSummary:
     def test_source_ip_summary_has_sample_signatures(self):
         """Test that SourceIPSummary includes sample signatures."""
         events = [
-            make_ips_event(source_ip="192.168.1.50", signature="sig1"),
-            make_ips_event(source_ip="192.168.1.50", signature="sig2"),
+            make_ips_event(src_ip="192.168.1.50", signature="sig1"),
+            make_ips_event(src_ip="192.168.1.50", signature="sig2"),
         ] * 6  # 12 events total
 
         result = aggregate_source_ips(events, threshold=10)
@@ -423,9 +435,9 @@ class TestSourceIPSummary:
     def test_source_ip_summary_sorted_by_event_count(self):
         """Test that results are sorted by total event count descending."""
         events = []
-        events.extend([make_ips_event(source_ip="1.2.3.4") for _ in range(15)])
-        events.extend([make_ips_event(source_ip="5.6.7.8") for _ in range(25)])
-        events.extend([make_ips_event(source_ip="9.10.11.12") for _ in range(12)])
+        events.extend([make_ips_event(src_ip="1.2.3.4") for _ in range(15)])
+        events.extend([make_ips_event(src_ip="5.6.7.8") for _ in range(25)])
+        events.extend([make_ips_event(src_ip="9.10.11.12") for _ in range(12)])
 
         result = aggregate_source_ips(events, threshold=10)
 
