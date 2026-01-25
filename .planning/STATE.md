@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3.4-alpha — Integration Infrastructure (SHIPPED)
+**Current focus:** v0.3.5-alpha — Cloudflare Integration (IN PROGRESS)
 
 ## Current Position
 
-Phase: 10 of 13 (Integration Infrastructure)
-Plan: 3 of 3 in current phase
-Status: Phase SHIPPED
-Last activity: 2026-01-25 — Phase 10 verified and complete
+Phase: 11 of 13 (Cloudflare Integration)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-25 — Completed 11-01-PLAN.md
 
-Progress: [####################] 100% (11/13 phases complete, v0.3.4-alpha ready)
+Progress: [####################] 100% (11/13 phases complete, plan 1/3 of phase 11)
 
 ## Milestones
 
@@ -27,7 +27,7 @@ Progress: [####################] 100% (11/13 phases complete, v0.3.4-alpha ready
 | v0.3.3-alpha | Device Health Monitoring | 9 | SHIPPED 2026-01-25 |
 | v0.3.4-alpha | Integration Infrastructure | 10 | SHIPPED 2026-01-25 |
 | v0.3.15-alpha | WebSocket Support | 13 | SHIPPED 2026-01-25 |
-| v0.3.5-alpha | Cloudflare Integration | 11 | Planned |
+| v0.3.5-alpha | Cloudflare Integration | 11 | In progress |
 | v0.4-alpha | Cybersecure Integration | 12 | Planned |
 
 See `.planning/MILESTONES.md` for full milestone history.
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 41
+- Total plans completed: 42
 - Average duration: 4 min
-- Total execution time: 166 min
+- Total execution time: 173 min
 
 **By Phase:**
 
@@ -54,6 +54,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 08-enhanced-security | 5 | 24 min | 5 min |
 | 09-device-health | 4 | 17 min | 4 min |
 | 10-integration-infrastructure | 3 | 15 min | 5 min |
+| 11-cloudflare-integration | 1 | 7 min | 7 min |
 
 ## Accumulated Context
 
@@ -107,6 +108,10 @@ Recent decisions affecting current work:
 - [v0.3.4-alpha]: Partial config logs warning, missing config silently skipped
 - [v0.3.4-alpha]: Use capsys for structlog output capture in tests (not caplog)
 - [v0.3.4-alpha]: Circuit breaker uses calling() context manager for async (not @breaker decorator)
+- [v0.3.5-alpha]: GraphQL for WAF/DNS analytics (richer filtering), REST for tunnels (SDK simplicity)
+- [v0.3.5-alpha]: Account ID auto-discovered from zones if not provided
+- [v0.3.5-alpha]: Lazy HTTP client initialization for resource efficiency
+- [v0.3.5-alpha]: Helper methods on CloudflareData for common analysis patterns
 
 ### Pending Todos
 
@@ -115,6 +120,7 @@ None yet.
 ### Blockers/Concerns
 
 - UniFi Network 10.x deprecated `/stat/event` REST endpoint; WiFi events now require WebSocket connection (Phase 13)
+- Pre-existing test failures in test_models.py (datetime timezone) and test_rules.py (rule count, category prefix) - technical debt to address
 
 ### Roadmap Evolution
 
@@ -135,9 +141,10 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Phase 10 verified and complete
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
 
 ## Next Steps
 
-1. Continue with Phase 11 (Cloudflare Integration) or Phase 12 (Cybersecure Integration)
+1. Continue with 11-02-PLAN.md (CloudflareIntegration and analyzer)
+2. Then 11-03-PLAN.md (wiring into report pipeline)
