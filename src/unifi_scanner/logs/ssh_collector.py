@@ -7,6 +7,7 @@ Connects to UniFi devices via SSH and reads log files directly.
 from typing import List, Optional
 
 import paramiko
+from paramiko import MissingHostKeyPolicy, PKey
 import structlog
 
 from unifi_scanner.models import DeviceType, LogEntry
@@ -14,6 +15,71 @@ from unifi_scanner.models import DeviceType, LogEntry
 from .parser import LogParser
 
 logger = structlog.get_logger(__name__)
+
+
+class WarningHostKeyPolicy(MissingHostKeyPolicy):
+    """Host key policy that logs a warning but allows connections.
+
+    For home network tools connecting to known UniFi devices, strict host
+    key validation can be cumbersome. This policy logs a warning on first
+    connection but allows it to proceed, which is appropriate for internal
+    network monitoring tools.
+
+    For stricter validation, use host_key_fingerprint parameter.
+    """
+
+    def missing_host_key(
+        self,
+        client: paramiko.SSHClient,
+        hostname: str,
+        key: PKey,
+    ) -> None:
+        """Log warning when host key is not in known_hosts."""
+        key_type = key.get_name()
+        fingerprint = key.get_fingerprint().hex(":")
+        logger.warning(
+            "ssh_host_key_not_verified",
+            hostname=hostname,
+            key_type=key_type,
+            fingerprint=fingerprint,
+            hint="Set UNIFI_SSH_HOST_KEY_FINGERPRINT for strict validation",
+        )
+
+
+class _FingerprintVerifyPolicy(MissingHostKeyPolicy):
+    """Host key policy that validates against expected fingerprint.
+
+    Rejects connections if the host key fingerprint doesn't match.
+    """
+
+    def __init__(self, expected_fingerprint: str) -> None:
+        """Initialize with expected fingerprint.
+
+        Args:
+            expected_fingerprint: Hex fingerprint with colons (e.g., "aa:bb:cc:...")
+        """
+        super().__init__()
+        # Normalize fingerprint: lowercase, handle with/without colons
+        self.expected = expected_fingerprint.lower().replace(":", "")
+
+    def missing_host_key(
+        self,
+        client: paramiko.SSHClient,
+        hostname: str,
+        key: PKey,
+    ) -> None:
+        """Verify host key fingerprint matches expected value."""
+        actual = key.get_fingerprint().hex()
+        if actual != self.expected:
+            raise paramiko.SSHException(
+                f"Host key fingerprint mismatch for {hostname}: "
+                f"expected {self.expected}, got {actual}"
+            )
+        logger.info(
+            "ssh_host_key_verified",
+            hostname=hostname,
+            key_type=key.get_name(),
+        )
 
 # Log file paths by device type
 LOG_PATHS = {
@@ -73,6 +139,7 @@ class SSHLogCollector:
         device_type: Optional[DeviceType] = None,
         timeout: float = 30.0,
         port: int = 22,
+        host_key_fingerprint: Optional[str] = None,
     ) -> None:
         """Initialize SSH log collector.
 
@@ -83,6 +150,9 @@ class SSHLogCollector:
             device_type: Type of UniFi device (affects log paths).
             timeout: Command execution timeout in seconds.
             port: SSH port (default 22).
+            host_key_fingerprint: Expected host key fingerprint (hex with colons).
+                If provided, connection fails if fingerprint doesn't match.
+                If not provided, connection proceeds with a warning.
         """
         self.host = host
         self.username = username
@@ -90,6 +160,7 @@ class SSHLogCollector:
         self.device_type = device_type
         self.timeout = timeout
         self.port = port
+        self.host_key_fingerprint = host_key_fingerprint
         self._parser = LogParser()
 
     def collect(self, max_lines: int = 1000) -> List[LogEntry]:
@@ -173,7 +244,17 @@ class SSHLogCollector:
             SSHCollectionError: Connection failed.
         """
         client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Use custom policy that logs warnings instead of blindly accepting
+        # For strict validation, user can provide host_key_fingerprint
+        if self.host_key_fingerprint:
+            # Strict mode: reject if fingerprint doesn't match
+            client.set_missing_host_key_policy(
+                _FingerprintVerifyPolicy(self.host_key_fingerprint)
+            )
+        else:
+            # Warning mode: log but allow connection for home network use
+            client.set_missing_host_key_policy(WarningHostKeyPolicy())
 
         try:
             client.connect(
