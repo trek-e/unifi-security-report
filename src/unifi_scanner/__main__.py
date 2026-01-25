@@ -240,12 +240,16 @@ def run_report_job() -> None:
     2. Connect to UniFi API
     3. Collect logs (filtered by since_timestamp, with WebSocket events if available)
     4. Analyze logs
-    5. Generate report
-    6. Deliver via configured channels
-    7. Update state only after successful delivery
+    5. Collect and analyze IPS events
+    6. Generate report
+    7. Deliver via configured channels
+    8. Update state only after successful delivery
     """
     global _ws_manager
+    import time
+
     from unifi_scanner.analysis import AnalysisEngine
+    from unifi_scanner.analysis.ips import IPSAnalyzer, IPSEvent
     from unifi_scanner.analysis.rules import get_default_registry
     from unifi_scanner.api import UnifiClient
     from unifi_scanner.config.loader import get_config
@@ -309,6 +313,39 @@ def run_report_job() -> None:
             findings = engine.analyze(log_entries)
             log.info("analysis_complete", findings_count=len(findings))
 
+            # Collect and analyze IPS events
+            ips_analysis = None
+            try:
+                # Get raw IPS events for IPS-specific analysis
+                # Calculate time range from since_timestamp
+                end_ms = int(time.time() * 1000)
+                hours_since = int((datetime.now(timezone.utc) - since_timestamp).total_seconds() / 3600) + 1
+                start_ms = end_ms - (hours_since * 60 * 60 * 1000)
+
+                raw_ips_events = client.get_ips_events(
+                    site=site,
+                    start=start_ms,
+                    end=end_ms,
+                )
+
+                if raw_ips_events:
+                    # Convert to IPSEvent objects and analyze
+                    ips_events = [IPSEvent.from_api_event(e) for e in raw_ips_events]
+                    ips_analyzer = IPSAnalyzer(event_threshold=10)
+                    ips_analysis = ips_analyzer.process_events(ips_events)
+                    log.info(
+                        "ips_analysis_complete",
+                        event_count=len(ips_events),
+                        blocked_threats=len(ips_analysis.blocked_threats),
+                        detected_threats=len(ips_analysis.detected_threats),
+                    )
+                else:
+                    log.debug("no_ips_events", since=since_timestamp.isoformat())
+
+            except Exception as e:
+                # IPS analysis is optional - don't fail the whole report
+                log.warning("ips_analysis_failed", error=str(e))
+
             # Build report
             now = datetime.now(timezone.utc)
             report = Report(
@@ -324,8 +361,8 @@ def run_report_job() -> None:
             generator = ReportGenerator(
                 display_timezone=config.schedule_timezone,
             )
-            html_content = generator.generate_html(report)
-            text_content = generator.generate_text(report)
+            html_content = generator.generate_html(report, ips_analysis=ips_analysis)
+            text_content = generator.generate_text(report, ips_analysis=ips_analysis)
 
             # Set up delivery
             email_delivery = None
