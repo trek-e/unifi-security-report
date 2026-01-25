@@ -1,0 +1,170 @@
+{#
+    Device Health Section Template (HTML)
+
+    Renders device health analysis results into email-compatible HTML.
+    This template is meant to be included in the main report template.
+
+    Expected context variable: health_analysis (DeviceHealthResult or None)
+
+    Structure:
+    1. Executive summary box (total devices, healthy, warnings, critical)
+    2. Critical Issues section (if any critical findings)
+    3. Warnings section (if any warning findings)
+    4. Device status table (all devices with metrics)
+#}
+
+{% if health_analysis %}
+<!-- Device Health Summary -->
+<div style="margin-top: 30px;">
+    <h2 style="color: #333333; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 2px solid #2282FF; padding-bottom: 8px;">Device Health Summary</h2>
+
+    {# Executive Summary Box #}
+    <div style="background-color: #f8f9fa; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+            <tr>
+                <td style="text-align: center; padding: 0 10px;">
+                    <div style="font-size: 24px; font-weight: 600; color: #333333;">{{ health_analysis.total_devices }}</div>
+                    <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Total Devices</div>
+                </td>
+                <td style="text-align: center; padding: 0 10px;">
+                    <div style="font-size: 24px; font-weight: 600; color: #28a745;">{{ health_analysis.healthy_devices }}</div>
+                    <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Healthy</div>
+                </td>
+                <td style="text-align: center; padding: 0 10px;">
+                    <div style="font-size: 24px; font-weight: 600; color: #fd7e14;">{{ health_analysis.devices_with_warnings }}</div>
+                    <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Warnings</div>
+                </td>
+                <td style="text-align: center; padding: 0 10px;">
+                    <div style="font-size: 24px; font-weight: 600; color: #dc3545;">{{ health_analysis.devices_with_critical }}</div>
+                    <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Critical</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {# Critical Issues Section #}
+    {% if health_analysis.critical_findings %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #dc3545; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            Critical Issues
+            <span style="font-weight: normal; font-size: 13px; color: #6c757d;">({{ health_analysis.critical_findings | length }} issue{% if health_analysis.critical_findings | length != 1 %}s{% endif %})</span>
+        </h3>
+
+        {% for finding in health_analysis.critical_findings %}
+        <div style="margin-bottom: 15px; padding: 12px 15px; background-color: #ffffff; border-left: 4px solid #dc3545; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div style="margin-bottom: 6px;">
+                <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #dc3545; border-radius: 3px;">CRITICAL</span>
+                <strong style="color: #333333; font-size: 15px; margin-left: 8px;">{{ finding.title }}</strong>
+            </div>
+            <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
+                <strong>Device:</strong> {{ finding.device_name }}
+            </p>
+            <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
+                {{ finding.description }}
+            </p>
+            <p style="margin: 0 0 8px 0; color: #666666; font-size: 13px;">
+                <strong>Current:</strong> {{ "%.1f"|format(finding.current_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+                &nbsp;|&nbsp;
+                <strong>Threshold:</strong> {{ "%.1f"|format(finding.threshold_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+            </p>
+            {% if finding.remediation %}
+            <div style="margin-top: 10px; padding: 10px 12px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #17a2b8;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #17a2b8; text-transform: uppercase;">Recommended Actions</p>
+                <p style="margin: 0; color: #495057; font-size: 13px; white-space: pre-line;">{{ finding.remediation }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Warnings Section #}
+    {% if health_analysis.warning_findings %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #fd7e14; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            Warnings
+            <span style="font-weight: normal; font-size: 13px; color: #6c757d;">({{ health_analysis.warning_findings | length }} issue{% if health_analysis.warning_findings | length != 1 %}s{% endif %})</span>
+        </h3>
+
+        {% for finding in health_analysis.warning_findings %}
+        <div style="margin-bottom: 15px; padding: 12px 15px; background-color: #ffffff; border-left: 4px solid #fd7e14; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div style="margin-bottom: 6px;">
+                <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #fd7e14; border-radius: 3px;">WARNING</span>
+                <strong style="color: #333333; font-size: 15px; margin-left: 8px;">{{ finding.title }}</strong>
+            </div>
+            <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
+                <strong>Device:</strong> {{ finding.device_name }}
+            </p>
+            <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
+                {{ finding.description }}
+            </p>
+            <p style="margin: 0 0 8px 0; color: #666666; font-size: 13px;">
+                <strong>Current:</strong> {{ "%.1f"|format(finding.current_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+                &nbsp;|&nbsp;
+                <strong>Threshold:</strong> {{ "%.1f"|format(finding.threshold_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+            </p>
+            {% if finding.remediation %}
+            <div style="margin-top: 10px; padding: 10px 12px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #17a2b8;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #17a2b8; text-transform: uppercase;">Recommended Actions</p>
+                <p style="margin: 0; color: #495057; font-size: 13px; white-space: pre-line;">{{ finding.remediation }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Device Status Table #}
+    {% if health_analysis.device_summaries %}
+    <div style="margin-bottom: 20px;">
+        <h3 style="color: #333333; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">Device Status</h3>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 10px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Device</th>
+                    <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Type</th>
+                    <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Status</th>
+                    <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Issues</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary in health_analysis.device_summaries %}
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e9ecef; color: #333333;">{{ summary.device_name }}</td>
+                    <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #6c757d;">{{ summary.device_type | upper }}</td>
+                    <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef;">
+                        {% if summary.is_healthy %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #155724; background-color: #d4edda; border-radius: 3px;">OK</span>
+                        {% elif summary.critical_count > 0 %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #ffffff; background-color: #dc3545; border-radius: 3px;">CRITICAL</span>
+                        {% else %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #ffffff; background-color: #fd7e14; border-radius: 3px;">WARNING</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #6c757d;">
+                        {% if summary.is_healthy %}
+                        -
+                        {% else %}
+                        {% if summary.critical_count > 0 %}{{ summary.critical_count }} critical{% endif %}
+                        {% if summary.critical_count > 0 and summary.warning_count > 0 %}, {% endif %}
+                        {% if summary.warning_count > 0 %}{{ summary.warning_count }} warning{% if summary.warning_count != 1 %}s{% endif %}{% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# All healthy message #}
+    {% if not health_analysis.has_issues %}
+    <div style="padding: 15px; background-color: #d4edda; border-radius: 4px; text-align: center;">
+        <p style="margin: 0; color: #155724; font-size: 14px;">
+            <strong>&#10004; All devices healthy</strong><br>
+            <span style="font-size: 13px;">No device health issues detected.</span>
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}

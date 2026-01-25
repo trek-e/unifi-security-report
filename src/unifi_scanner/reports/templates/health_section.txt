@@ -1,0 +1,69 @@
+{#
+    Device Health Section Template (Plain Text)
+
+    Renders device health analysis results into plain text format.
+    This template is meant to be included in the main text report.
+
+    Expected context variable: health_analysis (DeviceHealthResult or None)
+
+    Structure:
+    1. Executive summary line (total devices, healthy, warnings, critical)
+    2. Critical Issues section (if any)
+    3. Warnings section (if any)
+    4. Device status table
+#}
+{% if health_analysis %}
+
+============================================================
+DEVICE HEALTH SUMMARY
+============================================================
+
+Devices: {{ health_analysis.total_devices }} total | {{ health_analysis.healthy_devices }} healthy | {{ health_analysis.devices_with_warnings }} with warnings | {{ health_analysis.devices_with_critical }} critical
+{% if health_analysis.critical_findings %}
+
+CRITICAL ISSUES
+----------------------------------------
+{% for finding in health_analysis.critical_findings %}
+
+[CRITICAL] {{ finding.title }}
+Device: {{ finding.device_name }}
+{{ finding.description }}
+Current: {{ "%.1f"|format(finding.current_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %} | Threshold: {{ "%.1f"|format(finding.threshold_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+
+{% if finding.remediation %}
+Recommended Actions:
+{{ finding.remediation }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if health_analysis.warning_findings %}
+
+WARNINGS
+----------------------------------------
+{% for finding in health_analysis.warning_findings %}
+
+[WARNING] {{ finding.title }}
+Device: {{ finding.device_name }}
+{{ finding.description }}
+Current: {{ "%.1f"|format(finding.current_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %} | Threshold: {{ "%.1f"|format(finding.threshold_value) }}{% if finding.category == 'temperature' %}C{% elif finding.category == 'uptime' %} days{% else %}%{% endif %}
+
+{% if finding.remediation %}
+Recommended Actions:
+{{ finding.remediation }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if health_analysis.device_summaries %}
+
+DEVICE STATUS
+----------------------------------------
+{% for summary in health_analysis.device_summaries %}
+{{ "%-25s"|format(summary.device_name) }} | {{ "%-4s"|format(summary.device_type | upper) }} | {% if summary.is_healthy %}OK{% elif summary.critical_count > 0 %}CRITICAL{% else %}WARNING{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if not health_analysis.has_issues %}
+
+[OK] All devices healthy - no issues detected.
+{% endif %}
+{% endif %}
