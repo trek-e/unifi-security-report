@@ -81,38 +81,38 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WIFI-01 | TBD | Pending |
-| WIFI-02 | TBD | Pending |
-| WIFI-03 | TBD | Pending |
-| WIFI-04 | TBD | Pending |
-| WIFI-05 | TBD | Pending |
-| WIFI-06 | TBD | Pending |
-| SECR-01 | TBD | Pending |
-| SECR-02 | TBD | Pending |
-| SECR-03 | TBD | Pending |
-| SECR-04 | TBD | Pending |
-| SECR-05 | TBD | Pending |
-| HLTH-01 | TBD | Pending |
-| HLTH-02 | TBD | Pending |
-| HLTH-03 | TBD | Pending |
-| HLTH-04 | TBD | Pending |
-| HLTH-05 | TBD | Pending |
-| INTG-01 | TBD | Pending |
-| INTG-02 | TBD | Pending |
-| INTG-03 | TBD | Pending |
-| CYBS-01 | TBD | Pending |
-| CYBS-02 | TBD | Pending |
-| CYBS-03 | TBD | Pending |
-| CLDF-01 | TBD | Pending |
-| CLDF-02 | TBD | Pending |
-| CLDF-03 | TBD | Pending |
-| CLDF-04 | TBD | Pending |
+| WIFI-01 | Phase 7 | Pending |
+| WIFI-02 | Phase 7 | Pending |
+| WIFI-03 | Phase 7 | Pending |
+| WIFI-04 | Phase 7 | Pending |
+| WIFI-05 | Phase 7 | Pending |
+| WIFI-06 | Phase 7 | Pending |
+| SECR-01 | Phase 8 | Pending |
+| SECR-02 | Phase 8 | Pending |
+| SECR-03 | Phase 8 | Pending |
+| SECR-04 | Phase 8 | Pending |
+| SECR-05 | Phase 8 | Pending |
+| HLTH-01 | Phase 9 | Pending |
+| HLTH-02 | Phase 9 | Pending |
+| HLTH-03 | Phase 9 | Pending |
+| HLTH-04 | Phase 9 | Pending |
+| HLTH-05 | Phase 9 | Pending |
+| INTG-01 | Phase 10 | Pending |
+| INTG-02 | Phase 10 | Pending |
+| INTG-03 | Phase 10 | Pending |
+| CLDF-01 | Phase 11 | Pending |
+| CLDF-02 | Phase 11 | Pending |
+| CLDF-03 | Phase 11 | Pending |
+| CLDF-04 | Phase 11 | Pending |
+| CYBS-01 | Phase 12 | Pending |
+| CYBS-02 | Phase 12 | Pending |
+| CYBS-03 | Phase 12 | Pending |
 
 **Coverage:**
 - v0.4-alpha requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 (pending roadmap)
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after v0.4-alpha milestone start*
+*Last updated: 2026-01-24 after v0.4-alpha roadmap created*
