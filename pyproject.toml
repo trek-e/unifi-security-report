@@ -40,6 +40,7 @@ dependencies = [
     "python-dateutil>=2.8",
     "paramiko>=3.4",
     "APScheduler>=3.10,<4.0",
+    "websockets>=14.0",
 ]
 
 [project.optional-dependencies]
