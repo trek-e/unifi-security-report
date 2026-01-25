@@ -140,6 +140,14 @@ class UnifiSettings(BaseSettings):
         default=True,
         description="Enable SSH fallback when API is insufficient",
     )
+    ssh_key_path: Optional[str] = Field(
+        default=None,
+        description="Path to SSH private key file for key-based authentication",
+    )
+    ssh_key_passphrase: Optional[str] = Field(
+        default=None,
+        description="Passphrase for SSH private key (if encrypted)",
+    )
 
     # Email delivery settings
     email_enabled: bool = Field(

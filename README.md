@@ -7,7 +7,7 @@ A containerized service that monitors UniFi network logs and delivers plain-Engl
 - **Log Collection**: Fetches events and alarms from UniFi Controller API with WebSocket support for UniFi 10.x+
 - **Smart Analysis**: Categorizes issues by severity (low, medium, severe) with deduplication
 - **Plain English Reports**: Generates human-readable explanations with remediation steps
-- **IPS/IDS Analysis**: Translates Suricata signatures into plain English with threat context
+- **IPS/IDS Analysis**: Translates Suricata signatures into plain English with threat context (includes MongoDB fallback for UDM Pro)
 - **Cybersecure Integration**: Identifies threats detected by Proofpoint ET PRO enhanced signatures
 - **Device Health Monitoring**: Tracks temperature, CPU, memory, and PoE status across devices
 - **Cloudflare Integration**: Optional WAF events, DNS analytics, and tunnel status monitoring
@@ -144,6 +144,32 @@ unifi-scanner --help
 | `UNIFI_EMAIL_ENABLED` | Enable email delivery | `false` |
 | `UNIFI_FILE_ENABLED` | Enable file output | `false` |
 
+### SSH Settings (for IPS via MongoDB)
+
+The UniFi Network API does not expose IPS/threat events. To collect blocked threat data, the scanner can SSH into UDM Pro devices and query MongoDB directly. This requires SSH key authentication (password auth is disabled on UDM Pro).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `UNIFI_SSH_ENABLED` | Enable SSH fallback for logs/IPS | `true` |
+| `UNIFI_SSH_KEY_PATH` | Path to SSH private key file | None |
+| `UNIFI_SSH_KEY_PASSPHRASE` | Passphrase for encrypted key | None |
+| `UNIFI_SSH_USERNAME` | SSH username | `root` |
+| `UNIFI_SSH_TIMEOUT` | SSH command timeout (seconds) | `30` |
+
+**Setup SSH key authentication:**
+```bash
+# Generate key pair (if needed)
+ssh-keygen -t ed25519 -f ~/.ssh/unifi_key
+
+# Copy public key to UDM Pro
+cat ~/.ssh/unifi_key.pub | ssh root@192.168.1.1 "cat >> ~/.ssh/authorized_keys"
+
+# Configure scanner
+export UNIFI_SSH_KEY_PATH=~/.ssh/unifi_key
+```
+
+> **Note**: MongoDB alerts contain limited data (source IP, destination IP, severity, timestamp). Signature names and categories shown in UniFi's UI are enriched from encrypted rule databases and are not available via MongoDB.
+
 ### Optional Integrations
 
 | Variable | Description | Default |
@@ -159,6 +185,7 @@ See `docker-compose.yml` for all options.
 
 | Version | Phase | Features |
 |---------|-------|----------|
+| v0.5.2a1 | 14 | MongoDB IPS collection via SSH (workaround for missing API) |
 | v0.4.0a1 | 12 | Cybersecure integration (ET PRO signature detection, badges) |
 | v0.3.15a1 | 13 | WebSocket support for UniFi Network 10.x+ |
 | v0.3.5a1 | 11 | Cloudflare integration (WAF, DNS analytics, tunnels) |

@@ -135,24 +135,28 @@ class SSHLogCollector:
         self,
         host: str,
         username: str,
-        password: str,
+        password: Optional[str] = None,
         device_type: Optional[DeviceType] = None,
         timeout: float = 30.0,
         port: int = 22,
         host_key_fingerprint: Optional[str] = None,
+        key_path: Optional[str] = None,
+        key_passphrase: Optional[str] = None,
     ) -> None:
         """Initialize SSH log collector.
 
         Args:
             host: Device hostname or IP address.
             username: SSH username.
-            password: SSH password.
+            password: SSH password (optional if using key auth).
             device_type: Type of UniFi device (affects log paths).
             timeout: Command execution timeout in seconds.
             port: SSH port (default 22).
             host_key_fingerprint: Expected host key fingerprint (hex with colons).
                 If provided, connection fails if fingerprint doesn't match.
                 If not provided, connection proceeds with a warning.
+            key_path: Path to SSH private key file for key-based auth.
+            key_passphrase: Passphrase for encrypted private key.
         """
         self.host = host
         self.username = username
@@ -161,6 +165,8 @@ class SSHLogCollector:
         self.timeout = timeout
         self.port = port
         self.host_key_fingerprint = host_key_fingerprint
+        self.key_path = key_path
+        self.key_passphrase = key_passphrase
         self._parser = LogParser()
 
     def collect(self, max_lines: int = 1000) -> List[LogEntry]:
@@ -237,6 +243,9 @@ class SSHLogCollector:
     def _connect(self) -> paramiko.SSHClient:
         """Establish SSH connection to the device.
 
+        Supports both password and key-based authentication.
+        Key-based auth is preferred when key_path is provided.
+
         Returns:
             Connected SSH client.
 
@@ -257,20 +266,41 @@ class SSHLogCollector:
             client.set_missing_host_key_policy(WarningHostKeyPolicy())
 
         try:
-            client.connect(
-                hostname=self.host,
-                port=self.port,
-                username=self.username,
-                password=self.password,
-                timeout=self.timeout,
-                look_for_keys=False,
-                allow_agent=False,
-            )
+            # Determine authentication method
+            if self.key_path:
+                # Key-based authentication
+                logger.debug(
+                    "ssh_connecting_with_key",
+                    host=self.host,
+                    key_path=self.key_path,
+                )
+                client.connect(
+                    hostname=self.host,
+                    port=self.port,
+                    username=self.username,
+                    key_filename=self.key_path,
+                    passphrase=self.key_passphrase,
+                    timeout=self.timeout,
+                    look_for_keys=False,
+                    allow_agent=False,
+                )
+            else:
+                # Password-based authentication
+                client.connect(
+                    hostname=self.host,
+                    port=self.port,
+                    username=self.username,
+                    password=self.password,
+                    timeout=self.timeout,
+                    look_for_keys=False,
+                    allow_agent=False,
+                )
             logger.debug("ssh_connected", host=self.host, port=self.port)
             return client
         except paramiko.AuthenticationException as e:
+            auth_method = "key" if self.key_path else "password"
             raise SSHCollectionError(
-                message="SSH authentication failed",
+                message=f"SSH authentication failed ({auth_method})",
                 host=self.host,
                 cause=e,
             ) from e

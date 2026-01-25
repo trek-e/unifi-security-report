@@ -378,13 +378,50 @@ def run_report_job() -> None:
                 end=end_ms,
             )
 
-            if raw_ips_events:
-                # Convert to IPSEvent objects and analyze
+            # If API returns empty, try MongoDB via SSH (UDM Pro workaround)
+            if not raw_ips_events and config.ssh_enabled and config.ssh_key_path:
+                log.debug("ips_api_empty_trying_mongodb")
+                try:
+                    from unifi_scanner.logs.mongo_ips_collector import MongoIPSCollector
+
+                    mongo_collector = MongoIPSCollector(
+                        host=config.host,
+                        username=config.ssh_username or "root",
+                        key_path=config.ssh_key_path,
+                        key_passphrase=config.ssh_key_passphrase,
+                        timeout=config.ssh_timeout,
+                    )
+                    mongo_alerts = mongo_collector.collect(
+                        since_timestamp=since_timestamp,
+                        limit=1000,
+                    )
+
+                    if mongo_alerts:
+                        # Convert MongoDB alerts to IPSEvent objects
+                        ips_events = [IPSEvent.from_mongodb_alert(a) for a in mongo_alerts]
+                        ips_analyzer = IPSAnalyzer(event_threshold=10)
+                        ips_analysis = ips_analyzer.process_events(ips_events)
+                        log.info(
+                            "ips_analysis_complete",
+                            source="mongodb",
+                            event_count=len(ips_events),
+                            blocked_threats=len(ips_analysis.blocked_threats),
+                            detected_threats=len(ips_analysis.detected_threats),
+                        )
+                    else:
+                        log.debug("no_ips_events_mongodb", since=since_timestamp.isoformat())
+
+                except Exception as e:
+                    log.warning("ips_mongodb_collection_failed", error=str(e))
+
+            elif raw_ips_events:
+                # Convert API events to IPSEvent objects and analyze
                 ips_events = [IPSEvent.from_api_event(e) for e in raw_ips_events]
                 ips_analyzer = IPSAnalyzer(event_threshold=10)
                 ips_analysis = ips_analyzer.process_events(ips_events)
                 log.info(
                     "ips_analysis_complete",
+                    source="api",
                     event_count=len(ips_events),
                     blocked_threats=len(ips_analysis.blocked_threats),
                     detected_threats=len(ips_analysis.detected_threats),

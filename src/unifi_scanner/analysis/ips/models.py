@@ -125,3 +125,52 @@ class IPSEvent(BaseModel):
             category_friendly=friendly_name,
             is_blocked=blocked,
         )
+
+    @classmethod
+    def from_mongodb_alert(cls, alert: dict[str, Any]) -> "IPSEvent":
+        """Factory for creating IPSEvent from MongoDB THREAT_BLOCKED_V3 alert.
+
+        MongoDB alerts from UniFi devices contain limited information compared
+        to the full IPS event data. Signature details are NOT stored in MongoDB
+        and are enriched by the UI from encrypted rule databases.
+
+        Args:
+            alert: Normalized alert dictionary from MongoIPSCollector
+
+        Returns:
+            IPSEvent instance with available fields populated
+        """
+        # Timestamp may already be datetime or need conversion
+        timestamp_value = alert.get("timestamp")
+        if isinstance(timestamp_value, datetime):
+            timestamp = timestamp_value
+        elif isinstance(timestamp_value, (int, float)):
+            # Assume milliseconds if large
+            if timestamp_value > 1000000000000:
+                timestamp = datetime.fromtimestamp(timestamp_value / 1000, tz=timezone.utc)
+            else:
+                timestamp = datetime.fromtimestamp(timestamp_value, tz=timezone.utc)
+        else:
+            timestamp = datetime.now(timezone.utc)
+
+        # Build a descriptive signature from available info
+        src_ip = alert.get("src_ip", "unknown")
+        severity_str = alert.get("severity_str", "MEDIUM")
+        signature = f"Blocked Threat from {src_ip} ({severity_str})"
+
+        return cls(
+            id=alert.get("_id", ""),
+            timestamp=timestamp,
+            src_ip=src_ip,
+            src_port=alert.get("src_port"),
+            dest_ip=alert.get("dest_ip", ""),
+            dest_port=alert.get("dest_port"),
+            proto=alert.get("proto", ""),
+            signature=signature,
+            signature_id=alert.get("signature_id", 0),
+            category_raw=alert.get("category_raw", "blocked"),
+            severity=alert.get("severity", 2),
+            action=alert.get("action", "blocked"),
+            category_friendly="Blocked Threat",
+            is_blocked=True,  # MongoDB alerts are always blocked threats
+        )
