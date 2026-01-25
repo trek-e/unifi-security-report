@@ -97,11 +97,13 @@ Plans:
   2. Report clearly distinguishes blocked threats from detected-only threats
   3. Report summarizes top threat source IPs with count of events per IP
   4. Report provides category-specific remediation guidance for security findings
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-01-PLAN.md — TDD: IPS models and signature parser (IPSEvent, ET category extraction)
+- [ ] 08-02-PLAN.md — TDD: IPSAnalyzer with threshold-based IP aggregation
+- [ ] 08-03-PLAN.md — Remediation templates and report section templates
+- [ ] 08-04-PLAN.md — Service integration and end-to-end tests
 
 ### Phase 9: Device Health Monitoring
 **Goal**: Users receive proactive alerts about device health before failures occur
@@ -189,7 +191,7 @@ Plans:
 | 5. Delivery & Scheduling | v0.2-alpha | 5/5 | Complete | 2026-01-24 |
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
-| 8. Enhanced Security Analysis | v0.3.2-alpha | 0/TBD | Not started | - |
+| 8. Enhanced Security Analysis | v0.3.2-alpha | 0/4 | Not started | - |
 | 9. Device Health Monitoring | v0.3.3-alpha | 0/TBD | Not started | - |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
@@ -204,3 +206,4 @@ Plans:
 *v0.3-alpha complete: 2026-01-24*
 *v0.3.1 through v0.4 roadmap created: 2026-01-24*
 *Phase 13 planned: 2026-01-25*
+*Phase 8 planned: 2026-01-25*
