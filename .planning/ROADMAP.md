@@ -168,8 +168,8 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — Core WebSocket client with cookie auth and event buffer
-- [ ] 13-02-PLAN.md — TDD: Event parsing and buffer tests
+- [x] 13-01-PLAN.md — Core WebSocket client with cookie auth and event buffer
+- [x] 13-02-PLAN.md — TDD: Event parsing and buffer tests
 - [ ] 13-03-PLAN.md — WebSocket manager and WS log collector
 - [ ] 13-04-PLAN.md — Collector fallback chain integration (WS -> REST -> SSH)
 - [ ] 13-05-PLAN.md — Service lifecycle and configuration
@@ -191,7 +191,7 @@ Plans:
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
-| 13. WebSocket Support | v0.3.15-alpha | 0/6 | Planned | - |
+| 13. WebSocket Support | v0.3.15-alpha | 2/6 | In progress | - |
 
 **Summary:** 13 phases total -- 7 complete, 6 planned across v0.3.2 through v0.4
 
