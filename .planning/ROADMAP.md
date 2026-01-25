@@ -49,9 +49,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.3.3-alpha Device Health Monitoring (Planned)
+<details>
+<summary>v0.3.3-alpha Device Health Monitoring (Phase 9) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 9: Device Health Monitoring** - Temperature monitoring, PoE events, uptime tracking, resource alerts
+- [x] Phase 9: Device Health Monitoring (4/4 plans) -- completed 2026-01-25
+
+</details>
 
 ### v0.3.4-alpha Integration Infrastructure (Planned)
 
@@ -121,10 +124,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — TDD: Device health models (DeviceStats, DeviceHealthFinding, DeviceHealthResult)
-- [ ] 09-02-PLAN.md — PoE rules and API extension for stat/device endpoint
-- [ ] 09-03-PLAN.md — TDD: DeviceHealthAnalyzer with configurable thresholds
-- [ ] 09-04-PLAN.md — Templates and service integration
+- [x] 09-01-PLAN.md — TDD: Device health models (DeviceStats, DeviceHealthFinding, DeviceHealthResult)
+- [x] 09-02-PLAN.md — PoE rules and API extension for stat/device endpoint
+- [x] 09-03-PLAN.md — TDD: DeviceHealthAnalyzer with configurable thresholds
+- [x] 09-04-PLAN.md — Templates and service integration
 
 ### Phase 10: Integration Infrastructure
 **Goal**: Framework for optional integrations that fail gracefully without affecting core functionality
@@ -198,13 +201,13 @@ Plans:
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
-| 9. Device Health Monitoring | v0.3.3-alpha | 0/4 | Planned | - |
+| 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 9 complete, 4 planned across v0.3.3 through v0.4
+**Summary:** 13 phases total -- 10 complete, 3 planned across v0.3.4 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*
@@ -215,3 +218,4 @@ Plans:
 *Phase 8 planned: 2026-01-25*
 *Phase 8 gap closure plan added: 2026-01-25*
 *Phase 9 planned: 2026-01-25*
+*Phase 9 complete: 2026-01-25*

@@ -26,11 +26,11 @@ Requirements for extended analysis rules and optional integrations milestone.
 
 ### Device Health
 
-- [ ] **HLTH-01**: Service monitors device temperatures via stat/device polling
-- [ ] **HLTH-02**: Service detects PoE disconnect events
-- [ ] **HLTH-03**: Service detects PoE overload/power budget exceeded events
-- [ ] **HLTH-04**: Service tracks and reports device uptime
-- [ ] **HLTH-05**: Service alerts on high CPU/memory utilization
+- [x] **HLTH-01**: Service monitors device temperatures via stat/device polling
+- [x] **HLTH-02**: Service detects PoE disconnect events
+- [x] **HLTH-03**: Service detects PoE overload/power budget exceeded events
+- [x] **HLTH-04**: Service tracks and reports device uptime
+- [x] **HLTH-05**: Service alerts on high CPU/memory utilization
 
 ### Integration Infrastructure
 
@@ -99,11 +99,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SECR-03 | Phase 8 | Complete |
 | SECR-04 | Phase 8 | Complete |
 | SECR-05 | Phase 8 | Complete |
-| HLTH-01 | Phase 9 | Pending |
-| HLTH-02 | Phase 9 | Pending |
-| HLTH-03 | Phase 9 | Pending |
-| HLTH-04 | Phase 9 | Pending |
-| HLTH-05 | Phase 9 | Pending |
+| HLTH-01 | Phase 9 | Complete |
+| HLTH-02 | Phase 9 | Complete |
+| HLTH-03 | Phase 9 | Complete |
+| HLTH-04 | Phase 9 | Complete |
+| HLTH-05 | Phase 9 | Complete |
 | INTG-01 | Phase 10 | Pending |
 | INTG-02 | Phase 10 | Pending |
 | INTG-03 | Phase 10 | Pending |
@@ -126,4 +126,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 after Phase 8 completion*
+*Last updated: 2026-01-25 after Phase 9 completion*
