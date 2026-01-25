@@ -202,6 +202,10 @@ class IntegrationRunner:
         - 30-second timeout
         - Comprehensive exception handling
 
+        Note: Uses pybreaker's calling() context manager instead of decorator
+        because the @breaker decorator doesn't properly track failures for
+        async functions in pybreaker 1.4.1.
+
         Args:
             integration: Integration to run.
 
@@ -224,15 +228,14 @@ class IntegrationRunner:
             )
 
         try:
-            # Define protected fetch with circuit breaker decorator
-            @breaker
-            async def protected_fetch() -> IntegrationResult:
-                return await asyncio.wait_for(
+            # Use calling() context manager for proper async support
+            # The context manager tracks success/failure and updates circuit state
+            with breaker.calling():
+                result = await asyncio.wait_for(
                     integration.fetch(),
                     timeout=INTEGRATION_TIMEOUT,
                 )
-
-            return await protected_fetch()
+            return result
 
         except asyncio.TimeoutError:
             log.warning(
@@ -272,18 +275,33 @@ class IntegrationRunner:
     def _result_to_section(self, result: IntegrationResult) -> IntegrationSection:
         """Convert IntegrationResult to IntegrationSection for report.
 
+        Error messages include specific failure reason (timeout, circuit_open, etc.)
+        for debugging, while templates can display user-friendly messages.
+
         Args:
             result: Result from integration fetch.
 
         Returns:
             IntegrationSection for template rendering.
         """
+        # Build error message with specific reason if available
+        error_message = None
+        if not result.success:
+            if result.error == "timeout":
+                error_message = f"Unable to fetch data (timeout after {INTEGRATION_TIMEOUT}s)"
+            elif result.error == "circuit_open":
+                error_message = "Unable to fetch data (circuit breaker open)"
+            elif result.error:
+                error_message = f"Unable to fetch data ({result.error})"
+            else:
+                error_message = "Unable to fetch data"
+
         return IntegrationSection(
             name=result.name,
             display_name=self._get_display_name(result.name),
             success=result.success,
             data=result.data,
-            error_message="Unable to fetch data" if not result.success else None,
+            error_message=error_message,
         )
 
     def _get_display_name(self, name: str) -> str:
