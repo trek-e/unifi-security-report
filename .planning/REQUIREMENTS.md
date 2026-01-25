@@ -1,0 +1,118 @@
+# Requirements: UniFi Scanner
+
+**Defined:** 2026-01-24
+**Core Value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
+
+## v0.4-alpha Requirements
+
+Requirements for extended analysis rules and optional integrations milestone.
+
+### Wireless Analysis
+
+- [ ] **WIFI-01**: Service detects client roaming events between APs
+- [ ] **WIFI-02**: Service detects radio band switching (2.4GHz to 5GHz and vice versa)
+- [ ] **WIFI-03**: Service detects AP channel changes with reason
+- [ ] **WIFI-04**: Service detects DFS radar events requiring channel evacuation
+- [ ] **WIFI-05**: Service translates RSSI values to signal quality (Excellent/Good/Fair/Poor)
+- [ ] **WIFI-06**: Service detects excessive client roaming (flapping) as warning
+
+### Security Analysis (IDS/IPS)
+
+- [ ] **SECR-01**: Service parses Suricata signature categories from IPS alerts
+- [ ] **SECR-02**: Service provides plain English explanations for threat categories
+- [ ] **SECR-03**: Service distinguishes between blocked and detected threats
+- [ ] **SECR-04**: Service summarizes top threat source IPs in report
+- [ ] **SECR-05**: Service provides category-specific remediation guidance
+
+### Device Health
+
+- [ ] **HLTH-01**: Service monitors device temperatures via stat/device polling
+- [ ] **HLTH-02**: Service detects PoE disconnect events
+- [ ] **HLTH-03**: Service detects PoE overload/power budget exceeded events
+- [ ] **HLTH-04**: Service tracks and reports device uptime
+- [ ] **HLTH-05**: Service alerts on high CPU/memory utilization
+
+### Integration Infrastructure
+
+- [ ] **INTG-01**: Service supports optional integrations that gracefully skip if not configured
+- [ ] **INTG-02**: Service isolates integration failures (one failing doesn't break others)
+- [ ] **INTG-03**: Service implements circuit breakers for external API calls
+
+### Cybersecure Integration (Optional)
+
+- [ ] **CYBS-01**: Service detects if Cybersecure subscription is active
+- [ ] **CYBS-02**: Service marks findings with enhanced signature coverage when Cybersecure active
+- [ ] **CYBS-03**: Service shows Cybersecure badge on threat findings when applicable
+
+### Cloudflare Integration (Optional)
+
+- [ ] **CLDF-01**: Service connects to Cloudflare API when credentials configured
+- [ ] **CLDF-02**: Service retrieves WAF block events from Cloudflare
+- [ ] **CLDF-03**: Service retrieves DNS analytics (blocked queries) from Cloudflare
+- [ ] **CLDF-04**: Service monitors Cloudflare tunnel status if tunnels exist
+
+## Future Requirements
+
+Deferred to later milestones.
+
+### Advanced Wireless (v0.5+)
+- **WIFI-07**: Interference pattern detection
+- **WIFI-08**: Wireless survey recommendations
+
+### Advanced Security (v0.5+)
+- **SECR-06**: Threat intelligence enrichment (IP reputation lookup)
+- **SECR-07**: Anomaly detection for unusual traffic patterns
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Real-time alerting | v1 is periodic reports only |
+| Automatic remediation | Recommendations only, no auto-fix |
+| Multi-gateway support | v1 is single gateway |
+| Custom rule creation UI | Users edit code if needed |
+| Historical trend graphs | Reports are point-in-time; dashboard is v2 |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| WIFI-01 | TBD | Pending |
+| WIFI-02 | TBD | Pending |
+| WIFI-03 | TBD | Pending |
+| WIFI-04 | TBD | Pending |
+| WIFI-05 | TBD | Pending |
+| WIFI-06 | TBD | Pending |
+| SECR-01 | TBD | Pending |
+| SECR-02 | TBD | Pending |
+| SECR-03 | TBD | Pending |
+| SECR-04 | TBD | Pending |
+| SECR-05 | TBD | Pending |
+| HLTH-01 | TBD | Pending |
+| HLTH-02 | TBD | Pending |
+| HLTH-03 | TBD | Pending |
+| HLTH-04 | TBD | Pending |
+| HLTH-05 | TBD | Pending |
+| INTG-01 | TBD | Pending |
+| INTG-02 | TBD | Pending |
+| INTG-03 | TBD | Pending |
+| CYBS-01 | TBD | Pending |
+| CYBS-02 | TBD | Pending |
+| CYBS-03 | TBD | Pending |
+| CLDF-01 | TBD | Pending |
+| CLDF-02 | TBD | Pending |
+| CLDF-03 | TBD | Pending |
+| CLDF-04 | TBD | Pending |
+
+**Coverage:**
+- v0.4-alpha requirements: 26 total
+- Mapped to phases: 0
+- Unmapped: 26 (pending roadmap)
+
+---
+*Requirements defined: 2026-01-24*
+*Last updated: 2026-01-24 after v0.4-alpha milestone start*
