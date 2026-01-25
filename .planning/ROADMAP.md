@@ -54,9 +54,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 - [ ] **Phase 10: Integration Infrastructure** - Optional integration framework, failure isolation, circuit breakers
 
-### v0.3.15-alpha WebSocket Support (Planned)
+<details>
+<summary>v0.3.15-alpha WebSocket Support (Phase 13) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 13: WebSocket Support** - Real-time event streaming for UniFi Network 10.x compatibility
+- [x] Phase 13: WebSocket Support (6/6 plans) -- completed 2026-01-25
+
+</details>
 
 ### v0.3.5-alpha Cloudflare Integration (Planned)
 
@@ -170,10 +173,10 @@ Plans:
 Plans:
 - [x] 13-01-PLAN.md — Core WebSocket client with cookie auth and event buffer
 - [x] 13-02-PLAN.md — TDD: Event parsing and buffer tests
-- [ ] 13-03-PLAN.md — WebSocket manager and WS log collector
-- [ ] 13-04-PLAN.md — Collector fallback chain integration (WS -> REST -> SSH)
-- [ ] 13-05-PLAN.md — Service lifecycle and configuration
-- [ ] 13-06-PLAN.md — Integration tests and verification
+- [x] 13-03-PLAN.md — WebSocket manager and WS log collector
+- [x] 13-04-PLAN.md — Collector fallback chain integration (WS -> REST -> SSH)
+- [x] 13-05-PLAN.md — Service lifecycle and configuration
+- [x] 13-06-PLAN.md — Integration tests and verification
 
 ## Progress
 
@@ -191,9 +194,9 @@ Plans:
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
-| 13. WebSocket Support | v0.3.15-alpha | 2/6 | In progress | - |
+| 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 7 complete, 6 planned across v0.3.2 through v0.4
+**Summary:** 13 phases total -- 8 complete, 5 planned across v0.3.2 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*

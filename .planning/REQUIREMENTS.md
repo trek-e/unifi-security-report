@@ -51,6 +51,13 @@ Requirements for extended analysis rules and optional integrations milestone.
 - [ ] **CLDF-03**: Service retrieves DNS analytics (blocked queries) from Cloudflare
 - [ ] **CLDF-04**: Service monitors Cloudflare tunnel status if tunnels exist
 
+### WebSocket Support
+
+- [ ] **WS-01**: Service connects to UniFi WebSocket endpoint after REST API authentication
+- [ ] **WS-02**: Service receives WiFi events (roaming, connections, disconnections) via WebSocket
+- [ ] **WS-03**: Service buffers WebSocket events and processes on report generation schedule
+- [ ] **WS-04**: Service gracefully falls back to REST API when WebSocket unavailable
+
 ## Future Requirements
 
 Deferred to later milestones.
@@ -107,10 +114,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CYBS-01 | Phase 12 | Pending |
 | CYBS-02 | Phase 12 | Pending |
 | CYBS-03 | Phase 12 | Pending |
+| WS-01 | Phase 13 | Pending |
+| WS-02 | Phase 13 | Pending |
+| WS-03 | Phase 13 | Pending |
+| WS-04 | Phase 13 | Pending |
 
 **Coverage:**
-- v0.4-alpha requirements: 26 total
-- Mapped to phases: 26
+- v0.5-alpha requirements: 30 total
+- Mapped to phases: 30
 - Unmapped: 0
 
 ---
