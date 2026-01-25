@@ -1,10 +1,13 @@
 """IPS analyzer for threat analysis and aggregation."""
 
+import structlog
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 from unifi_scanner.models.enums import Severity
+
+logger = structlog.get_logger(__name__)
 from unifi_scanner.analysis.ips.models import IPSEvent
 from unifi_scanner.analysis.ips.aggregator import SourceIPSummary, aggregate_source_ips
 from unifi_scanner.analysis.ips.remediation import get_remediation
@@ -127,6 +130,24 @@ class IPSAnalyzer:
         """
         if not events:
             return ThreatAnalysisResult()
+
+        # Debug: Log signature IDs and Cybersecure status
+        cybersecure_events = [e for e in events if e.is_cybersecure]
+        sig_ids = sorted(set(e.signature_id for e in events))
+        logger.debug(
+            "ips_events_processing",
+            total_events=len(events),
+            unique_signature_ids=len(sig_ids),
+            cybersecure_count=len(cybersecure_events),
+            sample_sig_ids=sig_ids[:10],  # First 10 unique SIDs
+        )
+        if cybersecure_events:
+            logger.info(
+                "cybersecure_events_found",
+                count=len(cybersecure_events),
+                signatures=[e.signature for e in cybersecure_events[:5]],
+                signature_ids=[e.signature_id for e in cybersecure_events[:5]],
+            )
 
         # Separate blocked and detected events
         blocked_events, detected_events = self._separate_blocked_detected(events)

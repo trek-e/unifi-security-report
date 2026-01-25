@@ -438,7 +438,21 @@ class UnifiClient:
         else:
             events = data if isinstance(data, list) else []
 
-        logger.debug("ips_events_retrieved", count=len(events), site=site)
+        # Debug: Log sample event structure to help troubleshoot
+        if events:
+            sample = events[0]
+            inner = sample.get("inner_alert", {})
+            logger.debug(
+                "ips_events_retrieved",
+                count=len(events),
+                site=site,
+                sample_has_inner_alert="inner_alert" in sample,
+                sample_signature_id=inner.get("signature_id") if inner else sample.get("signature_id"),
+                sample_signature=inner.get("signature", "")[:50] if inner else sample.get("signature", "")[:50],
+            )
+        else:
+            logger.debug("ips_events_retrieved", count=0, site=site)
+
         return events
 
     def get_devices(
