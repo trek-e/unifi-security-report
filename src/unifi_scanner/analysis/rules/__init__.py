@@ -11,6 +11,7 @@ from unifi_scanner.analysis.rules.connectivity import CONNECTIVITY_RULES
 from unifi_scanner.analysis.rules.performance import PERFORMANCE_RULES
 from unifi_scanner.analysis.rules.system import SYSTEM_RULES
 from unifi_scanner.analysis.rules.wireless import WIRELESS_RULES
+from unifi_scanner.analysis.rules.health import HEALTH_RULES
 
 
 # Aggregate all rules from all categories
@@ -20,6 +21,7 @@ ALL_RULES: List[Rule] = (
     + PERFORMANCE_RULES
     + SYSTEM_RULES
     + WIRELESS_RULES
+    + HEALTH_RULES
 )
 
 
@@ -47,6 +49,7 @@ __all__ = [
     "PERFORMANCE_RULES",
     "SYSTEM_RULES",
     "WIRELESS_RULES",
+    "HEALTH_RULES",
     "ALL_RULES",
     "get_default_registry",
 ]
