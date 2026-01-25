@@ -28,9 +28,11 @@ from unifi_scanner.integrations.base import (
     IntegrationResults,
     IntegrationSection,
 )
+from unifi_scanner.integrations.registry import IntegrationRegistry
 
 __all__ = [
     "Integration",
+    "IntegrationRegistry",
     "IntegrationResult",
     "IntegrationResults",
     "IntegrationSection",
