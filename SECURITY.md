@@ -4,7 +4,10 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
+| 0.5.x   | :white_check_mark: |
+| 0.4.x   | :white_check_mark: |
+| 0.3.x   | :white_check_mark: |
+| 0.2.x   | :x:                |
 | 0.1.x   | :x:                |
 
 ## Reporting a Vulnerability
@@ -36,11 +39,31 @@ echo "your-password" > secrets/unifi_password.txt
 chmod 600 secrets/unifi_password.txt
 ```
 
+### SSH Key Security (v0.5.5b+)
+
+The MongoDB IPS collection feature requires SSH access to UDM Pro devices:
+
+- **Use dedicated SSH keys** for the scanner, not your personal keys
+- Store private keys with restrictive permissions (`chmod 600`)
+- Consider using passphrase-protected keys with `UNIFI_SSH_KEY_PASSPHRASE`
+- SSH keys provide root access to UniFi devices - limit key distribution
+- The scanner only reads from MongoDB; it does not modify device configuration
+
+```bash
+# Generate a dedicated key pair
+ssh-keygen -t ed25519 -f ~/.ssh/unifi_scanner_key -C "unifi-scanner"
+chmod 600 ~/.ssh/unifi_scanner_key
+
+# For Docker: mount as read-only secret
+docker run -v ~/.ssh/unifi_scanner_key:/run/secrets/ssh_key:ro ...
+```
+
 ### Network Security
 
 - The scanner connects to your UniFi controller over HTTPS
 - SSL verification is enabled by default (`UNIFI_VERIFY_SSL=true`)
 - Only disable SSL verification for self-signed certificates on trusted networks
+- SSH connections (for IPS via MongoDB) use key-based authentication only
 - Use `network_mode: host` only when necessary for connectivity
 
 ### Container Security

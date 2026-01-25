@@ -1,4 +1,5 @@
 # UniFi Security Report - Docker Compose Configuration
+# v0.5.5b - Includes MongoDB IPS collection via SSH
 
 services:
   unifi-security-report:
@@ -23,12 +24,21 @@ services:
       UNIFI_FILE_FORMAT: both
       UNIFI_FILE_RETENTION_DAYS: "30"
 
+      # SSH for IPS via MongoDB (v0.5.5b+)
+      # UniFi API doesn't expose IPS events, so we query MongoDB directly via SSH
+      # Requires SSH key authentication (password auth is disabled on UDM Pro)
+      UNIFI_SSH_ENABLED: "true"
+      UNIFI_SSH_KEY_PATH: /run/secrets/ssh_key
+      UNIFI_SSH_USERNAME: root
+      # UNIFI_SSH_KEY_PASSPHRASE: ""  # Uncomment if key is encrypted
+
       # Logging
       UNIFI_LOG_LEVEL: INFO
       UNIFI_LOG_FORMAT: json
 
     secrets:
       - unifi_password
+      - ssh_key
 
     volumes:
       - ./reports:/app/reports:rw
@@ -36,3 +46,7 @@ services:
 secrets:
   unifi_password:
     file: ./secrets/unifi_password.txt
+  ssh_key:
+    file: ./secrets/unifi_ssh_key
+    # Generate with: ssh-keygen -t ed25519 -f ./secrets/unifi_ssh_key
+    # Copy public key to UDM: cat ./secrets/unifi_ssh_key.pub | ssh root@192.168.0.1 "cat >> ~/.ssh/authorized_keys"
