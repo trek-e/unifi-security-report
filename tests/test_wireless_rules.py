@@ -488,3 +488,31 @@ class TestFlappingDetection:
         assert len(flapping_findings) == 1
         assert flapping_findings[0].remediation is not None
         assert "coverage gaps" in flapping_findings[0].remediation.lower()
+
+
+class TestWirelessTemplateOutput:
+    """Verify templates use context variables correctly."""
+
+    def test_roaming_title_includes_source_and_destination_ap(self):
+        """WIFI-01: Roaming title should show both APs."""
+        rule = WIRELESS_RULES[0]  # client_roaming
+        assert "{ap_from_name}" in rule.title_template
+        assert "{ap_to_name}" in rule.title_template
+
+    def test_roaming_description_includes_rssi_quality(self):
+        """WIFI-05: Roaming description should show signal quality."""
+        rule = WIRELESS_RULES[0]  # client_roaming
+        assert "{rssi_quality}" in rule.description_template
+        assert "{rssi}" in rule.description_template
+
+    def test_band_switch_title_includes_radio_bands(self):
+        """WIFI-02: Band switch title should show actual bands."""
+        rule = WIRELESS_RULES[1]  # band_switch
+        assert "{radio_from_display}" in rule.title_template
+        assert "{radio_to_display}" in rule.title_template
+
+    def test_channel_change_title_includes_channels(self):
+        """WIFI-03: Channel change title should show channel numbers."""
+        rule = WIRELESS_RULES[2]  # ap_channel_change
+        assert "{channel_from}" in rule.title_template
+        assert "{channel_to}" in rule.title_template
