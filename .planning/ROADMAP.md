@@ -34,9 +34,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.3.1-alpha Extended Wireless Analysis (Gap Closure)
+<details>
+<summary>v0.3.1-alpha Extended Wireless Analysis (Phase 7) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 7: Extended Wireless Analysis** - Roaming detection, band switching, channel changes, DFS radar, signal quality (gap closure in progress)
+- [x] Phase 7: Extended Wireless Analysis (3/3 plans) -- completed 2026-01-25
+
+</details>
 
 ### v0.3.2-alpha Enhanced Security Analysis (Planned)
 
@@ -75,7 +78,7 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 Plans:
 - [x] 07-01-PLAN.md — WIRELESS category and rules for roaming, band switch, channel change, DFS radar (WIFI-01 through WIFI-04)
 - [x] 07-02-PLAN.md — RSSI quality translation and flapping detection (WIFI-05, WIFI-06)
-- [ ] 07-03-PLAN.md — Gap closure: Update templates to use context variables (template output fixes)
+- [x] 07-03-PLAN.md — Gap closure: Update templates to use context variables (template output fixes)
 
 ### Phase 8: Enhanced Security Analysis
 **Goal**: Users understand IDS/IPS alerts in plain English with actionable context
@@ -158,14 +161,14 @@ Plans:
 | 4. Report Generation | v0.2-alpha | 3/3 | Complete | 2026-01-24 |
 | 5. Delivery & Scheduling | v0.2-alpha | 5/5 | Complete | 2026-01-24 |
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
-| 7. Extended Wireless Analysis | v0.3.1-alpha | 2/3 | Gap closure | - |
+| 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 0/TBD | Not started | - |
 | 9. Device Health Monitoring | v0.3.3-alpha | 0/TBD | Not started | - |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 
-**Summary:** 12 phases total -- 6 complete, 6 planned across v0.3.1 through v0.4
+**Summary:** 12 phases total -- 7 complete, 5 planned across v0.3.2 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*
