@@ -1,0 +1,78 @@
+{#
+    Threat Section Template (Plain Text)
+
+    Renders IPS threat analysis results into plain text format.
+    This template is meant to be included in the main text report.
+
+    Expected context variable: ips_analysis (ThreatAnalysisResult or None)
+
+    Structure per CONTEXT.md:
+    1. Detection mode warning (if IPS is detection-only)
+    2. Threats Detected section (detected but not blocked)
+    3. Threats Blocked section (IPS blocked the traffic)
+    4. Top Threat Sources (external/internal separated)
+#}
+{% if ips_analysis %}
+
+============================================================
+SECURITY THREAT SUMMARY
+============================================================
+{% if ips_analysis.detection_mode_note %}
+
+*** DETECTION MODE ***
+{{ ips_analysis.detection_mode_note }}
+{% endif %}
+{% if ips_analysis.detected_threats %}
+
+THREATS DETECTED
+----------------------------------------
+{% for threat in ips_analysis.detected_threats %}
+
+[{{ threat.severity.value | upper }}] {{ threat.category_friendly }}
+{{ threat.description }}
+Events: {{ threat.count }}
+{% if threat.source_ips %}
+Sources: {{ threat.source_ips[:5] | join(', ') }}{% if threat.source_ips | length > 5 %} (+{{ threat.source_ips | length - 5 }} more){% endif %}
+
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if ips_analysis.blocked_threats %}
+
+THREATS BLOCKED
+----------------------------------------
+{% for threat in ips_analysis.blocked_threats %}
+
+[BLOCKED] {{ threat.category_friendly }}
+{{ threat.description }}
+Events blocked: {{ threat.count }}
+{% endfor %}
+{% endif %}
+{% if ips_analysis.external_source_ips or ips_analysis.internal_source_ips %}
+
+TOP THREAT SOURCES
+----------------------------------------
+{% if ips_analysis.external_source_ips %}
+
+External Threats:
+{% for ip_summary in ips_analysis.external_source_ips %}
+  {{ ip_summary.ip }}: {{ ip_summary.total_events }} events
+    Breakdown: {% for cat, count in ip_summary.category_breakdown.items() %}{{ cat }}={{ count }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endfor %}
+{% endif %}
+{% if ips_analysis.internal_source_ips %}
+
+Internal Concerns:
+{% for ip_summary in ips_analysis.internal_source_ips %}
+  {{ ip_summary.ip }}: {{ ip_summary.total_events }} events
+    Breakdown: {% for cat, count in ip_summary.category_breakdown.items() %}{{ cat }}={{ count }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if not ips_analysis.detected_threats and not ips_analysis.blocked_threats %}
+
+[OK] No security threats detected during this period.
+{% endif %}
+{% endif %}

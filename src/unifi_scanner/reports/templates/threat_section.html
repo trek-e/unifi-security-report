@@ -1,0 +1,147 @@
+{#
+    Threat Section Template (HTML)
+
+    Renders IPS threat analysis results into email-compatible HTML.
+    This template is meant to be included in the main report template.
+
+    Expected context variable: ips_analysis (ThreatAnalysisResult or None)
+
+    Structure per CONTEXT.md:
+    1. Detection mode warning (if IPS is detection-only)
+    2. Threats Detected section (detected but not blocked)
+    3. Threats Blocked section (IPS blocked the traffic)
+    4. Top Threat Sources (external/internal separated)
+#}
+
+{% if ips_analysis %}
+<!-- Security Threat Summary -->
+<div style="margin-top: 30px;">
+    <h2 style="color: #333333; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 2px solid #2282FF; padding-bottom: 8px;">Security Threat Summary</h2>
+
+    {# Detection mode warning - appears only when ALL events are detected-only #}
+    {% if ips_analysis.detection_mode_note %}
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+        <p style="margin: 0; color: #856404; font-size: 14px;">
+            <strong style="font-size: 13px;">&#9888; DETECTION MODE</strong><br>
+            {{ ips_analysis.detection_mode_note }}
+        </p>
+    </div>
+    {% endif %}
+
+    {# Threats Detected Section - per CONTEXT.md, appears before Threats Blocked #}
+    {% if ips_analysis.detected_threats %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #dc3545; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            Threats Detected
+            <span style="font-weight: normal; font-size: 13px; color: #6c757d;">({{ ips_analysis.detected_threats | length }} type{% if ips_analysis.detected_threats | length != 1 %}s{% endif %})</span>
+        </h3>
+
+        {% for threat in ips_analysis.detected_threats %}
+        <div style="margin-bottom: 15px; padding: 12px 15px; background-color: #ffffff; border-left: 4px solid {% if threat.severity.value == 'severe' %}#dc3545{% elif threat.severity.value == 'medium' %}#fd7e14{% else %}#6c757d{% endif %}; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div style="margin-bottom: 6px;">
+                <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: {% if threat.severity.value == 'severe' %}#dc3545{% elif threat.severity.value == 'medium' %}#fd7e14{% else %}#6c757d{% endif %}; border-radius: 3px;">{{ threat.severity.value }}</span>
+                <strong style="color: #333333; font-size: 15px; margin-left: 8px;">{{ threat.category_friendly }}</strong>
+            </div>
+            <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
+                {{ threat.description }}
+                <span style="color: #888888; font-size: 13px;">({{ threat.count }} event{% if threat.count != 1 %}s{% endif %})</span>
+            </p>
+            {% if threat.source_ips %}
+            <p style="margin: 0 0 8px 0; color: #666666; font-size: 13px;">
+                <strong>Sources:</strong> {{ threat.source_ips[:5] | join(', ') }}{% if threat.source_ips | length > 5 %} and {{ threat.source_ips | length - 5 }} more{% endif %}
+            </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Threats Blocked Section #}
+    {% if ips_analysis.blocked_threats %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #28a745; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            Threats Blocked
+            <span style="font-weight: normal; font-size: 13px; color: #6c757d;">({{ ips_analysis.blocked_threats | length }} type{% if ips_analysis.blocked_threats | length != 1 %}s{% endif %})</span>
+        </h3>
+
+        {% for threat in ips_analysis.blocked_threats %}
+        <div style="margin-bottom: 12px; padding: 10px 15px; background-color: #f8f9fa; border-left: 4px solid #28a745; border-radius: 0 4px 4px 0;">
+            <div style="margin-bottom: 4px;">
+                <span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #28a745; border-radius: 3px;">BLOCKED</span>
+                <strong style="color: #333333; font-size: 14px; margin-left: 6px;">{{ threat.category_friendly }}</strong>
+            </div>
+            <p style="margin: 0; color: #555555; font-size: 13px;">
+                {{ threat.description }}
+                <span style="color: #888888;">({{ threat.count }} blocked)</span>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Top Threat Sources - External and Internal separated per CONTEXT.md #}
+    {% if ips_analysis.external_source_ips or ips_analysis.internal_source_ips %}
+    <div style="margin-bottom: 20px;">
+        <h3 style="color: #333333; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">Top Threat Sources</h3>
+
+        {# External Threats #}
+        {% if ips_analysis.external_source_ips %}
+        <div style="margin-bottom: 15px;">
+            <h4 style="color: #495057; font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">
+                <span style="color: #dc3545;">&#9679;</span> External Threats
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px;">
+                {% for ip_summary in ips_analysis.external_source_ips %}
+                <tr>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; width: 35%;">
+                        <code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px;">{{ ip_summary.ip }}</code>
+                    </td>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; color: #333333;">
+                        {{ ip_summary.total_events }} event{% if ip_summary.total_events != 1 %}s{% endif %}
+                        <span style="color: #6c757d; font-size: 12px;">
+                            ({% for cat, count in ip_summary.category_breakdown.items() %}{{ cat }}: {{ count }}{% if not loop.last %}, {% endif %}{% endfor %})
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {# Internal Concerns #}
+        {% if ips_analysis.internal_source_ips %}
+        <div style="margin-bottom: 15px;">
+            <h4 style="color: #495057; font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">
+                <span style="color: #fd7e14;">&#9679;</span> Internal Concerns
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px;">
+                {% for ip_summary in ips_analysis.internal_source_ips %}
+                <tr>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; width: 35%;">
+                        <code style="background-color: #fff3cd; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px;">{{ ip_summary.ip }}</code>
+                    </td>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; color: #333333;">
+                        {{ ip_summary.total_events }} event{% if ip_summary.total_events != 1 %}s{% endif %}
+                        <span style="color: #6c757d; font-size: 12px;">
+                            ({% for cat, count in ip_summary.category_breakdown.items() %}{{ cat }}: {{ count }}{% if not loop.last %}, {% endif %}{% endfor %})
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# No threats message if ips_analysis exists but has no threats #}
+    {% if not ips_analysis.detected_threats and not ips_analysis.blocked_threats %}
+    <div style="padding: 15px; background-color: #d4edda; border-radius: 4px; text-align: center;">
+        <p style="margin: 0; color: #155724; font-size: 14px;">
+            <strong>&#10004; No security threats detected</strong><br>
+            <span style="font-size: 13px;">Your network had no IPS/IDS alerts during this period.</span>
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
