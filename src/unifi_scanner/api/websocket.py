@@ -364,10 +364,8 @@ class UnifiWebSocketClient:
         """
         self._running = False
         if self._ws:
-            try:
+            with contextlib.suppress(Exception):
                 await self._ws.close()
-            except Exception:
-                pass  # Ignore errors during close
             self._ws = None
         logger.debug("websocket_stopped")
 
@@ -375,7 +373,7 @@ class UnifiWebSocketClient:
         """Check if WebSocket is currently connected."""
         return self._ws is not None and self._ws.state.name == "OPEN"
 
-    async def __aenter__(self) -> "UnifiWebSocketClient":
+    async def __aenter__(self) -> UnifiWebSocketClient:
         """Async context manager entry."""
         await self.connect()
         return self

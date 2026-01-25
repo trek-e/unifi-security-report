@@ -9,14 +9,11 @@ TDD tests for:
 import threading
 import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from unifi_scanner.api.websocket import (
     BufferedEvent,
-    WebSocketEventBuffer,
     UnifiWebSocketClient,
+    WebSocketEventBuffer,
     parse_unifi_event,
 )
 from unifi_scanner.models import DeviceType
