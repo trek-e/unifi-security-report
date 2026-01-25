@@ -234,6 +234,16 @@ class UnifiSettings(BaseSettings):
         le=100000,
     )
 
+    # Cloudflare integration settings (optional)
+    cloudflare_api_token: Optional[str] = Field(
+        default=None,
+        description="Cloudflare API token for WAF, DNS, and tunnel data",
+    )
+    cloudflare_account_id: Optional[str] = Field(
+        default=None,
+        description="Cloudflare account ID (required for tunnel status, auto-discovered from zones if not set)",
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
