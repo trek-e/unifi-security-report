@@ -27,14 +27,11 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 
 ### Active
 
-- [x] Extended wireless analysis rules (roaming, channels, interference) — v0.3.1-alpha
-- [x] Enhanced IDS/IPS with plain English threat explanations — v0.3.2-alpha
-- [x] Device health monitoring (temperature, PoE, uptime) — v0.3.3-alpha
-- [x] Optional Cloudflare integration (WAF, DNS analytics) — v0.3.5-alpha
+- [ ] Extended wireless analysis rules (roaming, channels, interference)
+- [ ] Enhanced IDS/IPS with plain English threat explanations
+- [ ] Device health monitoring (temperature, PoE, uptime)
 - [ ] Optional Cybersecure integration (enhanced threat signatures)
-- [ ] CI/CD pipeline with automated tests, linting, type checking
-- [ ] Pre-commit hooks for local development
-- [ ] Security scanning in CI (CodeQL, dependency audit)
+- [ ] Optional Cloudflare integration (WAF, DNS analytics)
 
 ### Out of Scope
 
@@ -58,26 +55,28 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - **Network access**: Requires local network access to UniFi gateway/controller
 - **API dependency**: UniFi API is not officially documented; may change between versions
 
-## Current Milestone: v0.5-beta — Code Validation & Security Refactor
+## Current Milestone: v0.3.1-alpha — Extended Wireless Analysis
 
-**Goal:** Establish robust code quality infrastructure for long-term maintainability before graduating to beta
+**Goal:** Users gain visibility into wireless client behavior and AP radio changes
 
 **Target features:**
-- CI/CD pipeline (GitHub Actions for tests, lint, type check on PRs)
-- Fix existing ruff/mypy issues across codebase
-- Pre-commit hooks for local development workflow
-- Security scanning (CodeQL, dependency audit)
+- Client roaming detection between APs
+- Radio band switching (2.4GHz ↔ 5GHz)
+- AP channel changes with reasons
+- DFS radar event detection
+- RSSI to signal quality translation
+- Excessive roaming (flapping) detection
 
-**Roadmap:** v0.5-beta (code health) → v0.6 (Cybersecure integration)
+**Roadmap:** v0.3.1 → v0.3.2 (security) → v0.3.3 (health) → v0.3.4 (infra) → v0.3.5 (Cloudflare) → v0.4 (Cybersecure)
 
 ## Current State
 
-**Shipped:** v0.3.5-alpha (2026-01-25)
+**Shipped:** v0.3-alpha (2026-01-24)
 
 **Codebase:**
-- 12 phases, 45 plans completed
-- ~6,000+ lines of Python
-- 29 Cloudflare tests, 600+ total tests
+- 6 phases, 21 plans completed
+- ~3,000 lines of Python
+- 14 StateManager tests, 491 total tests passing
 - Docker image: ghcr.io/trek-e/unifi-security-report
 
 ## Key Decisions
@@ -95,4 +94,4 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 | 5-minute clock skew tolerance | Handles time drift between scanner and controller | Good |
 
 ---
-*Last updated: 2026-01-25 after v0.5-beta milestone start*
+*Last updated: 2026-01-24 after v0.3.1-alpha milestone start*
