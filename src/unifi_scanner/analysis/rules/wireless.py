@@ -1,12 +1,68 @@
 """Wireless category rules for UniFi event analysis.
 
 Rules for client roaming, band switching, channel changes, and DFS radar events.
+Includes helpers for RSSI-to-quality translation and radio band formatting.
 """
 
-from typing import List
+from typing import List, Optional
 
 from unifi_scanner.analysis.rules.base import Rule
 from unifi_scanner.models.enums import Category, Severity
+
+
+# RSSI thresholds for signal quality classification (WIFI-05)
+RSSI_THRESHOLDS = {
+    "Excellent": -50,  # >= -50 dBm
+    "Good": -60,       # -50 to -60 dBm
+    "Fair": -70,       # -60 to -70 dBm
+    "Poor": -80,       # -70 to -80 dBm
+    # < -80 dBm = Very Poor
+}
+
+
+def rssi_to_quality(rssi: Optional[int]) -> str:
+    """Convert RSSI (dBm) to human-readable quality label.
+
+    Args:
+        rssi: Signal strength in dBm (negative number) or None
+
+    Returns:
+        Quality label: Excellent, Good, Fair, Poor, or Very Poor
+    """
+    if rssi is None:
+        return "Unknown"
+    if rssi >= -50:
+        return "Excellent"
+    elif rssi >= -60:
+        return "Good"
+    elif rssi >= -70:
+        return "Fair"
+    elif rssi >= -80:
+        return "Poor"
+    else:
+        return "Very Poor"
+
+
+# Radio band codes used by UniFi
+RADIO_BANDS = {
+    "ng": "2.4GHz",
+    "na": "5GHz",
+    "6e": "6GHz",
+}
+
+
+def format_radio_band(radio_code: Optional[str]) -> str:
+    """Convert UniFi radio code to human-readable band.
+
+    Args:
+        radio_code: UniFi code (ng, na, 6e) or None
+
+    Returns:
+        Human-readable band name or original code if unknown
+    """
+    if radio_code is None:
+        return "Unknown"
+    return RADIO_BANDS.get(radio_code, radio_code)
 
 
 WIRELESS_RULES: List[Rule] = [
