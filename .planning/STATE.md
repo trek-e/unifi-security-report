@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 13 of 13 (WebSocket Support)
-Plan: 3 of 6 in current phase
+Plan: 4 of 6 in current phase
 Status: In progress
-Last activity: 2026-01-25 — Completed 13-03-PLAN.md (WebSocket Manager)
+Last activity: 2026-01-25 — Completed 13-04-PLAN.md (WebSocket Fallback Integration)
 
-Progress: [############........] 61% (7/12 core phases + 3/6 phase 13 plans)
+Progress: [#############.......] 67% (7/12 core phases + 4/6 phase 13 plans)
 
 ## Milestones
 
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: 4 min
-- Total execution time: 100 min
+- Total execution time: 106 min
 
 **By Phase:**
 
@@ -50,7 +50,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 05-delivery-scheduling | 5 | 10 min | 2 min |
 | 06-state-persistence | 2 | 8 min | 4 min |
 | 07-extended-wireless | 3 | 10 min | 3 min |
-| 13-websocket-support | 3 | 11 min | 4 min |
+| 13-websocket-support | 4 | 17 min | 4 min |
 
 ## Accumulated Context
 
@@ -70,6 +70,8 @@ Recent decisions affecting current work:
 - [v0.3.15-alpha]: WebSocket endpoint strips trailing slashes to prevent double slashes
 - [v0.3.15-alpha]: WebSocketManager uses daemon thread with isolated event loop
 - [v0.3.15-alpha]: WSLogCollector uses same 5-minute clock skew as APILogCollector
+- [v0.3.15-alpha]: Cookie extraction filters None values for type safety
+- [v0.3.15-alpha]: WS events merge with REST events using (timestamp, message) deduplication
 
 ### Pending Todos
 
@@ -97,10 +99,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-25T03:57:32Z
-Stopped at: Completed 13-03-PLAN.md (WebSocket Manager)
-Resume file: .planning/phases/13-websocket-support/13-04-PLAN.md
+Last session: 2026-01-25T04:11:00Z
+Stopped at: Completed 13-04-PLAN.md (WebSocket Fallback Integration)
+Resume file: .planning/phases/13-websocket-support/13-05-PLAN.md
 
 ## Next Steps
 
-Continue Phase 13 with plan 13-04 (WebSocket integration with main collector)
+Continue Phase 13 with plan 13-05 (Scheduler integration with WebSocket)
