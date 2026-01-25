@@ -182,9 +182,9 @@ class TestWebSocketEventBuffer:
         assert len(first_drain) == 1
         assert len(second_drain) == 0
 
-    def test_buffer_respects_maxsize(self) -> None:
-        """Buffer drops oldest events when maxsize exceeded."""
-        buffer = WebSocketEventBuffer(maxsize=3)
+    def test_buffer_respects_max_size(self) -> None:
+        """Buffer drops oldest events when max_size exceeded."""
+        buffer = WebSocketEventBuffer(max_size=3)
         events = [
             BufferedEvent(
                 timestamp=datetime.now(timezone.utc),
@@ -207,7 +207,7 @@ class TestWebSocketEventBuffer:
 
     def test_thread_safety(self) -> None:
         """Buffer handles concurrent add and drain from multiple threads."""
-        buffer = WebSocketEventBuffer(maxsize=1000)
+        buffer = WebSocketEventBuffer(max_size=1000)
         events_added = []
         events_drained = []
         lock = threading.Lock()
