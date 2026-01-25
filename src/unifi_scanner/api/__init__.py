@@ -32,6 +32,7 @@ from unifi_scanner.api.websocket import (
     WebSocketEventBuffer,
     parse_unifi_event,
 )
+from unifi_scanner.api.ws_manager import WebSocketManager
 
 __all__ = [
     # Client
@@ -40,6 +41,7 @@ __all__ = [
     "BufferedEvent",
     "UnifiWebSocketClient",
     "WebSocketEventBuffer",
+    "WebSocketManager",
     "parse_unifi_event",
     # Exceptions
     "AuthenticationError",
