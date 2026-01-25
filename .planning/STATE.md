@@ -26,9 +26,9 @@ Progress: [###########.........] 58% (7/12 phases complete)
 | v0.3.2-alpha | Enhanced Security Analysis | 8 | Next |
 | v0.3.3-alpha | Device Health Monitoring | 9 | Planned |
 | v0.3.4-alpha | Integration Infrastructure | 10 | Planned |
+| v0.3.15-alpha | WebSocket Support | 13 | Planned |
 | v0.3.5-alpha | Cloudflare Integration | 11 | Planned |
 | v0.4-alpha | Cybersecure Integration | 12 | Planned |
-| v0.5-alpha | WebSocket Support | 13 | Planned |
 
 See `.planning/MILESTONES.md` for full milestone history.
 

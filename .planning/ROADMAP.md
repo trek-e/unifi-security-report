@@ -8,9 +8,9 @@
 - **v0.3.2-alpha** -- Phase 8 (planned) -- Enhanced security analysis
 - **v0.3.3-alpha** -- Phase 9 (planned) -- Device health monitoring
 - **v0.3.4-alpha** -- Phase 10 (planned) -- Integration infrastructure
+- **v0.3.15-alpha** -- Phase 13 (planned) -- WebSocket support for UniFi Network 10.x events
 - **v0.3.5-alpha** -- Phase 11 (planned) -- Cloudflare integration
 - **v0.4-alpha** -- Phase 12 (planned) -- Cybersecure integration
-- **v0.5-alpha** -- Phase 13 (planned) -- WebSocket support for UniFi Network 10.x events
 
 See `.planning/MILESTONES.md` for detailed milestone history.
 See `.planning/milestones/` for archived roadmap and requirements per milestone.
@@ -54,6 +54,10 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 - [ ] **Phase 10: Integration Infrastructure** - Optional integration framework, failure isolation, circuit breakers
 
+### v0.3.15-alpha WebSocket Support (Planned)
+
+- [ ] **Phase 13: WebSocket Support** - Real-time event streaming for UniFi Network 10.x compatibility
+
 ### v0.3.5-alpha Cloudflare Integration (Planned)
 
 - [ ] **Phase 11: Cloudflare Integration** - WAF events, DNS analytics, tunnel status monitoring
@@ -61,10 +65,6 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 ### v0.4-alpha Cybersecure Integration (Planned)
 
 - [ ] **Phase 12: Cybersecure Integration** - Subscription detection, enhanced signatures, threat badging
-
-### v0.5-alpha WebSocket Support (Planned)
-
-- [ ] **Phase 13: WebSocket Support** - Real-time event streaming for UniFi Network 10.x compatibility
 
 ## Phase Details
 
@@ -191,9 +191,9 @@ Plans:
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
-| 13. WebSocket Support | v0.5-alpha | 0/6 | Planned | - |
+| 13. WebSocket Support | v0.3.15-alpha | 0/6 | Planned | - |
 
-**Summary:** 13 phases total -- 7 complete, 6 planned across v0.3.2 through v0.5
+**Summary:** 13 phases total -- 7 complete, 6 planned across v0.3.2 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*
