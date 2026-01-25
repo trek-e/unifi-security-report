@@ -1,9 +1,9 @@
-"""Integration infrastructure for optional external data sources.
+"""External integrations infrastructure.
 
-Provides the framework for integrations that:
-- Fail gracefully without affecting core UniFi reports
-- Run in parallel with each other and UniFi data collection
-- Are skipped silently when not configured
+Provides the Integration Protocol, registry, and runner for optional
+external integrations like Cloudflare and Cybersecure.
+
+Importing this module triggers registration of all available integrations.
 
 Example usage::
 
@@ -22,6 +22,7 @@ Example usage::
     result = await integration.fetch()
 """
 
+# Base types and infrastructure
 from unifi_scanner.integrations.base import (
     Integration,
     IntegrationResult,
@@ -30,6 +31,10 @@ from unifi_scanner.integrations.base import (
 )
 from unifi_scanner.integrations.registry import IntegrationRegistry
 from unifi_scanner.integrations.runner import IntegrationRunner
+
+# Import integration modules to trigger registration
+# Each module registers itself via IntegrationRegistry.register()
+from unifi_scanner.integrations import cloudflare  # noqa: F401
 
 __all__ = [
     "Integration",
