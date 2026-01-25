@@ -5,7 +5,7 @@ to SSH if API fails or returns insufficient entries.
 """
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import structlog
 
@@ -88,13 +88,13 @@ class LogCollector:
         force_ssh: bool = False,
         history_hours: int = 720,
         since_timestamp: Optional[datetime] = None,
-    ) -> List[LogEntry]:
+    ) -> list[LogEntry]:
         """Collect logs from available sources.
 
-        Tries API first, falls back to SSH if needed.
+        Implements fallback chain: WS -> REST API -> SSH.
 
         Args:
-            force_ssh: Skip API and use SSH directly (default False).
+            force_ssh: Skip WS and API, use SSH directly (default False).
             history_hours: Hours of history to retrieve via API.
             since_timestamp: Only include events newer than this timestamp (UTC).
                 Client-side filtering is applied since UniFi API lacks
@@ -109,10 +109,38 @@ class LogCollector:
         """
         api_error: Optional[Exception] = None
         ssh_error: Optional[Exception] = None
-        entries: List[LogEntry] = []
+        ws_events: list[LogEntry] = []
+        api_events: list[LogEntry] = []
         api_succeeded = False  # Track whether API collection succeeded (even with 0 results)
+        sources: list[str] = []
 
-        # Try API first unless forced to SSH
+        # Try WebSocket first (if manager provided and running)
+        if not force_ssh and self._ws_manager is not None:
+            try:
+                if self._ws_manager.is_running():
+                    ws_collector = WSLogCollector(
+                        manager=self._ws_manager,
+                        since_timestamp=since_timestamp,
+                    )
+                    ws_events = ws_collector.collect()
+
+                    if ws_events:
+                        sources.append("ws")
+                        logger.info(
+                            "websocket_events_collected",
+                            count=len(ws_events),
+                        )
+                else:
+                    logger.debug("websocket_manager_not_running")
+
+            except WSCollectionError as e:
+                logger.warning(
+                    "ws_collection_failed",
+                    error=str(e),
+                )
+                ws_events = []
+
+        # Try REST API (unless forced to SSH)
         if not force_ssh:
             try:
                 api_collector = APILogCollector(
@@ -121,24 +149,11 @@ class LogCollector:
                     history_hours=history_hours,
                     since_timestamp=since_timestamp,
                 )
-                entries = api_collector.collect()
+                api_events = api_collector.collect()
                 api_succeeded = True  # API call succeeded, even if 0 entries
 
-                # Check if we got enough entries
-                if len(entries) >= self.min_entries:
-                    logger.info(
-                        "log_collection_complete",
-                        source="api",
-                        entries=len(entries),
-                    )
-                    return entries
-
-                # Not enough entries, will try SSH fallback
-                logger.info(
-                    "api_insufficient_entries",
-                    entries=len(entries),
-                    min_required=self.min_entries,
-                )
+                if api_events:
+                    sources.append("api")
 
             except APICollectionError as e:
                 api_error = e
@@ -151,6 +166,30 @@ class LogCollector:
                 logger.warning(
                     "api_collection_unexpected_error",
                     error=str(e),
+                )
+
+        # Merge WS + API events (deduplicate by timestamp + message)
+        merged_events = self._merge_events(ws_events, api_events)
+
+        # Check if we have enough entries (WS + API combined)
+        if len(merged_events) >= self.min_entries or api_succeeded:
+            # Don't try SSH if we have enough or API succeeded
+            if len(merged_events) >= self.min_entries:
+                logger.info(
+                    "log_collection_complete",
+                    sources=sources,
+                    ws_count=len(ws_events),
+                    api_count=len(api_events),
+                    total=len(merged_events),
+                )
+                return merged_events
+
+            # API succeeded but insufficient entries, try SSH if enabled
+            if len(merged_events) < self.min_entries:
+                logger.info(
+                    "api_insufficient_entries",
+                    entries=len(merged_events),
+                    min_required=self.min_entries,
                 )
 
         # Try SSH fallback if enabled
@@ -172,23 +211,21 @@ class LogCollector:
                         since=since_timestamp.isoformat(),
                     )
 
-                # Merge with any API entries we got
-                if entries:
-                    # Deduplicate by message + timestamp (rough)
-                    seen = {(e.timestamp, e.message) for e in entries}
-                    for entry in ssh_entries:
-                        if (entry.timestamp, entry.message) not in seen:
-                            entries.append(entry)
-                            seen.add((entry.timestamp, entry.message))
-                else:
-                    entries = ssh_entries
+                if ssh_entries:
+                    sources.append("ssh")
+
+                # Merge with WS + API entries
+                merged_events = self._merge_events(merged_events, ssh_entries)
 
                 logger.info(
                     "log_collection_complete",
-                    source="ssh" if force_ssh else "api+ssh",
-                    entries=len(entries),
+                    sources=sources,
+                    ws_count=len(ws_events),
+                    api_count=len(api_events),
+                    ssh_count=len(ssh_entries),
+                    total=len(merged_events),
                 )
-                return entries
+                return merged_events
 
             except SSHCollectionError as e:
                 ssh_error = e
@@ -207,14 +244,16 @@ class LogCollector:
 
         # If API succeeded (even with 0 entries), return what we got
         # 0 entries is valid - may just be no events in the time window
-        if api_succeeded:
+        if api_succeeded or ws_events:
             logger.info(
                 "log_collection_partial",
-                source="api",
-                entries=len(entries),
+                sources=sources,
+                ws_count=len(ws_events),
+                api_count=len(api_events),
+                total=len(merged_events),
                 note="SSH fallback unavailable or failed",
             )
-            return entries
+            return merged_events
 
         # All sources failed (API threw exception and SSH failed/disabled)
         raise LogCollectionError(
@@ -223,7 +262,37 @@ class LogCollector:
             ssh_error=ssh_error,
         )
 
-    def _collect_via_ssh(self) -> List[LogEntry]:
+    def _merge_events(
+        self,
+        events_a: list[LogEntry],
+        events_b: list[LogEntry],
+    ) -> list[LogEntry]:
+        """Merge two lists of log entries, deduplicating by timestamp+message.
+
+        Args:
+            events_a: First list of events (preserved in conflicts).
+            events_b: Second list of events (added if not duplicate).
+
+        Returns:
+            Merged list with duplicates removed.
+        """
+        if not events_a:
+            return events_b
+        if not events_b:
+            return events_a
+
+        # Use dict to deduplicate, preserving events_a in conflicts
+        seen: dict[tuple[datetime, str], LogEntry] = {}
+        for e in events_a:
+            seen[(e.timestamp, e.message)] = e
+        for e in events_b:
+            key = (e.timestamp, e.message)
+            if key not in seen:
+                seen[key] = e
+
+        return list(seen.values())
+
+    def _collect_via_ssh(self) -> list[LogEntry]:
         """Collect logs via SSH fallback.
 
         Returns:
