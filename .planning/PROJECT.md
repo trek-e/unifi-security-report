@@ -27,7 +27,11 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 
 ### Active
 
-(None currently — awaiting user feedback for v0.4 direction)
+- [ ] Extended wireless analysis rules (roaming, channels, interference)
+- [ ] Enhanced IDS/IPS with plain English threat explanations
+- [ ] Device health monitoring (temperature, PoE, uptime)
+- [ ] Optional Cybersecure integration (enhanced threat signatures)
+- [ ] Optional Cloudflare integration (WAF, DNS analytics)
 
 ### Out of Scope
 
@@ -51,18 +55,26 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - **Network access**: Requires local network access to UniFi gateway/controller
 - **API dependency**: UniFi API is not officially documented; may change between versions
 
+## Current Milestone: v0.4-alpha — Extended Analysis & Integrations
+
+**Goal:** Comprehensive analysis rules for wireless, security, and device health plus optional Cybersecure/Cloudflare integrations
+
+**Target features:**
+- Extended wireless rules (roaming, channel changes, DFS radar, signal quality)
+- Enhanced IDS/IPS parsing (Suricata signatures to plain English)
+- Device health monitoring (temperature, PoE failures, uptime)
+- Optional Cybersecure integration (enhanced threat detection if subscribed)
+- Optional Cloudflare integration (WAF events, DNS analytics if configured)
+
 ## Current State
 
 **Shipped:** v0.3-alpha (2026-01-24)
-**Status:** Feature complete, awaiting user testing
 
 **Codebase:**
 - 6 phases, 21 plans completed
 - ~3,000 lines of Python
 - 14 StateManager tests, 491 total tests passing
 - Docker image: ghcr.io/trek-e/unifi-security-report
-
-**Next milestone:** TBD based on user feedback
 
 ## Key Decisions
 
@@ -79,4 +91,4 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 | 5-minute clock skew tolerance | Handles time drift between scanner and controller | Good |
 
 ---
-*Last updated: 2026-01-24 after v0.3-alpha milestone complete*
+*Last updated: 2026-01-24 after v0.4-alpha milestone start*

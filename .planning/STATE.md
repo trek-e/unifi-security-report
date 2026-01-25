@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3-alpha SHIPPED — Awaiting user feedback for next milestone
+**Current focus:** v0.4-alpha — Extended Analysis & Integrations
 
 ## Current Position
 
-Phase: 6 of 6 complete (State Persistence)
-Plan: All plans complete
-Status: Milestone shipped
-Last activity: 2026-01-24 — v0.3-alpha milestone complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-24 — Milestone v0.4-alpha started
 
-Progress: [##########] 100% (6/6 phases complete across v0.2 + v0.3)
+Progress: [░░░░░░░░░░] 0% (defining v0.4 roadmap)
 
 ## Milestones
 
