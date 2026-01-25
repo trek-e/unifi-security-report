@@ -73,9 +73,10 @@ WIRELESS_RULES: List[Rule] = [
         title_template="[Wireless] DFS radar detected on {device_name}",
         description_template=(
             "Access point {device_name} detected radar on a DFS (Dynamic Frequency Selection) "
-            "channel and must vacate the channel for 30 minutes per FCC regulations. DFS "
-            "channels (52-144 in 5GHz) are shared with weather radar and military systems. "
-            "Radar detection causes temporary channel changes and may briefly affect clients."
+            "channel (EVT_AP_RADAR_DETECTED) and must vacate the channel for 30 minutes per FCC "
+            "regulations. DFS channels (52-144 in 5GHz) are shared with weather radar and "
+            "military systems. Radar detection causes temporary channel changes and may briefly "
+            "affect clients."
         ),
         remediation_template=(
             "1. Consider using non-DFS channels (36-48) to avoid radar interruptions\n"
