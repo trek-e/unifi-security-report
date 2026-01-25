@@ -1,4 +1,4 @@
-"""Tests for wireless rules (WIFI-01 through WIFI-04)."""
+"""Tests for wireless rules (WIFI-01 through WIFI-06)."""
 
 import pytest
 from datetime import datetime, timezone
@@ -8,7 +8,11 @@ from unifi_scanner.analysis.rules import (
     ALL_RULES,
     get_default_registry,
 )
-from unifi_scanner.analysis.rules.wireless import WIRELESS_RULES as WIRELESS_RULES_DIRECT
+from unifi_scanner.analysis.rules.wireless import (
+    WIRELESS_RULES as WIRELESS_RULES_DIRECT,
+    rssi_to_quality,
+    format_radio_band,
+)
 from unifi_scanner.analysis import AnalysisEngine
 from unifi_scanner.models.enums import Category, Severity, LogSource
 from unifi_scanner.models.log_entry import LogEntry
@@ -302,3 +306,185 @@ class TestEngineIntegration:
         assert finding.category == Category.PERFORMANCE
         assert finding.severity == Severity.MEDIUM
         assert "[Performance]" in finding.title
+
+
+class TestRssiToQuality:
+    """Tests for RSSI-to-quality translation (WIFI-05)."""
+
+    def test_rssi_to_quality_excellent(self):
+        """Signal >= -50 dBm is Excellent."""
+        assert rssi_to_quality(-45) == "Excellent"
+        assert rssi_to_quality(-50) == "Excellent"
+
+    def test_rssi_to_quality_good(self):
+        """Signal -51 to -60 dBm is Good."""
+        assert rssi_to_quality(-55) == "Good"
+        assert rssi_to_quality(-60) == "Good"
+
+    def test_rssi_to_quality_fair(self):
+        """Signal -61 to -70 dBm is Fair."""
+        assert rssi_to_quality(-65) == "Fair"
+        assert rssi_to_quality(-70) == "Fair"
+
+    def test_rssi_to_quality_poor(self):
+        """Signal -71 to -80 dBm is Poor."""
+        assert rssi_to_quality(-75) == "Poor"
+        assert rssi_to_quality(-80) == "Poor"
+
+    def test_rssi_to_quality_very_poor(self):
+        """Signal < -80 dBm is Very Poor."""
+        assert rssi_to_quality(-85) == "Very Poor"
+        assert rssi_to_quality(-90) == "Very Poor"
+
+    def test_rssi_to_quality_none(self):
+        """None input returns Unknown."""
+        assert rssi_to_quality(None) == "Unknown"
+
+
+class TestFormatRadioBand:
+    """Tests for radio band formatting."""
+
+    def test_format_radio_band_24ghz(self):
+        """ng maps to 2.4GHz."""
+        assert format_radio_band("ng") == "2.4GHz"
+
+    def test_format_radio_band_5ghz(self):
+        """na maps to 5GHz."""
+        assert format_radio_band("na") == "5GHz"
+
+    def test_format_radio_band_6ghz(self):
+        """6e maps to 6GHz."""
+        assert format_radio_band("6e") == "6GHz"
+
+    def test_format_radio_band_unknown(self):
+        """Unknown code returns original value."""
+        assert format_radio_band("xyz") == "xyz"
+
+    def test_format_radio_band_none(self):
+        """None input returns Unknown."""
+        assert format_radio_band(None) == "Unknown"
+
+
+class TestFlappingDetection:
+    """Tests for client flapping detection (WIFI-06)."""
+
+    @pytest.fixture
+    def engine(self):
+        """Create engine with default registry."""
+        return AnalysisEngine(registry=get_default_registry())
+
+    def test_flapping_detection_triggers_above_threshold(self, engine):
+        """WIFI-06: 5+ roams triggers flapping finding."""
+        # Create 6 roaming events for same client
+        entries = []
+        for i in range(6):
+            entry = LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message=f"Client roamed from AP{i} to AP{i+1}",
+                raw_data={
+                    "user": "aa:bb:cc:dd:ee:ff",
+                    "ap_from": f"AP{i}",
+                    "ap_to": f"AP{i+1}",
+                },
+            )
+            entries.append(entry)
+
+        findings = engine.analyze(entries)
+
+        # Should have 6 individual roam findings + 1 flapping finding
+        flapping_findings = [f for f in findings if "flapping" in f.title.lower()]
+        assert len(flapping_findings) == 1
+        assert flapping_findings[0].severity == Severity.MEDIUM
+        assert flapping_findings[0].category == Category.WIRELESS
+        assert "6 roams" in flapping_findings[0].title
+
+    def test_flapping_detection_below_threshold(self, engine):
+        """No flapping finding when roams < 5."""
+        # Create only 3 roaming events
+        entries = []
+        for i in range(3):
+            entry = LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message="Client roamed",
+                raw_data={"user": "aa:bb:cc:dd:ee:ff"},
+            )
+            entries.append(entry)
+
+        findings = engine.analyze(entries)
+
+        flapping_findings = [f for f in findings if "flapping" in f.title.lower()]
+        assert len(flapping_findings) == 0
+
+    def test_flapping_detection_separate_clients(self, engine):
+        """Different clients tracked separately for flapping."""
+        entries = []
+        # 3 roams for client A (below threshold)
+        for i in range(3):
+            entries.append(LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message="roam",
+                raw_data={"user": "client-a"},
+            ))
+        # 3 roams for client B (below threshold)
+        for i in range(3):
+            entries.append(LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message="roam",
+                raw_data={"user": "client-b"},
+            ))
+
+        findings = engine.analyze(entries)
+
+        # Neither client should trigger flapping
+        flapping_findings = [f for f in findings if "flapping" in f.title.lower()]
+        assert len(flapping_findings) == 0
+
+    def test_flapping_finding_includes_ap_list(self, engine):
+        """Flapping finding includes list of APs involved."""
+        entries = []
+        for i in range(5):
+            entries.append(LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message="roam",
+                raw_data={
+                    "user": "aa:bb:cc:dd:ee:ff",
+                    "ap_from": "Office-AP",
+                    "ap_to": "Lobby-AP",
+                },
+            ))
+
+        findings = engine.analyze(entries)
+
+        flapping_findings = [f for f in findings if "flapping" in f.title.lower()]
+        assert len(flapping_findings) == 1
+        assert "Lobby-AP" in flapping_findings[0].description
+        assert "Office-AP" in flapping_findings[0].description
+
+    def test_flapping_finding_has_remediation(self, engine):
+        """Flapping finding includes remediation steps."""
+        entries = []
+        for i in range(5):
+            entries.append(LogEntry(
+                timestamp=datetime.now(timezone.utc),
+                source=LogSource.API,
+                event_type="EVT_WU_Roam",
+                message="roam",
+                raw_data={"user": "aa:bb:cc:dd:ee:ff"},
+            ))
+
+        findings = engine.analyze(entries)
+
+        flapping_findings = [f for f in findings if "flapping" in f.title.lower()]
+        assert len(flapping_findings) == 1
+        assert flapping_findings[0].remediation is not None
+        assert "coverage gaps" in flapping_findings[0].remediation.lower()
