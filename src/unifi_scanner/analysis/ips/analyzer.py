@@ -67,6 +67,8 @@ class ThreatSummary:
         sample_signature: Sample signature from this threat type
         source_ips: List of unique source IPs for this threat
         remediation: Category-specific remediation guidance
+        is_cybersecure: True if ANY event in this summary is from Cybersecure (ET PRO)
+        cybersecure_count: Count of events with Cybersecure (ET PRO) signatures
     """
 
     category_friendly: str
@@ -76,6 +78,8 @@ class ThreatSummary:
     sample_signature: str
     source_ips: List[str] = field(default_factory=list)
     remediation: Optional[str] = None
+    is_cybersecure: bool = False
+    cybersecure_count: int = 0
 
 
 @dataclass
@@ -236,6 +240,9 @@ class IPSAnalyzer:
                 remediation_context,
             )
 
+            # Count Cybersecure (ET PRO) events in this signature group
+            cybersecure_count = sum(1 for e in event_list if e.is_cybersecure)
+
             summary = ThreatSummary(
                 category_friendly=friendly_name,
                 description=_get_category_description(first_event.category_raw),
@@ -244,6 +251,8 @@ class IPSAnalyzer:
                 sample_signature=signature,
                 source_ips=list(data["source_ips"]),
                 remediation=remediation_text,
+                is_cybersecure=cybersecure_count > 0,
+                cybersecure_count=cybersecure_count,
             )
             summaries.append(summary)
 
