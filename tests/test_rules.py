@@ -10,6 +10,7 @@ from unifi_scanner.analysis.rules import (
     CONNECTIVITY_RULES,
     PERFORMANCE_RULES,
     SYSTEM_RULES,
+    WIRELESS_RULES,
     ALL_RULES,
     get_default_registry,
 )
@@ -22,8 +23,8 @@ class TestRuleAggregation:
     """Tests for rule aggregation and counting."""
 
     def test_all_rules_count(self):
-        """Verify total rule count is 23 (4 + 7 + 5 + 7)."""
-        assert len(ALL_RULES) == 23, f"Expected 23 rules, got {len(ALL_RULES)}"
+        """Verify total rule count is 27 (4 + 7 + 5 + 7 + 4)."""
+        assert len(ALL_RULES) == 27, f"Expected 27 rules, got {len(ALL_RULES)}"
 
     def test_security_rules_count(self):
         """Verify security has 4 rules."""
@@ -40,6 +41,10 @@ class TestRuleAggregation:
     def test_system_rules_count(self):
         """Verify system has 7 rules."""
         assert len(SYSTEM_RULES) == 7
+
+    def test_wireless_rules_count(self):
+        """Verify wireless has 4 rules."""
+        assert len(WIRELESS_RULES) == 4
 
     def test_all_rules_unique_names(self):
         """Verify all rule names are unique."""
@@ -129,6 +134,7 @@ class TestTitleFormat:
         Category.CONNECTIVITY: "[Connectivity]",
         Category.PERFORMANCE: "[Performance]",
         Category.SYSTEM: "[System]",
+        Category.WIRELESS: "[Wireless]",
     }
 
     @pytest.mark.parametrize("rule", ALL_RULES, ids=lambda r: r.name)
@@ -189,6 +195,13 @@ class TestCategoryAssignment:
         for rule in SYSTEM_RULES:
             assert rule.category == Category.SYSTEM, (
                 f"Rule {rule.name} in SYSTEM_RULES must have System category"
+            )
+
+    def test_wireless_rules_have_wireless_category(self):
+        """All WIRELESS_RULES must have Wireless category."""
+        for rule in WIRELESS_RULES:
+            assert rule.category == Category.WIRELESS, (
+                f"Rule {rule.name} in WIRELESS_RULES must have Wireless category"
             )
 
 
