@@ -149,11 +149,13 @@ def run_report_job() -> None:
 
     This function is called by the scheduler on each scheduled run,
     or once in one-shot mode. It runs the complete pipeline:
-    1. Connect to UniFi API
-    2. Collect logs
-    3. Analyze logs
-    4. Generate report
-    5. Deliver via configured channels
+    1. Read state (last successful run timestamp)
+    2. Connect to UniFi API
+    3. Collect logs (filtered by since_timestamp)
+    4. Analyze logs
+    5. Generate report
+    6. Deliver via configured channels
+    7. Update state only after successful delivery
     """
     from unifi_scanner.analysis import AnalysisEngine
     from unifi_scanner.analysis.rules import get_default_registry
@@ -166,6 +168,7 @@ def run_report_job() -> None:
     from unifi_scanner.models.enums import DeviceType
     from unifi_scanner.models.report import Report
     from unifi_scanner.reports.generator import ReportGenerator
+    from unifi_scanner.state import StateManager
 
     log = get_logger()
     config = get_config()
@@ -173,19 +176,43 @@ def run_report_job() -> None:
     log.info("job_starting")
     update_health_status(HealthStatus.HEALTHY, {"last_run": "starting"})
 
+    # Initialize state manager (state file in reports directory)
+    state_dir = config.file_output_dir or "./reports"
+    state_manager = StateManager(state_dir=state_dir)
+
+    # Read last successful run timestamp
+    last_run = state_manager.read_last_run()
+    if last_run:
+        log.info("state_loaded", last_run=last_run.isoformat())
+        since_timestamp = last_run
+    else:
+        # First run - use initial lookback
+        since_timestamp = datetime.now(timezone.utc) - timedelta(
+            hours=config.initial_lookback_hours
+        )
+        log.info("first_run", lookback_hours=config.initial_lookback_hours)
+
     try:
         # Connect and collect logs
         with UnifiClient(config) as client:
             site = client.select_site(config.site)
 
-            # Collect logs
+            # Collect logs (filtered by since_timestamp)
             collector = LogCollector(
                 client=client,
                 settings=config,
                 site=site,
             )
-            log_entries = collector.collect()
+            log_entries = collector.collect(since_timestamp=since_timestamp)
             log.info("logs_collected", count=len(log_entries))
+
+            # Handle empty result (no new events since last run)
+            if not log_entries:
+                log.info(
+                    "no_new_events",
+                    since=since_timestamp.isoformat(),
+                    message="No new events since last report",
+                )
 
             # Analyze logs with default rules
             registry = get_default_registry()
@@ -196,7 +223,7 @@ def run_report_job() -> None:
             # Build report
             now = datetime.now(timezone.utc)
             report = Report(
-                period_start=now - timedelta(hours=24),
+                period_start=since_timestamp,  # Use actual cutoff timestamp
                 period_end=now,
                 site_name=site,
                 controller_type=client.device_type or DeviceType.UNKNOWN,
@@ -249,7 +276,16 @@ def run_report_job() -> None:
             )
 
             if success:
-                log.info("job_complete", status="success")
+                # Update state only after successful delivery
+                state_manager.write_last_run(
+                    timestamp=report.generated_at,
+                    report_count=len(findings),
+                )
+                log.info(
+                    "job_complete",
+                    status="success",
+                    state_updated=report.generated_at.isoformat(),
+                )
                 update_health_status(HealthStatus.HEALTHY, {"last_run": "success"})
             else:
                 log.warning("job_complete", status="delivery_failed")

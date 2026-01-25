@@ -4,6 +4,7 @@ Wraps UnifiClient methods to retrieve events and alarms,
 parsing them into LogEntry objects.
 """
 
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 import structlog
@@ -47,6 +48,7 @@ class APILogCollector:
         client: UnifiClient,
         site: str,
         history_hours: int = 720,
+        since_timestamp: Optional[datetime] = None,
     ) -> None:
         """Initialize API log collector.
 
@@ -54,10 +56,14 @@ class APILogCollector:
             client: Connected UnifiClient instance.
             site: Site name to collect logs from.
             history_hours: Hours of history to retrieve (default 720 = 30 days).
+            since_timestamp: Only include events newer than this timestamp (UTC).
+                The UniFi API doesn't support timestamp filtering, so this is
+                applied client-side after fetching events.
         """
         self.client = client
         self.site = site
         self.history_hours = history_hours
+        self.since_timestamp = since_timestamp
         self._parser = LogParser()
 
     def collect(
@@ -118,6 +124,21 @@ class APILogCollector:
                 message=f"API collection failed: {e}",
                 cause=e,
             ) from e
+
+        # Filter by since_timestamp if provided (client-side filtering)
+        # UniFi API doesn't support timestamp filtering on events endpoint
+        if self.since_timestamp:
+            unfiltered_count = len(entries)
+            # Apply 5-minute clock skew tolerance (STATE-07)
+            effective_cutoff = self.since_timestamp - timedelta(minutes=5)
+            entries = [e for e in entries if e.timestamp > effective_cutoff]
+            logger.debug(
+                "api_entries_filtered",
+                before_filter=unfiltered_count,
+                after_filter=len(entries),
+                since=self.since_timestamp.isoformat(),
+                effective_cutoff=effective_cutoff.isoformat(),
+            )
 
         logger.info(
             "api_collection_complete",

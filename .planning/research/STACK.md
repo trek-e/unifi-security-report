@@ -458,6 +458,71 @@ REPORT_EMAIL_TO=admin@example.com
 
 ---
 
+## Milestone Addition: State Persistence
+
+**Added:** 2026-01-24 (v0.3-alpha milestone)
+**Confidence:** HIGH
+
+### No Additional Libraries Required
+
+For tracking last successful report timestamp between runs, **no additional dependencies are needed**. The Python standard library provides all necessary functionality.
+
+| Component | Library | Version | Rationale |
+|-----------|---------|---------|-----------|
+| JSON handling | `json` (stdlib) | Built-in | Simple timestamp state, no performance requirements |
+| Atomic writes | `tempfile` + `shutil.move` (stdlib) | Built-in | Pattern already exists in codebase (`FileDelivery._atomic_write`) |
+| File I/O | `pathlib.Path` (stdlib) | Built-in | Consistent with existing codebase |
+
+### File Locking NOT Required
+
+**Decision:** Do NOT add portalocker or filelock
+
+**Rationale:**
+- Service architecture prevents concurrent access:
+  - Single Docker container (docker-compose.yml shows one instance)
+  - APScheduler configured with `max_instances: 1` prevents overlapping runs
+  - No multi-process or distributed deployment
+- Atomic write pattern (write-to-temp + rename) provides crash safety without explicit locking
+- File locking is advisory mechanism for coordinating multiple writers - not needed here
+
+**Library compatibility note:**
+- `filelock` 3.20+ requires Python >=3.10 (incompatible with project's Python 3.9+ requirement)
+- `portalocker` 3.2.0 supports Python 3.9+ but still unnecessary for single-process use case
+
+**Sources:**
+- [filelock PyPI](https://pypi.org/project/filelock/) - Latest version requires Python >=3.10
+- [portalocker PyPI](https://pypi.org/project/portalocker/) - Python 3.9+ compatible alternative
+- [File Locks And Concurrency](https://heycoach.in/blog/file-locks-and-concurrency-in-python/) - When locking is necessary
+- [Crash-safe JSON at scale](https://dev.to/constanta/crash-safe-json-at-scale-atomic-writes-recovery-without-a-db-3aic) - Atomic write pattern
+
+### State File Implementation
+
+**Location:** `/app/reports/.unifi-scanner-state.json` (same volume as reports)
+
+**Schema:**
+```json
+{
+  "last_report_time": "2026-01-24T08:00:00+00:00",
+  "last_report_success": true,
+  "version": 1
+}
+```
+
+**Atomic write pattern (reuse existing):**
+```python
+# From src/unifi_scanner/delivery/file.py lines 61-80
+temp_fd, temp_path = tempfile.mkstemp(
+    dir=same_dir,  # Same filesystem for atomic rename
+    prefix=".tmp-",
+    suffix=".json",
+)
+with open(temp_fd, "w", encoding="utf-8") as f:
+    json.dump(state, f)
+shutil.move(temp_path, target_path)  # Atomic on same filesystem
+```
+
+---
+
 ## Sources
 
 ### HIGH Confidence (Official/Verified)
@@ -476,6 +541,12 @@ REPORT_EMAIL_TO=admin@example.com
 - [Python Docker Images](https://pythonspeed.com/articles/base-image-python-docker-images/)
 - [structlog Best Practices](https://www.structlog.org/en/stable/logging-best-practices.html)
 - [Paramiko vs AsyncSSH Comparison](https://elegantnetwork.github.io/posts/comparing-ssh/)
+
+### State Persistence Sources (HIGH Confidence)
+- [filelock PyPI](https://pypi.org/project/filelock/) - v3.20.3, requires Python >=3.10
+- [portalocker PyPI](https://pypi.org/project/portalocker/) - v3.2.0, Python 3.9+ compatible
+- [Crash-safe JSON at scale](https://dev.to/constanta/crash-safe-json-at-scale-atomic-writes-recovery-without-a-db-3aic) - Atomic write patterns (2026)
+- [File locking in Linux](https://gavv.net/articles/file-locks/) - Advisory locks and single-process scenarios
 
 ### LOW Confidence (Needs Validation)
 - WeasyPrint version (PyPI fetch failed, verify during implementation)

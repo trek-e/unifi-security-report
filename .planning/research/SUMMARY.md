@@ -1,348 +1,239 @@
 # Project Research Summary
 
-**Project:** UniFi Log Analysis Service
-**Domain:** Network log analysis and monitoring
+**Project:** UniFi Scanner - v0.3-alpha State Persistence
+**Domain:** Network log analysis and monitoring service
 **Researched:** 2026-01-24
-**Confidence:** MEDIUM-HIGH
+**Confidence:** HIGH
 
 ## Executive Summary
 
-The UniFi Scanner service is a network log analysis tool that translates technical UniFi gateway logs into plain English reports for non-expert users. Research reveals this fills a genuine gap between enterprise SIEM tools (too complex) and consumer network monitors (too simple). The recommended approach uses a **Python-based ETL pipeline architecture** with scheduled batch processing, prioritizing stability and simplicity over real-time complexity.
+The v0.3-alpha milestone adds state persistence to track the last successful report timestamp, preventing duplicate event reporting (Issue #1). This is a focused enhancement to an existing containerized Python service that polls UniFi gateways hourly, analyzes logs, and delivers reports via email/file.
 
-The core technical challenge is integrating with UniFi's undocumented API, which varies significantly across device types (UDM Pro, UCG Ultra, legacy controllers) and changes without notice between firmware versions. The recommended stack uses Python 3.12+ with `unifi-controller-api` for API integration, Pydantic for data validation, APScheduler for job scheduling, and Jinja2 for report generation. The synchronous, polling-based architecture is appropriate for the v1 use case and avoids unnecessary async complexity.
+Research confirms that **no additional dependencies are required**. Python's standard library (`json`, `tempfile`, `shutil`, `pathlib`) provides everything needed for crash-safe state management. The critical success factors are: (1) atomic file writes using the write-to-temp-then-rename pattern already present in the codebase (`FileDelivery._atomic_write`), (2) integrating state read/write into the existing pipeline at the correct points (read before collection, write after delivery success), and (3) avoiding common containerized state pitfalls through proper volume mounting and concurrency controls.
 
-Critical risks include authentication failures with cloud accounts (requires local accounts only), API breaking changes after firmware updates, and inconsistent log formats across device types. Mitigation strategies involve device-type detection, defensive parsing with graceful fallbacks, and abstraction layers that can adapt to API changes. The main product risk is alert fatigue from over-reporting, which research shows causes 67% of alerts to be ignored. Success depends on curating findings, strict severity classification, and genuinely plain English explanations with actionable remediation steps.
+The primary risk is state file corruption or permission issues in the Docker environment. Prevention requires atomic writes (already implemented as a pattern), UTC-only timestamps, named Docker volumes (avoid bind mount permission mismatches), and scheduler-level concurrency protection (APScheduler `max_instances=1` or Ofelia `no-overlap=true`). These are well-documented patterns with HIGH confidence.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack prioritizes production-ready stability over cutting-edge technology. Python 3.12+ provides modern type hints and performance improvements while remaining stable through 2028. The container foundation uses `python:3.12-slim-bookworm` rather than Alpine to avoid musl libc compatibility issues with cryptography libraries.
+**No new dependencies required.** The existing Python 3.12+ runtime with standard library modules provides all necessary functionality for state persistence. The project already has the atomic write pattern in place (`FileDelivery._atomic_write` at lines 61-80 uses `tempfile.mkstemp` + `shutil.move`), which can be reused for state file writes.
 
-**Core technologies:**
-- **Python 3.12+**: Runtime with full type hint support and long EOL (2028)
-- **unifi-controller-api 0.3.2**: Most actively maintained UniFi API client with typed models
-- **Pydantic 2.x**: Rust-powered validation for log event models and configuration
-- **APScheduler 3.11.2**: Cron-style scheduling without external dependencies
-- **Jinja2 3.1.6**: Industry-standard templating for reports
-- **structlog 25.5.0**: Structured logging with JSON output for production
-- **paramiko 4.0.0**: SSH fallback for direct log access when API insufficient
+**Core components for state management:**
+- `json` (stdlib): Simple timestamp state, no performance requirements justify external libraries
+- `tempfile` + `shutil.move` (stdlib): Atomic write pattern for crash safety
+- `pathlib.Path` (stdlib): Consistent with existing codebase style
+- APScheduler (existing dependency): Already configured, just needs `max_instances: 1` to prevent overlapping runs
 
-**Key decisions:**
-- Synchronous over async (polling architecture doesn't need async complexity)
-- stdlib regex + Pydantic over log parsing libraries (UniFi logs require custom parsing)
-- APScheduler over Celery (no distributed task complexity needed)
-- Docker-first design (target users run containerized services)
+**File locking explicitly NOT required:**
+- Single Docker container architecture (docker-compose.yml shows one instance)
+- APScheduler `max_instances: 1` prevents overlapping job execution
+- No multi-process or distributed deployment scenarios
+- Atomic write pattern provides crash safety without explicit locking
 
-**Confidence: MEDIUM-HIGH** — Core libraries verified via PyPI with recent release dates; UniFi API library has small community (11 stars) but active development.
+**Source confidence:** HIGH - Analysis of existing codebase shows pattern already exists, no external dependencies needed. Atomic write pattern verified in `src/unifi_scanner/delivery/file.py` lines 61-80.
 
 ### Expected Features
 
-Research across network monitoring tools and competitive analysis reveals clear feature expectations. The core value proposition is translating technical logs into plain English with actionable remediation, which existing tools notably lack.
+The v0.3-alpha milestone implements a single focused feature with clear success criteria.
 
 **Must have (table stakes):**
-- Log collection from UniFi (API-first, SSH fallback)
-- Severity categorization (map to low/medium/severe)
-- Scheduled report generation (daily/weekly configurable)
-- Email delivery via SMTP
-- File output for archival
-- Human-readable explanations (core differentiator)
-- Issue deduplication (group repeats, show counts)
-- Timestamps and device context
+- Read last successful report timestamp before log collection
+- Filter out events already reported (since last success)
+- Write state only after successful delivery (idempotent retry behavior)
+- Handle missing state file gracefully (first run defaults to 24h lookback)
+- Atomic writes to prevent corruption during crashes
+- UTC timestamps to avoid timezone confusion
 
-**Should have (competitive differentiators):**
-- Plain English explanations for non-experts
-- Actionable remediation steps for severe issues
-- Risk context ("this is serious because...")
-- Threat category explanations (map MITRE ATT&CK to plain language)
-- Device-specific insights (which AP/switch had issues)
-- Prioritized action items (rank by severity and fixability)
+**Should have (quality):**
+- Backup state file with automatic recovery (`.last_run.json.bak`)
+- Startup validation that state path is in mounted volume
+- Clear logging of state transitions (first run, state updated, recovery from backup)
+- Graceful degradation on state file corruption (log warning, use default lookback)
 
 **Defer (v2+):**
-- Real-time alerting (adds complexity, alert fatigue risk)
-- Dashboard/GUI (scope creep, reports faster to ship)
-- Issue trend tracking (requires historical storage)
-- Network health score (nice-to-have aggregation)
-- Multi-gateway support (architectural change)
-- Custom rule creation (non-experts won't use)
-
-**Anti-features (explicitly avoid):**
-- Automatic remediation (risk of breaking network)
-- Exhaustive alerting (causes alert fatigue)
-- Raw log display (defeats purpose)
-- Complex configuration (target users are non-experts)
-
-**Confidence: MEDIUM** — Based on competitive analysis of UniFi Alarm Manager, Splunk, Graylog, Fing, Firewalla. Alert fatigue research is well-documented across multiple sources.
+- Per-device state tracking (not needed for initial scope)
+- State migration/versioning (schema_version exists but not used yet)
+- Health metrics based on state file age
+- Multi-site state management
 
 ### Architecture Approach
 
-The service follows a classic **five-stage ETL pipeline**: Collection → Parsing → Analysis → Report Generation → Delivery. This architecture separates concerns, enables independent testing of stages, and follows established patterns for log analysis systems. The batch processing model (not streaming) is appropriate for periodic reporting.
+State persistence integrates into the existing `run_report_job()` pipeline using the **checkpoint-after-delivery** pattern from stream processing systems (Apache Flink, Kafka Streams). State commits occur only after all downstream operations succeed, ensuring idempotent retries.
+
+**Integration points:**
+1. **State Read (before log collection):** Load `.last_run.json` to determine timestamp cutoff, pass to `LogCollector` as `since_timestamp` parameter
+2. **State Write (after successful delivery):** Update state file only if `DeliveryManager.deliver()` returns `True`
+3. **State Skip (on delivery failure):** Do NOT update state if delivery fails, ensuring next run retries same events
 
 **Major components:**
-1. **Log Collector** — Fetches raw logs via UniFi API (primary) or SSH (fallback), handles device-type-specific endpoints
-2. **Log Parser** — Normalizes diverse formats (syslog, JSON, custom) into structured LogEntry objects using defensive parsing
-3. **Analyzer (Rules Engine)** — Applies pattern-matching rules to detect issues, assigns severity (low/medium/severe), generates findings
-4. **Finding Store** — In-memory accumulation and deduplication of findings for single-run processing
-5. **Report Generator** — Jinja2 templates to create human-readable HTML/text reports from findings
-6. **Delivery** — SMTP email and filesystem output with configurable channels
-7. **Config Manager** — Pydantic-based validation of environment variables and YAML config
+1. **StateManager** (new) - Read/write state file with atomic operations, backup recovery, UTC enforcement
+2. **LogCollector** (modified) - Accept `since_timestamp` parameter to filter API events
+3. **run_report_job** (modified) - Orchestrate state read → collect → analyze → deliver → state write flow
 
 **Data flow:**
 ```
-UniFi Gateway → Raw Logs → Normalized LogEntry → Finding (with severity/explanation) → Report → Email/File
+StateManager.read_last_run() → timestamp (or None for first run)
+    ↓
+LogCollector.collect(since=timestamp) → filtered events
+    ↓
+AnalysisEngine.analyze() → findings
+    ↓
+Report → ReportGenerator → DeliveryManager
+    ↓
+If delivery success: StateManager.write_last_run(report.generated_at)
+If delivery fails: Skip state update (retry next run)
 ```
 
-**Key patterns:**
-- **Pipeline Processor**: Each stage is pure function (input → output, no side effects)
-- **Dependency Injection**: Components receive dependencies through constructor for testability
-- **Configuration-Driven Rules**: Analysis rules defined in YAML for extensibility
+**State file location:** `{REPORTS_DIR}/.last_run.json` (same volume as reports, ensuring persistence across container restarts)
 
-**Confidence: HIGH** — ETL pipeline and rules engine patterns are well-established. UniFi-specific integration patterns verified through community libraries.
+**State file schema:**
+```json
+{
+  "last_successful_run": "2026-01-24T14:30:00Z",
+  "last_report_count": 3,
+  "schema_version": "1.0"
+}
+```
+
+**Confidence: HIGH** — Pipeline integration points clearly defined, checkpoint-after-delivery pattern well-documented in stream processing literature (Apache Flink, Kafka Streams, Airbyte).
 
 ### Critical Pitfalls
 
-Based on research across official Ubiquiti documentation and community integrations, five critical pitfalls emerged that could cause complete feature failure or require rewrites.
+Research identified 8 pitfalls specific to file-based state in containerized services. The top 5 require prevention measures:
 
-1. **Cloud/SSO Account Authentication Fails** — UniFi enforces MFA on all UI.com cloud accounts, breaking programmatic access. **Prevention:** Require local admin accounts only, detect MFA errors, provide specific setup guidance. **Phase: 1 (API Connection)**
+1. **Partial writes during crashes** - Power failure mid-write corrupts JSON, service loses state and re-processes all events. **Prevention:** Atomic write pattern (write to temp file, fsync, rename). Already exists in codebase at `FileDelivery._atomic_write()`, reuse for state.
 
-2. **Device-Specific API Endpoint Variations** — UniFi has three different endpoint patterns (self-hosted on :8443, UniFi OS on :443 with `/proxy/network` prefix, UniFi OS Server on :11443). **Prevention:** Device type detection on first connection, abstracted URL builder. **Phase: 1 (API Connection)**
+2. **Permission mismatches on volume mounts** - Container runs as non-root user (UID 1000), bind mount owned by different user causes `PermissionError`. **Prevention:** Use Docker named volumes (not bind mounts) which handle permissions automatically. Document bind mount ownership requirements if users choose that route.
 
-3. **Inconsistent Log Formats Across Devices** — Formats vary by device type and firmware version; CEF format only available through SIEM integration, not direct syslog. **Prevention:** Explicit format handlers per log type, defensive parsing with graceful fallbacks. **Phase: 2 (Log Parsing)**
+3. **Concurrent container instances** - Manual trigger during scheduled run causes race condition, duplicate reports, state corruption. **Prevention:** APScheduler `max_instances=1` (prevents overlapping jobs) or Ofelia `no-overlap=true` (scheduler-level protection).
 
-4. **Session Expiration and Cookie Management** — Sessions expire based on idle timeout (as short as 1 minute), controller restarts, or firmware updates. **Prevention:** Auto re-auth on 401/403, store credentials for re-auth, health checks verify actual data retrieval. **Phase: 1 (API Connection)**
+4. **Container ephemeral filesystem confusion** - State file stored in container writable layer (not volume) disappears on restart. **Prevention:** Startup validation that `STATE_FILE_PATH` is in mounted volume, fail fast if not writable.
 
-5. **API Breaking Changes After Firmware Updates** — Ubiquiti's undocumented API changes without notice; community wiki explicitly notes it's a "reverse engineering project." **Prevention:** Version detection, API response validation, abstraction layer for adaptability, monitor Ubiquiti releases. **Phase: 1 (API Connection), ongoing**
+5. **Timezone confusion in state timestamps** - Mixing UTC and local time in comparisons causes events to be skipped or duplicated. **Prevention:** Always use `datetime.now(timezone.utc)`, store ISO 8601 UTC in state file, parse with timezone awareness.
 
 **Additional moderate pitfalls:**
-- Alert fatigue from over-reporting (67% of alerts ignored industry-wide)
-- IDS false positives without tuning guidance
-- Jargon-heavy reports for non-technical users
-- Docker container networking (mDNS `.local` addresses don't resolve)
+- Missing state file treated as error (should be normal first-run behavior)
+- State file in `.gitignore` breakage (overly broad patterns)
+- No state file backup/recovery (corruption has no fallback)
 
-**Confidence: HIGH** — Pitfalls verified through official Ubiquiti documentation, community libraries (Home Assistant UniFi integration, Art-of-WiFi API client), and SIEM integration guides.
+**Source confidence:** HIGH - Pitfalls verified through official Docker docs, production experience articles (DEV Community crash-safe JSON), and analysis of existing codebase patterns.
 
 ## Implications for Roadmap
 
-Based on component dependencies, feature priorities, and pitfall timing, research suggests a 5-6 phase structure:
+This is a single-phase milestone with clear implementation scope and high confidence.
 
-### Phase 1: Foundation & API Connection
-**Rationale:** Must establish reliable UniFi integration before any other work. API authentication and device detection are foundational; failures here block all downstream work.
+### Phase 1: State Persistence Implementation
 
-**Delivers:**
-- Config Manager with Pydantic validation (environment variables + YAML)
-- Core data models (LogEntry, Finding, Report)
-- UniFi API client with device type detection
-- Session management and auto re-authentication
-- Local vs cloud account detection
-
-**Addresses features:**
-- Log collection from UniFi (table stakes)
-- Docker deployment foundation
-
-**Avoids pitfalls:**
-- Critical Pitfall #1: Cloud account authentication (local account requirement)
-- Critical Pitfall #2: Device endpoint variations (detection logic)
-- Critical Pitfall #4: Session expiration (auto re-auth)
-- Critical Pitfall #5: Breaking changes (abstraction layer)
-
-**Research flag:** SKIP — API integration patterns well-documented through unifi-controller-api library and community sources.
-
-### Phase 2: Log Collection & Parsing
-**Rationale:** Once API works, need to actually fetch and normalize logs. Parsing must handle multiple formats defensively from day one.
+**Rationale:** All research confirms this is a straightforward enhancement with well-established patterns. The atomic write mechanism already exists in the codebase, concurrency control is trivial (one-line config), and no new dependencies are required. High confidence allows single-phase delivery.
 
 **Delivers:**
-- Log collection via API (`get_events()`, `get_alarms()`)
-- Multi-format parser (syslog, JSON detection)
-- Defensive parsing with graceful fallbacks
-- SSH fallback for direct log access
-- Timestamp normalization (UTC handling)
+- StateManager module with read/write/backup operations
+- Modified LogCollector accepting `since_timestamp` parameter
+- Modified run_report_job orchestrating state lifecycle
+- Tests for first run, corruption recovery, concurrent protection
+- Documentation for Docker volume requirements
 
-**Addresses features:**
-- Log parsing and normalization (table stakes)
-- Timestamps and device context (table stakes)
+**Addresses:**
+- Issue #1: Don't send previous logs
+- Table stakes: Idempotent retry behavior
+- Quality: Graceful degradation, backup recovery
 
-**Avoids pitfalls:**
-- Critical Pitfall #3: Inconsistent log formats (explicit format handlers)
-- Minor Pitfall #12: Log location varies by device (path discovery)
-- Minor Pitfall #13: Timezone confusion (UTC normalization)
+**Avoids:**
+- Pitfall #1: Atomic writes prevent corruption
+- Pitfall #2: Documentation covers volume permissions
+- Pitfall #3: APScheduler config prevents concurrency
+- Pitfall #4: Startup validation ensures volume mount
+- Pitfall #5: UTC enforcement prevents timezone bugs
 
-**Research flag:** MAYBE — Log format variations may need deeper investigation. Start with CEF format from SIEM integration docs, but expect to iterate based on actual device outputs.
-
-### Phase 3: Analysis Engine & Rules
-**Rationale:** With normalized logs, build the intelligence layer that detects issues and assigns severity. This is the core value-add logic.
-
-**Delivers:**
-- Rules engine (pattern matching, severity assignment)
-- Initial rule set (20-30 common issues covering security, connectivity, performance)
-- Finding Store with deduplication
-- Plain English explanation templates
-- Remediation templates for severe issues
-
-**Addresses features:**
-- Severity categorization (table stakes)
-- Human-readable explanations (core differentiator)
-- Remediation steps for severe issues (differentiator)
-- Issue deduplication (table stakes)
-
-**Avoids pitfalls:**
-- Moderate Pitfall #7: IDS false positives (context and tuning guidance)
-
-**Research flag:** YES — Rule development requires domain expertise. May need `/gsd:research-phase` for common UniFi log patterns, IDS signature mappings, and remediation strategies per issue type.
-
-### Phase 4: Report Generation
-**Rationale:** Findings mean nothing without clear communication. This phase focuses on making output genuinely useful to non-experts.
-
-**Delivers:**
-- Jinja2 template system
-- HTML and plain text report formats
-- Severity-based grouping (severe first, then medium, then low)
-- Report structure (summary, severe issues with remediation, medium/low sections)
-- Subject line generation
-
-**Addresses features:**
-- Report generation templates (table stakes)
-- Plain English output (core differentiator)
-- Risk context for non-experts (differentiator)
-- Threat category explanations (differentiator)
-- Prioritized action items (differentiator)
-
-**Avoids pitfalls:**
-- Moderate Pitfall #6: Alert fatigue (severity-based filtering)
-- Moderate Pitfall #8: Jargon-heavy reports (plain English focus)
-- Minor Pitfall #14: Incomplete remediation guidance (step-by-step fixes)
-
-**Research flag:** SKIP — Report structure and templating are straightforward. Writing quality depends more on domain knowledge from Phase 3 than research.
-
-### Phase 5: Delivery & Scheduling
-**Rationale:** With reports generated, need to get them to users reliably. Scheduling triggers the whole pipeline.
-
-**Delivers:**
-- SMTP email delivery (HTML with plaintext fallback)
-- File output (configurable directory and format)
-- APScheduler integration (cron-style triggers)
-- Delivery retry logic
-- Production Docker container
-
-**Addresses features:**
-- Email delivery (table stakes)
-- File output (table stakes)
-- Scheduled reports (table stakes)
-- Docker deployment (table stakes)
-
-**Avoids pitfalls:**
-- Moderate Pitfall #10: Rate limiting (polling intervals, backoff)
-
-**Research flag:** SKIP — SMTP and scheduling are well-documented patterns.
-
-### Phase 6 (Optional): Hardening & Polish
-**Rationale:** After core MVP works end-to-end, address edge cases and operational concerns.
-
-**Delivers:**
-- Extended rule set (50+ patterns)
-- Error handling and logging improvements
-- Device-specific credential guidance
-- Network configuration documentation
-- Deployment guides for different UniFi hardware types
-
-**Avoids pitfalls:**
-- Moderate Pitfall #9: Docker networking (documentation)
-- Minor Pitfall #11: SSH credential complexity (guidance)
-
-**Research flag:** SKIP — Incremental improvements based on user feedback.
+**Implementation order:**
+1. Create `StateManager` module (reuse atomic write pattern from FileDelivery)
+2. Add `since_timestamp` parameter to LogCollector
+3. Modify `run_report_job()` to integrate state read/write
+4. Add startup validation for volume writability
+5. Configure APScheduler `max_instances=1`
+6. Write tests (first run, corruption, concurrency)
+7. Update documentation (volume requirements, first-run behavior)
 
 ### Phase Ordering Rationale
 
-1. **API connection must come first** — All subsequent work depends on reliably fetching logs. Device detection and authentication pitfalls must be solved at foundation.
+**Single phase is appropriate because:**
+- Scope is tightly focused (one feature: state persistence)
+- No new dependencies means no integration risk
+- Pattern already exists in codebase (atomic writes)
+- Architecture integration point is clear and non-invasive
+- All research areas have HIGH confidence
 
-2. **Parsing before analysis** — Can't analyze what isn't normalized. Defensive parsing prevents brittleness from format variations.
+**No phase dependencies exist:**
+- Feature is orthogonal to existing functionality
+- Log collection API doesn't change externally
+- Delivery system unchanged
+- Report generation unchanged
 
-3. **Analysis before reporting** — Need findings to report. Rule development is the intelligence layer.
-
-4. **Report generation before delivery** — Must have content before worrying about delivery channels.
-
-5. **Scheduling last** — Simplifies development to run manually until full pipeline proven.
-
-This order also aligns with testing strategy: each phase builds on previous, allowing incremental integration testing.
+**This avoids over-planning:**
+- Breaking into smaller phases would create artificial milestones
+- All components must be delivered together for feature to work
+- Testing requires complete state lifecycle
 
 ### Research Flags
 
-**Phases likely needing deeper research during planning:**
-- **Phase 3 (Analysis Engine):** Rule development requires domain expertise. Need to research:
-  - Most common UniFi log patterns and their meanings
-  - IDS/IPS signature mappings to plain English
-  - Remediation strategies for top security/connectivity issues
-  - False positive patterns and context clues
+**Standard patterns (skip additional research):**
+- **State file I/O:** Atomic writes, JSON serialization, backup recovery all have official documentation and production examples
+- **Docker volumes:** Permission handling, named vs bind mounts well-documented in Docker official guides
+- **Concurrency control:** APScheduler configuration is straightforward, documented in existing codebase
+- **Timezone handling:** UTC enforcement pattern consistent with existing `utils/timestamps.py`
 
-**Phases with standard patterns (skip research):**
-- **Phase 1:** API integration patterns well-documented via unifi-controller-api library
-- **Phase 2:** Parser architecture follows standard ETL patterns (may need format iteration but not research)
-- **Phase 4:** Jinja2 templating is straightforward
-- **Phase 5:** SMTP and scheduling are solved problems
+**No phases need deeper research:**
+- All technical decisions validated with official sources (Python docs, Docker docs, APScheduler docs)
+- Patterns verified in existing codebase (atomic writes, timezone handling)
+- Pitfalls cross-referenced with production experience articles (DEV Community, Medium)
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Core libraries verified via PyPI; unifi-controller-api is actively maintained but small community (11 stars); underlying patterns are solid |
-| Features | MEDIUM | Competitive analysis based on WebSearch across multiple tools; table stakes features consistent across sources; differentiators inferred from gap analysis |
-| Architecture | HIGH | ETL pipeline and rules engine are well-established patterns; component boundaries follow standard practice; UniFi-specific integration patterns verified through community libraries |
-| Pitfalls | HIGH | Critical pitfalls verified through official Ubiquiti docs, community libraries, and SIEM integration guides; moderate pitfalls supported by industry research on alert fatigue |
+| Stack | HIGH | No new dependencies required, stdlib sufficient. Existing codebase already has atomic write pattern. |
+| Features | HIGH | Clear scope from Issue #1, well-defined success criteria, no feature ambiguity. |
+| Architecture | HIGH | Integration points identified in existing pipeline, checkpoint-after-delivery pattern well-documented. |
+| Pitfalls | HIGH | 8 pitfalls identified from official Docker docs, production experience articles, existing codebase analysis. |
 
-**Overall confidence:** MEDIUM-HIGH
-
-The architecture and patterns are solid (HIGH confidence). The main uncertainties are:
-1. UniFi API stability and version variations (mitigated through abstraction)
-2. Coverage of explanation/remediation knowledge base (addressed in Phase 3 research)
-3. Log format edge cases across device types (addressed through defensive parsing)
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-**Gap 1: Log Pattern Coverage**
-- **Issue:** How many distinct UniFi log patterns exist? 50? 500? Unknown without access to live systems across device types.
-- **Handling:** Start with top 20-30 most critical patterns in Phase 3. Build graceful handling for unknown patterns (capture raw, flag for later analysis). Iterate based on user feedback and real-world log samples.
+**Minor validation needed during implementation:**
 
-**Gap 2: Explanation Quality for Non-Experts**
-- **Issue:** "Plain English" is subjective. Research shows what NOT to do (jargon, raw log fields) but not exact phrasing.
-- **Handling:** Draft explanation templates in Phase 3, validate with actual non-technical users before launch. Iterate based on comprehension testing.
+- **UniFi Events API timestamp filtering:** Assumption that API supports `start` parameter for timestamp filtering needs verification. If not supported, fallback to client-side filtering (slightly less efficient but functionally equivalent).
+  - **Resolution:** Test with actual UniFi controller during development, document if client-side filtering required.
 
-**Gap 3: UniFi Controller Version Matrix**
-- **Issue:** Which controller/firmware versions will the service support? API variations unknown without testing matrix.
-- **Handling:** Document tested versions. Pin minimum supported version (recommend 7.x+). Implement version detection and warn on unsupported versions. Plan for API response validation to catch breaking changes early.
+- **State file size growth:** Assumption that state file remains ~200 bytes. If additional metadata added in future (per-device tracking, error history), may need size monitoring.
+  - **Resolution:** Keep schema_version in state for future migrations, defer size concerns until actual need emerges.
 
-**Gap 4: SSH Fallback Necessity**
-- **Issue:** Unclear if API provides sufficient log access or if SSH fallback is always needed.
-- **Handling:** Implement API path first. Add SSH fallback in Phase 2 only if API proves insufficient. Monitor user feedback on log completeness.
+- **Startup validation strictness:** Decision needed whether missing volume mount should fail fast (raise exception) or warn and continue (graceful degradation).
+  - **Resolution:** Fail fast on non-writable state path (configuration error), warn on missing state file (expected first run).
 
-**Gap 5: Report Frequency Preferences**
-- **Issue:** Is daily too often? Weekly too infrequent? No user data.
-- **Handling:** Make frequency configurable (hourly/daily/weekly). Default to daily. Gather feedback post-launch. Consider "digest" vs "immediate" modes in v2.
+**No blocking gaps exist.** All identified gaps have clear resolution strategies and do not prevent implementation.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Ubiquiti Help Center - Official UniFi API](https://help.ui.com/hc/en-us/articles/30076656117655-Getting-Started-with-the-Official-UniFi-API)
-- [Ubiquiti Help Center - UniFi System Logs & SIEM Integration](https://help.ui.com/hc/en-us/articles/33349041044119-UniFi-System-Logs-SIEM-Integration)
-- [PyPI unifi-controller-api](https://pypi.org/project/unifi-controller-api/) — v0.3.2, Dec 27, 2025
-- [PyPI paramiko](https://pypi.org/project/paramiko/) — v4.0.0, Aug 4, 2025
-- [PyPI APScheduler](https://pypi.org/project/APScheduler/) — v3.11.2, Dec 22, 2025
-- [PyPI Jinja2](https://pypi.org/project/Jinja2/) — v3.1.6, Mar 5, 2025
-- [PyPI structlog](https://pypi.org/project/structlog/) — v25.5.0, Oct 27, 2025
-- [Pydantic Documentation](https://docs.pydantic.dev/latest/)
+- **Python Official Docs**: `json`, `tempfile`, `shutil`, `pathlib` standard library documentation
+- **Docker Official Docs**: [Persisting container data](https://docs.docker.com/get-started/workshop/05_persisting_data/), volume mount permissions
+- **APScheduler Docs**: Job configuration, max_instances parameter
+- **Existing Codebase**: `FileDelivery._atomic_write()` (lines 61-80), `utils/timestamps.py`, `docker-compose.yml`
 
 ### Secondary (MEDIUM confidence)
-- [Ubiquiti Community Wiki - UniFi Controller API](https://ubntwiki.com/products/software/unifi-controller/api)
-- [Art-of-WiFi/UniFi-API-client](https://github.com/Art-of-WiFi/UniFi-API-client)
-- [Home Assistant UniFi Integration](https://www.home-assistant.io/integrations/unifi/)
-- [Huntress Support - Ubiquiti UniFi Syslog Devices](https://support.huntress.io/hc/en-us/articles/43357255053459-Ubiquiti-UniFi-Syslog-Devices)
-- [LogicMonitor UniFi Monitoring](https://www.logicmonitor.com/support/ubiquiti-unifi-network-monitoring)
-- [LogicMonitor - Alert Fatigue Best Practices](https://www.logicmonitor.com/blog/network-monitoring-avoid-alert-fatigue)
-- [Rules Engine Design Pattern](https://tenmilesquare.com/resources/software-development/basic-rules-engine-design-pattern/)
-- [Docker Best Practices 2025](https://collabnix.com/10-essential-docker-best-practices-for-python-developers-in-2025/)
+- **[DEV Community: Crash-safe JSON at scale](https://dev.to/constanta/crash-safe-json-at-scale-atomic-writes-recovery-without-a-db-3aic)**: Atomic write patterns, backup recovery strategies
+- **[Airbyte: Idempotency in Data Pipelines](https://airbyte.com/data-engineering-resources/idempotency-in-data-pipelines)**: Checkpoint-after-delivery pattern
+- **[Dagster: Data Pipeline Architecture](https://dagster.io/guides/data-pipeline-architecture-5-design-patterns-with-examples)**: State management best practices
+- **[LabEx: Docker Volume Permissions](https://labex.io/tutorials/docker-how-to-resolve-permission-denied-error-when-mounting-volume-in-docker-417724)**: Permission mismatch solutions
+- **[Apache Flink Checkpointing](https://medium.com/@akash.d.goel/apache-flink-series-part-6-4ef9ad38e051)**: Watermark and checkpoint patterns
 
-### Tertiary (LOW confidence - needs validation)
-- WeasyPrint version (PyPI fetch failed, verify during implementation)
-- Exact API endpoint paths across all UniFi OS versions (community docs may lag official changes)
+### Tertiary (LOW confidence - not applicable)
+- **[OneUpTime: Docker Cron Jobs](https://oneuptime.com/blog/post/2026-01-06-docker-cron-jobs/view)**: Ofelia no-overlap configuration (not applicable if using APScheduler)
+- **[Baeldung: File Locking in Linux](https://www.baeldung.com/linux/file-locking)**: Advisory locks (determined unnecessary for single-instance architecture)
 
 ---
-*Research completed: 2026-01-24*
-*Ready for roadmap: yes*
+**Research completed:** 2026-01-24
+**Ready for roadmap:** Yes
+**Implementation confidence:** HIGH - All technical decisions validated, no new dependencies, pattern exists in codebase
