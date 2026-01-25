@@ -55,16 +55,19 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 - **Network access**: Requires local network access to UniFi gateway/controller
 - **API dependency**: UniFi API is not officially documented; may change between versions
 
-## Current Milestone: v0.4-alpha — Extended Analysis & Integrations
+## Current Milestone: v0.3.1-alpha — Extended Wireless Analysis
 
-**Goal:** Comprehensive analysis rules for wireless, security, and device health plus optional Cybersecure/Cloudflare integrations
+**Goal:** Users gain visibility into wireless client behavior and AP radio changes
 
 **Target features:**
-- Extended wireless rules (roaming, channel changes, DFS radar, signal quality)
-- Enhanced IDS/IPS parsing (Suricata signatures to plain English)
-- Device health monitoring (temperature, PoE failures, uptime)
-- Optional Cybersecure integration (enhanced threat detection if subscribed)
-- Optional Cloudflare integration (WAF events, DNS analytics if configured)
+- Client roaming detection between APs
+- Radio band switching (2.4GHz ↔ 5GHz)
+- AP channel changes with reasons
+- DFS radar event detection
+- RSSI to signal quality translation
+- Excessive roaming (flapping) detection
+
+**Roadmap:** v0.3.1 → v0.3.2 (security) → v0.3.3 (health) → v0.3.4 (infra) → v0.3.5 (Cloudflare) → v0.4 (Cybersecure)
 
 ## Current State
 
@@ -91,4 +94,4 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 | 5-minute clock skew tolerance | Handles time drift between scanner and controller | Good |
 
 ---
-*Last updated: 2026-01-24 after v0.4-alpha milestone start*
+*Last updated: 2026-01-24 after v0.3.1-alpha milestone start*
