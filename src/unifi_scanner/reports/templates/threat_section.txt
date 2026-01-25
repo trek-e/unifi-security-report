@@ -33,8 +33,12 @@ THREATS DETECTED
 Events: {{ threat.count }}
 {% if threat.source_ips %}
 Sources: {{ threat.source_ips[:5] | join(', ') }}{% if threat.source_ips | length > 5 %} (+{{ threat.source_ips | length - 5 }} more){% endif %}
-
 {% endif %}
+{% if threat.remediation %}
+Recommended Actions:
+{{ threat.remediation }}
+{% endif %}
+
 {% endfor %}
 {% endif %}
 {% if ips_analysis.blocked_threats %}

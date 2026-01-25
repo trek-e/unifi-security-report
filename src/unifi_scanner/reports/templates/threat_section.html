@@ -51,6 +51,12 @@
                 <strong>Sources:</strong> {{ threat.source_ips[:5] | join(', ') }}{% if threat.source_ips | length > 5 %} and {{ threat.source_ips | length - 5 }} more{% endif %}
             </p>
             {% endif %}
+            {% if threat.remediation %}
+            <div style="margin-top: 10px; padding: 10px 12px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #17a2b8;">
+                <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #17a2b8; text-transform: uppercase;">Recommended Actions</p>
+                <p style="margin: 0; color: #495057; font-size: 13px; white-space: pre-line;">{{ threat.remediation }}</p>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
