@@ -108,7 +108,11 @@ def format_validation_errors(errors: List[Dict[str, Any]]) -> List[str]:
         msg = error.get("msg", "Invalid value")
         input_val = error.get("input")
 
-        if "missing" in msg.lower() or "required" in msg.lower():
+        # Model-level validation errors (from @model_validator) have empty loc
+        # The msg already contains the descriptive error, so use it directly
+        if not loc:
+            messages.append(f"Configuration error: {msg}")
+        elif "missing" in msg.lower() or "required" in msg.lower():
             hint = f"Set UNIFI_{loc.upper()} environment variable or add '{loc}:' to config file."
             messages.append(f"Configuration error: '{loc}' is required. {hint}")
         elif input_val is not None:
