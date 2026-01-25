@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 8 of 13 (Enhanced Security Analysis)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In Progress
-Last activity: 2026-01-25 — Completed 08-01-PLAN.md (IPS Models and Signature Parser)
+Last activity: 2026-01-25 — Completed 08-02-PLAN.md (IPSAnalyzer with IP Aggregation)
 
 Progress: [################....] 80% (8/13 phases complete, Phase 8 in progress)
 
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30
+- Total plans completed: 31
 - Average duration: 4 min
-- Total execution time: 116 min
+- Total execution time: 121 min
 
 **By Phase:**
 
@@ -51,7 +51,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 06-state-persistence | 2 | 8 min | 4 min |
 | 07-extended-wireless | 3 | 10 min | 3 min |
 | 13-websocket-support | 6 | 29 min | 5 min |
-| 08-enhanced-security | 1 | 6 min | 6 min |
+| 08-enhanced-security | 2 | 11 min | 6 min |
 
 ## Accumulated Context
 
@@ -78,6 +78,9 @@ Recent decisions affecting current work:
 - [v0.3.2-alpha]: Pydantic IPSEvent over dataclass for validation consistency
 - [v0.3.2-alpha]: 24 ET category mappings from Emerging Threats documentation
 - [v0.3.2-alpha]: Unknown actions default to detected (not blocked) for safety
+- [v0.3.2-alpha]: Deduplication by signature only (not signature+source_ip) - one threat entry with multiple source IPs
+- [v0.3.2-alpha]: Detection mode note appears only when ALL events are detected-only
+- [v0.3.2-alpha]: Int severity (1,2,3) from pydantic model converted to Severity enum for output
 
 ### Pending Todos
 
@@ -106,9 +109,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 08-01-PLAN.md (IPS Models and Signature Parser)
-Resume file: .planning/phases/08-enhanced-security/08-02-PLAN.md
+Stopped at: Completed 08-02-PLAN.md (IPSAnalyzer with IP Aggregation)
+Resume file: .planning/phases/08-enhanced-security/08-03-PLAN.md
 
 ## Next Steps
 
-Continue with Phase 8 Plan 02 (IPS Analyzer)
+Continue with Phase 8 Plan 03 (IPS Report Templates)
