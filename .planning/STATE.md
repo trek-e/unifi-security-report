@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 8 of 13 (Enhanced Security Analysis)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In Progress
-Last activity: 2026-01-25 — Completed 08-02-PLAN.md (IPSAnalyzer with IP Aggregation)
+Last activity: 2026-01-25 — Completed 08-03-PLAN.md (IPS Report Templates)
 
 Progress: [################....] 80% (8/13 phases complete, Phase 8 in progress)
 
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 31
+- Total plans completed: 32
 - Average duration: 4 min
-- Total execution time: 121 min
+- Total execution time: 125 min
 
 **By Phase:**
 
@@ -51,7 +51,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 06-state-persistence | 2 | 8 min | 4 min |
 | 07-extended-wireless | 3 | 10 min | 3 min |
 | 13-websocket-support | 6 | 29 min | 5 min |
-| 08-enhanced-security | 2 | 11 min | 6 min |
+| 08-enhanced-security | 3 | 15 min | 5 min |
 
 ## Accumulated Context
 
@@ -81,6 +81,9 @@ Recent decisions affecting current work:
 - [v0.3.2-alpha]: Deduplication by signature only (not signature+source_ip) - one threat entry with multiple source IPs
 - [v0.3.2-alpha]: Detection mode note appears only when ALL events are detected-only
 - [v0.3.2-alpha]: Int severity (1,2,3) from pydantic model converted to Severity enum for output
+- [v0.3.2-alpha]: SafeDict returns [key] placeholder for missing template variables
+- [v0.3.2-alpha]: Remediation templates cover 20+ ET categories with severity-adjusted detail
+- [v0.3.2-alpha]: False positive notes only for categories with common benign triggers
 
 ### Pending Todos
 
@@ -109,9 +112,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 08-02-PLAN.md (IPSAnalyzer with IP Aggregation)
-Resume file: .planning/phases/08-enhanced-security/08-03-PLAN.md
+Stopped at: Completed 08-03-PLAN.md (IPS Report Templates)
+Resume file: .planning/phases/08-enhanced-security/08-04-PLAN.md
 
 ## Next Steps
 
-Continue with Phase 8 Plan 03 (IPS Report Templates)
+Continue with Phase 8 Plan 04 (Service Integration and End-to-End Tests)
