@@ -395,6 +395,28 @@ def run_report_job() -> None:
             # IPS analysis is optional - don't fail the whole report
             log.warning("ips_analysis_failed", error=str(e))
 
+        # Collect and analyze device health
+        health_analysis = None
+        try:
+            from unifi_scanner.analysis.device_health import DeviceHealthAnalyzer, DeviceStats
+
+            raw_devices = client.get_devices(site=site)
+            if raw_devices:
+                device_stats = [DeviceStats.from_api_response(d) for d in raw_devices]
+                health_analyzer = DeviceHealthAnalyzer()
+                health_analysis = health_analyzer.analyze_devices(device_stats)
+                log.info(
+                    "health_analysis_complete",
+                    device_count=len(device_stats),
+                    critical=len(health_analysis.critical_findings),
+                    warnings=len(health_analysis.warning_findings),
+                )
+            else:
+                log.debug("no_devices_found", site=site)
+        except Exception as e:
+            # Health analysis is optional - don't fail the whole report
+            log.warning("health_analysis_failed", error=str(e))
+
         # Build report
         now = datetime.now(timezone.utc)
         report = Report(
@@ -410,8 +432,8 @@ def run_report_job() -> None:
         generator = ReportGenerator(
             display_timezone=config.schedule_timezone,
         )
-        html_content = generator.generate_html(report, ips_analysis=ips_analysis)
-        text_content = generator.generate_text(report, ips_analysis=ips_analysis)
+        html_content = generator.generate_html(report, ips_analysis=ips_analysis, health_analysis=health_analysis)
+        text_content = generator.generate_text(report, ips_analysis=ips_analysis, health_analysis=health_analysis)
 
         # Set up delivery
         email_delivery = None

@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from unifi_scanner.analysis.device_health import DeviceHealthResult
 from unifi_scanner.analysis.formatter import FindingFormatter
 from unifi_scanner.analysis.ips import ThreatAnalysisResult
 from unifi_scanner.models.report import Report
@@ -52,6 +53,7 @@ class ReportGenerator:
         self,
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
+        health_analysis: Optional[DeviceHealthResult] = None,
     ) -> Dict[str, Any]:
         """Build template context from a Report.
 
@@ -61,6 +63,7 @@ class ReportGenerator:
         Args:
             report: Report containing findings to format
             ips_analysis: Optional IPS threat analysis results
+            health_analysis: Optional device health analysis results
 
         Returns:
             Dictionary with template context:
@@ -74,6 +77,7 @@ class ReportGenerator:
             - low_findings: List of formatted low findings
             - counts: Dictionary with severity counts and total
             - ips_analysis: IPS threat analysis results (or None)
+            - health_analysis: Device health analysis results (or None)
         """
         grouped = self.formatter.format_grouped_findings(report.findings)
 
@@ -93,12 +97,14 @@ class ReportGenerator:
                 "total": len(report.findings),
             },
             "ips_analysis": ips_analysis,
+            "health_analysis": health_analysis,
         }
 
     def generate_html(
         self,
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
+        health_analysis: Optional[DeviceHealthResult] = None,
     ) -> str:
         """Generate HTML report from Report model.
 
@@ -109,18 +115,20 @@ class ReportGenerator:
         Args:
             report: Report object containing findings to render
             ips_analysis: Optional IPS threat analysis results
+            health_analysis: Optional device health analysis results
 
         Returns:
             Complete HTML document as string
         """
         template = self.env.get_template("report.html")
-        context = self._build_context(report, ips_analysis)
+        context = self._build_context(report, ips_analysis, health_analysis)
         return template.render(**context)
 
     def generate_text(
         self,
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
+        health_analysis: Optional[DeviceHealthResult] = None,
     ) -> str:
         """Generate plain text report from Report model.
 
@@ -132,10 +140,11 @@ class ReportGenerator:
         Args:
             report: Report object containing findings to render
             ips_analysis: Optional IPS threat analysis results
+            health_analysis: Optional device health analysis results
 
         Returns:
             Plain text report as string
         """
         template = self.env.get_template("report.txt")
-        context = self._build_context(report, ips_analysis)
+        context = self._build_context(report, ips_analysis, health_analysis)
         return template.render(**context)
