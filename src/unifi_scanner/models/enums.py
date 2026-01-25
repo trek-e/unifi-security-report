@@ -14,11 +14,12 @@ class Severity(str, Enum):
 class Category(str, Enum):
     """Category of finding or log entry."""
 
-    SECURITY = "security"
     CONNECTIVITY = "connectivity"
     PERFORMANCE = "performance"
+    SECURITY = "security"
     SYSTEM = "system"
     UNCATEGORIZED = "uncategorized"
+    WIRELESS = "wireless"
 
 
 class LogSource(str, Enum):
