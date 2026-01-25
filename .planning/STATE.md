@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3.5-alpha — Cloudflare Integration (SHIPPED)
+**Current focus:** v0.5-beta — Code Validation & Security Refactor
 
 ## Current Position
 
-Phase: 11 of 13 (Cloudflare Integration)
-Plan: 4 of 4 in current phase
-Status: Phase SHIPPED
-Last activity: 2026-01-25 — Phase 11 verified and complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-25 — Milestone v0.5-beta started
 
-Progress: [####################] 100% (12/13 phases complete, v0.3.5-alpha ready)
+Progress: [                    ] 0% (new milestone)
 
 ## Milestones
 
@@ -28,7 +28,8 @@ Progress: [####################] 100% (12/13 phases complete, v0.3.5-alpha ready
 | v0.3.4-alpha | Integration Infrastructure | 10 | SHIPPED 2026-01-25 |
 | v0.3.15-alpha | WebSocket Support | 13 | SHIPPED 2026-01-25 |
 | v0.3.5-alpha | Cloudflare Integration | 11 | SHIPPED 2026-01-25 |
-| v0.4-alpha | Cybersecure Integration | 12 | Planned |
+| v0.5-beta | Code Validation & Security Refactor | 14-16 | In Progress |
+| v0.6 | Cybersecure Integration | 17 | Planned |
 
 See `.planning/MILESTONES.md` for full milestone history.
 
