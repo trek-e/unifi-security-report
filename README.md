@@ -185,7 +185,7 @@ See `docker-compose.yml` for all options.
 
 | Version | Phase | Features |
 |---------|-------|----------|
-| v0.5.2a1 | 14 | MongoDB IPS collection via SSH (workaround for missing API) |
+| v0.5.5b | 14 | MongoDB IPS collection via SSH (workaround for missing API) |
 | v0.4.0a1 | 12 | Cybersecure integration (ET PRO signature detection, badges) |
 | v0.3.15a1 | 13 | WebSocket support for UniFi Network 10.x+ |
 | v0.3.5a1 | 11 | Cloudflare integration (WAF, DNS analytics, tunnels) |
