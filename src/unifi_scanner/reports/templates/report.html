@@ -69,4 +69,22 @@
 <!-- Device Health Summary -->
 {% include "health_section.html" %}
 
+{# Cloudflare Security Section (optional integration) #}
+{% if integrations and integrations.has_data %}
+    {% set cf_section = integrations.get_section('cloudflare') %}
+    {% if cf_section and cf_section.success and cf_section.data %}
+        {% with cloudflare=cf_section.data %}
+            {% include "cloudflare_section.html" %}
+        {% endwith %}
+    {% elif cf_section and not cf_section.success %}
+    <!-- Cloudflare integration error -->
+    <div style="margin-top: 30px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 0 4px 4px 0;">
+        <p style="margin: 0; color: #856404; font-size: 14px;">
+            <strong>&#9888; Cloudflare Data Unavailable</strong><br>
+            {{ cf_section.error_message }}
+        </p>
+    </div>
+    {% endif %}
+{% endif %}
+
 {% endblock %}
