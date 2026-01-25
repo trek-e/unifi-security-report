@@ -18,6 +18,7 @@ Exit Codes:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import signal
 import sys
 from datetime import datetime, timedelta, timezone
@@ -428,12 +429,13 @@ def run_report_job() -> None:
             log_entry_count=len(log_entries),
         )
 
-        # Generate report content
+        # Generate report content (async for integration runner support)
         generator = ReportGenerator(
             display_timezone=config.schedule_timezone,
+            settings=config,
         )
-        html_content = generator.generate_html(report, ips_analysis=ips_analysis, health_analysis=health_analysis)
-        text_content = generator.generate_text(report, ips_analysis=ips_analysis, health_analysis=health_analysis)
+        html_content = asyncio.run(generator.generate_html(report, ips_analysis=ips_analysis, health_analysis=health_analysis))
+        text_content = asyncio.run(generator.generate_text(report, ips_analysis=ips_analysis, health_analysis=health_analysis))
 
         # Set up delivery
         email_delivery = None
