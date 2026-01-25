@@ -41,6 +41,9 @@
             <div style="margin-bottom: 6px;">
                 <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: {% if threat.severity.value == 'severe' %}#dc3545{% elif threat.severity.value == 'medium' %}#fd7e14{% else %}#6c757d{% endif %}; border-radius: 3px;">{{ threat.severity.value }}</span>
                 <strong style="color: #333333; font-size: 15px; margin-left: 8px;">{{ threat.category_friendly }}</strong>
+                {% if threat.is_cybersecure %}
+                <span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #6f42c1; border-radius: 3px; margin-left: 6px;" title="Detected by CyberSecure enhanced signatures">CYBERSECURE</span>
+                {% endif %}
             </div>
             <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;">
                 {{ threat.description }}
