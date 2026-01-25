@@ -72,12 +72,12 @@ WIRELESS_RULES: List[Rule] = [
         event_types=["EVT_WU_Roam", "EVT_WG_Roam"],
         category=Category.WIRELESS,
         severity=Severity.LOW,
-        title_template="[Wireless] Client roamed to {device_name}",
+        title_template="[Wireless] Client roamed from {ap_from_name} to {ap_to_name}",
         description_template=(
             "A client device roamed to access point {device_name} "
             "(EVT_WU_Roam for users, EVT_WG_Roam for guests). This is normal wireless "
             "mobility behavior - the client moved between APs while maintaining its "
-            "network connection. Frequent roaming may indicate coverage overlap or "
+            "network connection. Signal: {rssi_quality} ({rssi} dBm). Frequent roaming may indicate coverage overlap or "
             "signal strength issues, but occasional roaming is expected."
         ),
         remediation_template=None,  # LOW severity - no remediation needed
@@ -88,7 +88,7 @@ WIRELESS_RULES: List[Rule] = [
         event_types=["EVT_WU_RoamRadio", "EVT_WG_RoamRadio"],
         category=Category.WIRELESS,
         severity=Severity.LOW,
-        title_template="[Wireless] Client switched radio bands",
+        title_template="[Wireless] Client switched from {radio_from_display} to {radio_to_display} on {device_name}",
         description_template=(
             "A client device switched radio bands on {device_name} "
             "(EVT_WU_RoamRadio/EVT_WG_RoamRadio). This typically happens when band "
@@ -104,7 +104,7 @@ WIRELESS_RULES: List[Rule] = [
         event_types=["EVT_AP_ChannelChange"],
         category=Category.WIRELESS,
         severity=Severity.MEDIUM,
-        title_template="[Wireless] AP {device_name} changed channel",
+        title_template="[Wireless] AP {device_name} changed channel from {channel_from} to {channel_to}",
         description_template=(
             "Access point {device_name} changed its wireless channel "
             "(EVT_AP_ChannelChange). This usually happens automatically when the AP "
