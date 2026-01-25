@@ -40,23 +40,23 @@ Requirements for extended analysis rules and optional integrations milestone.
 
 ### Cybersecure Integration (Optional)
 
-- [ ] **CYBS-01**: Service detects if Cybersecure subscription is active
-- [ ] **CYBS-02**: Service marks findings with enhanced signature coverage when Cybersecure active
-- [ ] **CYBS-03**: Service shows Cybersecure badge on threat findings when applicable
+- [x] **CYBS-01**: Service detects if Cybersecure subscription is active
+- [x] **CYBS-02**: Service marks findings with enhanced signature coverage when Cybersecure active
+- [x] **CYBS-03**: Service shows Cybersecure badge on threat findings when applicable
 
 ### Cloudflare Integration (Optional)
 
-- [ ] **CLDF-01**: Service connects to Cloudflare API when credentials configured
-- [ ] **CLDF-02**: Service retrieves WAF block events from Cloudflare
-- [ ] **CLDF-03**: Service retrieves DNS analytics (blocked queries) from Cloudflare
-- [ ] **CLDF-04**: Service monitors Cloudflare tunnel status if tunnels exist
+- [x] **CLDF-01**: Service connects to Cloudflare API when credentials configured
+- [x] **CLDF-02**: Service retrieves WAF block events from Cloudflare
+- [x] **CLDF-03**: Service retrieves DNS analytics (blocked queries) from Cloudflare
+- [x] **CLDF-04**: Service monitors Cloudflare tunnel status if tunnels exist
 
 ### WebSocket Support
 
-- [ ] **WS-01**: Service connects to UniFi WebSocket endpoint after REST API authentication
-- [ ] **WS-02**: Service receives WiFi events (roaming, connections, disconnections) via WebSocket
-- [ ] **WS-03**: Service buffers WebSocket events and processes on report generation schedule
-- [ ] **WS-04**: Service gracefully falls back to REST API when WebSocket unavailable
+- [x] **WS-01**: Service connects to UniFi WebSocket endpoint after REST API authentication
+- [x] **WS-02**: Service receives WiFi events (roaming, connections, disconnections) via WebSocket
+- [x] **WS-03**: Service buffers WebSocket events and processes on report generation schedule
+- [x] **WS-04**: Service gracefully falls back to REST API when WebSocket unavailable
 
 ## Future Requirements
 
@@ -107,17 +107,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INTG-01 | Phase 10 | Complete |
 | INTG-02 | Phase 10 | Complete |
 | INTG-03 | Phase 10 | Complete |
-| CLDF-01 | Phase 11 | Pending |
-| CLDF-02 | Phase 11 | Pending |
-| CLDF-03 | Phase 11 | Pending |
-| CLDF-04 | Phase 11 | Pending |
-| CYBS-01 | Phase 12 | Pending |
-| CYBS-02 | Phase 12 | Pending |
-| CYBS-03 | Phase 12 | Pending |
-| WS-01 | Phase 13 | Pending |
-| WS-02 | Phase 13 | Pending |
-| WS-03 | Phase 13 | Pending |
-| WS-04 | Phase 13 | Pending |
+| CLDF-01 | Phase 11 | Complete |
+| CLDF-02 | Phase 11 | Complete |
+| CLDF-03 | Phase 11 | Complete |
+| CLDF-04 | Phase 11 | Complete |
+| CYBS-01 | Phase 12 | Complete |
+| CYBS-02 | Phase 12 | Complete |
+| CYBS-03 | Phase 12 | Complete |
+| WS-01 | Phase 13 | Complete |
+| WS-02 | Phase 13 | Complete |
+| WS-03 | Phase 13 | Complete |
+| WS-04 | Phase 13 | Complete |
 
 **Coverage:**
 - v0.5-alpha requirements: 30 total
@@ -126,4 +126,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 after Phase 10 completion*
+*Last updated: 2026-01-25 after Phase 12 completion*

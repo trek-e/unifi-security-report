@@ -77,9 +77,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.4-alpha Cybersecure Integration (Planned)
+<details>
+<summary>v0.4-alpha Cybersecure Integration (Phase 12) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 12: Cybersecure Integration** - ET PRO signature detection, threat badging
+- [x] Phase 12: Cybersecure Integration (3/3 plans) -- completed 2026-01-25
+
+</details>
 
 ## Phase Details
 
@@ -178,9 +181,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — TDD: Add is_cybersecure computed field to IPSEvent model
-- [ ] 12-02-PLAN.md — TDD: Extend ThreatSummary and IPSAnalyzer for Cybersecure propagation
-- [ ] 12-03-PLAN.md — Add Cybersecure badge to threat_section template
+- [x] 12-01-PLAN.md — TDD: Add is_cybersecure computed field to IPSEvent model
+- [x] 12-02-PLAN.md — TDD: Extend ThreatSummary and IPSAnalyzer for Cybersecure propagation
+- [x] 12-03-PLAN.md — Add Cybersecure badge to threat_section template
 
 ### Phase 13: WebSocket Support
 **Goal**: Users running UniFi Network 10.x+ receive WiFi events via WebSocket API
@@ -216,10 +219,10 @@ Plans:
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
 | 10. Integration Infrastructure | v0.3.4-alpha | 3/3 | Complete | 2026-01-25 |
 | 11. Cloudflare Integration | v0.3.5-alpha | 4/4 | Complete | 2026-01-25 |
-| 12. Cybersecure Integration | v0.4-alpha | 0/3 | Planned | - |
+| 12. Cybersecure Integration | v0.4-alpha | 3/3 | Complete | 2026-01-25 |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 12 complete, 1 planned (v0.4)
+**Summary:** 13 phases total -- 13 complete, 0 planned
 
 ---
 *Roadmap created: 2026-01-24*
