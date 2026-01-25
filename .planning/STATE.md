@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3.2-alpha — Enhanced Security Analysis
+**Current focus:** v0.3.3-alpha — Device Health Monitoring
 
 ## Current Position
 
-Phase: 8 of 13 (Enhanced Security Analysis)
-Plan: 5 of 5 in current phase
-Status: Phase Complete (Verified)
-Last activity: 2026-01-25 — Completed 08-05-PLAN.md (Remediation Wiring Gap Closure)
+Phase: 9 of 13 (Device Health Monitoring)
+Plan: 2 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-25 — Completed 09-02-PLAN.md (PoE Health Rules and Device Stats API)
 
-Progress: [##################..] 90% (9/13 phases complete, Phase 8 VERIFIED)
+Progress: [##################..] 90% (9/13 phases complete, Phase 9 in progress)
 
 ## Milestones
 
@@ -24,7 +24,7 @@ Progress: [##################..] 90% (9/13 phases complete, Phase 8 VERIFIED)
 | v0.3-alpha | No Duplicate Reports | 6 | SHIPPED 2026-01-24 |
 | v0.3.1-alpha | Extended Wireless Analysis | 7 | SHIPPED 2026-01-25 |
 | v0.3.2-alpha | Enhanced Security Analysis | 8 | SHIPPED 2026-01-25 |
-| v0.3.3-alpha | Device Health Monitoring | 9 | Planned |
+| v0.3.3-alpha | Device Health Monitoring | 9 | In Progress |
 | v0.3.4-alpha | Integration Infrastructure | 10 | Planned |
 | v0.3.15-alpha | WebSocket Support | 13 | SHIPPED 2026-01-25 |
 | v0.3.5-alpha | Cloudflare Integration | 11 | Planned |
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 4 min
-- Total execution time: 134 min
+- Total execution time: 137 min
 
 **By Phase:**
 
@@ -52,6 +52,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 07-extended-wireless | 3 | 10 min | 3 min |
 | 13-websocket-support | 6 | 29 min | 5 min |
 | 08-enhanced-security | 5 | 24 min | 5 min |
+| 09-device-health | 1 | 3 min | 3 min |
 
 ## Accumulated Context
 
@@ -88,6 +89,10 @@ Recent decisions affecting current work:
 - [v0.3.2-alpha]: Raw IPS events fetched separately for dedicated IPSAnalyzer processing
 - [v0.3.2-alpha]: Remediation uses first source IP from grouped threats as context
 - [v0.3.2-alpha]: Remediation shown only for detected threats in templates (blocked threats stopped)
+- [v0.3.2-alpha]: Shared auth session between WebSocket and REST to avoid 429 rate limits
+- [v0.3.3-alpha]: PoE disconnect is MEDIUM severity (power loss impacts device function)
+- [v0.3.3-alpha]: PoE overload is SEVERE severity requiring immediate attention
+- [v0.3.3-alpha]: HEALTH_RULES use Category.SYSTEM (device-level concern)
 
 ### Pending Todos
 
@@ -116,9 +121,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 08-05-PLAN.md (Remediation Wiring Gap Closure)
-Resume file: None (Phase 8 fully complete with gap closure)
+Stopped at: Completed 09-02-PLAN.md (PoE Health Rules and Device Stats API)
+Resume file: None
 
 ## Next Steps
 
-Phase 8 (Enhanced Security Analysis) fully complete with remediation gap closed. Ready for Phase 9 (Device Health Monitoring) or version bump to v0.3.2-alpha.
+Continue with 09-03-PLAN.md (DeviceHealthAnalyzer implementation) to build the analyzer that uses HEALTH_RULES and get_devices() method.
