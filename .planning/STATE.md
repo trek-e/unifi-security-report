@@ -78,6 +78,18 @@ None yet.
 
 - Phase 13 added: WebSocket support for UniFi Network 10.x events
 
+## Git Workflow
+
+**Branch Strategy:** Keep alpha branches separate until v0.5 release
+- Each version gets its own branch: `alpha-0.3.2`, `alpha-0.4`, `alpha-0.5`
+- Do NOT merge to `main` until user approves at v0.5
+- Create PRs for visibility but keep open until release
+
+**Current branches:**
+- `main` - contains v0.3.1a1 (merged during troubleshooting session 2026-01-25)
+- `alpha-0.3.1` - Phase 7 work
+- Future: `alpha-0.3.2` for Phase 8, etc.
+
 ## Session Continuity
 
 Last session: 2026-01-25
