@@ -1,0 +1,259 @@
+{#
+    Cloudflare Security Section Template (HTML)
+
+    Renders Cloudflare WAF events, DNS analytics, and tunnel status.
+    This template is meant to be included in the main report template.
+
+    Expected context variable: cloudflare (CloudflareData instance or None)
+
+    Structure per CONTEXT.md:
+    1. WAF Events (grouped by source, with top blocked IPs)
+    2. DNS Analytics (if data available)
+    3. Tunnel Status (if tunnels exist, skip if none)
+#}
+
+{% if cloudflare and (cloudflare.has_waf_events or cloudflare.has_dns_analytics or cloudflare.has_tunnel_statuses) %}
+<!-- Cloudflare Security -->
+<div style="margin-top: 30px;">
+    <h2 style="color: #333333; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; border-bottom: 2px solid #f38020; padding-bottom: 8px;">
+        <span style="color: #f38020;">&#9741;</span> Cloudflare Security
+    </h2>
+
+    {# WAF Events Section #}
+    {% if cloudflare.has_waf_events %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #dc3545; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            WAF Blocks
+            <span style="font-weight: normal; font-size: 13px; color: #6c757d;">({{ cloudflare.waf_events | length }} event{% if cloudflare.waf_events | length != 1 %}s{% endif %})</span>
+        </h3>
+
+        {# Group WAF events by rule_source #}
+        {% set waf_by_source = {} %}
+        {% for event in cloudflare.waf_events %}
+            {% if event.rule_source not in waf_by_source %}
+                {% set _ = waf_by_source.update({event.rule_source: []}) %}
+            {% endif %}
+            {% set _ = waf_by_source[event.rule_source].append(event) %}
+        {% endfor %}
+
+        {% for source, events in waf_by_source.items() %}
+        <div style="margin-bottom: 15px; padding: 12px 15px; background-color: #ffffff; border-left: 4px solid #dc3545; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div style="margin-bottom: 6px;">
+                <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #dc3545; border-radius: 3px;">{{ source | upper | replace('_', ' ') }}</span>
+                <strong style="color: #333333; font-size: 14px; margin-left: 8px;">{{ events | length }} block{% if events | length != 1 %}s{% endif %}</strong>
+            </div>
+            {# Show sample events (first 3 per source) #}
+            <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #555555; font-size: 13px;">
+                {% for event in events[:3] %}
+                <li style="margin-bottom: 4px;">
+                    <code style="background-color: #f8f9fa; padding: 1px 4px; border-radius: 2px; font-size: 12px;">{{ event.source_ip }}</code>
+                    {% if event.country %}({{ event.country }}){% endif %}
+                    &rarr; {{ event.host or 'unknown' }}{{ (event.path or '')[:50] }}{% if event.path and event.path | length > 50 %}...{% endif %}
+                </li>
+                {% endfor %}
+                {% if events | length > 3 %}
+                <li style="color: #6c757d; font-style: italic;">and {{ events | length - 3 }} more...</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endfor %}
+
+        {# Top Blocked IPs #}
+        {% set top_ips = cloudflare.get_top_blocked_ips(5) %}
+        {% if top_ips %}
+        <div style="margin-top: 15px;">
+            <h4 style="color: #495057; font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">
+                Top Blocked IPs
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px;">
+                {% for ip, count in top_ips %}
+                <tr>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; width: 40%;">
+                        <code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px;">{{ ip }}</code>
+                    </td>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; color: #333333;">
+                        {{ count }} block{% if count != 1 %}s{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {# Top Blocked Countries #}
+        {% set top_countries = cloudflare.get_top_blocked_countries(5) %}
+        {% if top_countries %}
+        <div style="margin-top: 15px;">
+            <h4 style="color: #495057; font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">
+                Top Blocked Countries
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px;">
+                {% for country, count in top_countries %}
+                <tr>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; width: 40%;">
+                        <code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px;">{{ country }}</code>
+                    </td>
+                    <td style="padding: 6px 0; border-bottom: 1px solid #e9ecef; color: #333333;">
+                        {{ count }} block{% if count != 1 %}s{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# DNS Analytics Section #}
+    {% if cloudflare.has_dns_analytics %}
+    <div style="margin-bottom: 25px;">
+        <h3 style="color: #17a2b8; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            DNS Analytics
+        </h3>
+
+        {# Summary Stats #}
+        <div style="background-color: #f8f9fa; border-radius: 4px; padding: 15px; margin-bottom: 15px;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td style="text-align: center; padding: 0 10px;">
+                        <div style="font-size: 24px; font-weight: 600; color: #333333;">{{ cloudflare.total_dns_queries() | default(0) }}</div>
+                        <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Total Queries</div>
+                    </td>
+                    <td style="text-align: center; padding: 0 10px;">
+                        <div style="font-size: 24px; font-weight: 600; color: #28a745;">
+                            {% set noerror_total = namespace(value=0) %}
+                            {% for dns in cloudflare.dns_analytics %}
+                                {% set noerror_total.value = noerror_total.value + dns.noerror_count %}
+                            {% endfor %}
+                            {{ noerror_total.value }}
+                        </div>
+                        <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">Successful</div>
+                    </td>
+                    <td style="text-align: center; padding: 0 10px;">
+                        <div style="font-size: 24px; font-weight: 600; color: #dc3545;">
+                            {% set nxdomain_total = namespace(value=0) %}
+                            {% for dns in cloudflare.dns_analytics %}
+                                {% set nxdomain_total.value = nxdomain_total.value + dns.nxdomain_count %}
+                            {% endfor %}
+                            {{ nxdomain_total.value }}
+                        </div>
+                        <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">NXDOMAIN</div>
+                    </td>
+                    <td style="text-align: center; padding: 0 10px;">
+                        <div style="font-size: 24px; font-weight: 600; color: #fd7e14;">
+                            {% set servfail_total = namespace(value=0) %}
+                            {% for dns in cloudflare.dns_analytics %}
+                                {% set servfail_total.value = servfail_total.value + dns.servfail_count %}
+                            {% endfor %}
+                            {{ servfail_total.value }}
+                        </div>
+                        <div style="font-size: 12px; color: #6c757d; text-transform: uppercase;">SERVFAIL</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {# Per-Zone Stats #}
+        {% if cloudflare.dns_analytics | length > 1 %}
+        <div style="margin-top: 10px;">
+            <h4 style="color: #495057; font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">
+                By Zone
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding: 10px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Zone</th>
+                        <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Queries</th>
+                        <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Success</th>
+                        <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Errors</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dns in cloudflare.dns_analytics %}
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #e9ecef; color: #333333;">{{ dns.zone_name }}</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #333333;">{{ dns.total_queries }}</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #28a745;">{{ dns.noerror_count }}</td>
+                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #dc3545;">{{ dns.nxdomain_count + dns.servfail_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Tunnel Status Section (only if tunnels exist per CONTEXT.md) #}
+    {% if cloudflare.has_tunnel_statuses %}
+    <div style="margin-bottom: 20px;">
+        <h3 style="color: #333333; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">
+            Tunnel Status
+        </h3>
+
+        {# Down/Degraded Tunnels Warning #}
+        {% set unhealthy = cloudflare.get_unhealthy_tunnels() %}
+        {% if unhealthy %}
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin-bottom: 15px; border-radius: 0 4px 4px 0;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong style="font-size: 13px;">&#9888; Tunnel Issues</strong><br>
+                {% for tunnel in unhealthy %}
+                <span style="display: inline-block; margin-top: 4px;">
+                    <code style="background-color: #ffffff; padding: 2px 6px; border-radius: 3px; font-size: 12px;">{{ tunnel.tunnel_name }}</code>
+                    <span style="display: inline-block; padding: 2px 6px; font-size: 11px; font-weight: 600; color: #ffffff; background-color: {% if tunnel.status == 'down' %}#dc3545{% elif tunnel.status == 'inactive' %}#6c757d{% else %}#fd7e14{% endif %}; border-radius: 3px;">{{ tunnel.status | upper }}</span>
+                </span>
+                {% endfor %}
+            </p>
+        </div>
+        {% endif %}
+
+        {# Tunnel Status Table #}
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 13px; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="padding: 10px 8px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Tunnel</th>
+                    <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Status</th>
+                    <th style="padding: 10px 8px; text-align: center; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Connections</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tunnel in cloudflare.tunnel_statuses %}
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #e9ecef; color: #333333;">{{ tunnel.tunnel_name }}</td>
+                    <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef;">
+                        {% if tunnel.status == 'healthy' %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #155724; background-color: #d4edda; border-radius: 3px;">HEALTHY</span>
+                        {% elif tunnel.status == 'degraded' %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #ffffff; background-color: #fd7e14; border-radius: 3px;">DEGRADED</span>
+                        {% elif tunnel.status == 'down' %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #ffffff; background-color: #dc3545; border-radius: 3px;">DOWN</span>
+                        {% elif tunnel.status == 'inactive' %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #6c757d; background-color: #e9ecef; border-radius: 3px;">INACTIVE</span>
+                        {% else %}
+                        <span style="display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #6c757d; background-color: #e9ecef; border-radius: 3px;">{{ tunnel.status | upper }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px; text-align: center; border-bottom: 1px solid #e9ecef; color: #6c757d;">{{ tunnel.connections_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# Collection errors note #}
+    {% if cloudflare.errors %}
+    <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+        <p style="margin: 0; color: #6c757d; font-size: 12px;">
+            <strong>Note:</strong> Some Cloudflare data may be incomplete.
+            {% for error in cloudflare.errors[:2] %}
+            {{ error }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+            {% if cloudflare.errors | length > 2 %}
+            and {{ cloudflare.errors | length - 2 }} more issues.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
