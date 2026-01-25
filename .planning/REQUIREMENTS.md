@@ -9,12 +9,12 @@ Requirements for extended analysis rules and optional integrations milestone.
 
 ### Wireless Analysis
 
-- [ ] **WIFI-01**: Service detects client roaming events between APs
-- [ ] **WIFI-02**: Service detects radio band switching (2.4GHz to 5GHz and vice versa)
-- [ ] **WIFI-03**: Service detects AP channel changes with reason
-- [ ] **WIFI-04**: Service detects DFS radar events requiring channel evacuation
-- [ ] **WIFI-05**: Service translates RSSI values to signal quality (Excellent/Good/Fair/Poor)
-- [ ] **WIFI-06**: Service detects excessive client roaming (flapping) as warning
+- [x] **WIFI-01**: Service detects client roaming events between APs
+- [x] **WIFI-02**: Service detects radio band switching (2.4GHz to 5GHz and vice versa)
+- [x] **WIFI-03**: Service detects AP channel changes with reason
+- [x] **WIFI-04**: Service detects DFS radar events requiring channel evacuation
+- [x] **WIFI-05**: Service translates RSSI values to signal quality (Excellent/Good/Fair/Poor)
+- [x] **WIFI-06**: Service detects excessive client roaming (flapping) as warning
 
 ### Security Analysis (IDS/IPS)
 
@@ -81,12 +81,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WIFI-01 | Phase 7 | Pending |
-| WIFI-02 | Phase 7 | Pending |
-| WIFI-03 | Phase 7 | Pending |
-| WIFI-04 | Phase 7 | Pending |
-| WIFI-05 | Phase 7 | Pending |
-| WIFI-06 | Phase 7 | Pending |
+| WIFI-01 | Phase 7 | Complete |
+| WIFI-02 | Phase 7 | Complete |
+| WIFI-03 | Phase 7 | Complete |
+| WIFI-04 | Phase 7 | Complete |
+| WIFI-05 | Phase 7 | Complete |
+| WIFI-06 | Phase 7 | Complete |
 | SECR-01 | Phase 8 | Pending |
 | SECR-02 | Phase 8 | Pending |
 | SECR-03 | Phase 8 | Pending |
@@ -115,4 +115,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after v0.4-alpha roadmap created*
+*Last updated: 2026-01-25 after Phase 7 completion*
