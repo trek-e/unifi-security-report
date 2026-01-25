@@ -464,19 +464,45 @@ class UnifiClient:
 
         # If still no results, try alternative endpoints for UDM Pro
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
-            # Try v2 threat management API (UniFi Network 7.x+)
-            alt_endpoints = [
-                f"/proxy/network/v2/api/site/{site}/threatmanagement/threats",
-                f"/proxy/network/api/s/{site}/stat/report/ips.all",
+            # Try various alternative endpoints
+            alt_configs = [
+                # REST endpoint for IPS records
+                {"method": "GET", "endpoint": f"/proxy/network/api/s/{site}/rest/ipsrecord"},
+                # Regular events with IPS key filter
+                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/event",
+                 "json": {"_limit": 500, "key": "EVT_IPS_IpsAlert"}},
+                # Try without key filter to see all event types
+                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/event",
+                 "json": {"_limit": 50}},
             ]
-            for alt_endpoint in alt_endpoints:
+            for config in alt_configs:
                 try:
-                    logger.debug("ips_events_trying_alt", endpoint=alt_endpoint)
-                    alt_response = self._request("GET", alt_endpoint)
+                    alt_endpoint = config["endpoint"]
+                    logger.debug("ips_events_trying_alt", endpoint=alt_endpoint, method=config["method"])
+                    if config["method"] == "GET":
+                        alt_response = self._request("GET", alt_endpoint)
+                    else:
+                        alt_response = self._request("POST", alt_endpoint, json=config.get("json", {}))
                     alt_data = alt_response.json()
-                    alt_count = len(alt_data.get("data", [])) if isinstance(alt_data, dict) else len(alt_data) if isinstance(alt_data, list) else 0
-                    logger.debug("ips_events_alt_response", endpoint=alt_endpoint, count=alt_count)
-                    if alt_count > 0:
+
+                    # Log what we found
+                    if isinstance(alt_data, dict):
+                        alt_count = len(alt_data.get("data", []))
+                        sample_keys = []
+                        if alt_count > 0:
+                            sample = alt_data["data"][0]
+                            sample_keys = list(sample.keys())[:10]
+                            # Check for IPS-related keys
+                            if "key" in sample:
+                                sample_keys.append(f"key={sample.get('key')}")
+                    else:
+                        alt_count = len(alt_data) if isinstance(alt_data, list) else 0
+                        sample_keys = []
+
+                    logger.debug("ips_events_alt_response", endpoint=alt_endpoint, count=alt_count, sample_keys=sample_keys)
+
+                    # For ipsrecord endpoint, any results are good
+                    if "ipsrecord" in alt_endpoint and alt_count > 0:
                         logger.info("ips_events_found_alt_endpoint", endpoint=alt_endpoint, count=alt_count)
                         data = alt_data
                         break
