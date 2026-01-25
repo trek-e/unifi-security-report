@@ -137,10 +137,12 @@ Plans:
   1. Integrations that are not configured are silently skipped (no errors in logs)
   2. One integration failing does not prevent other integrations from running
   3. External API failures trigger circuit breakers that fail fast and recover automatically
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 10-01: TBD
+- [ ] 10-01-PLAN.md — Integration Protocol, result models, and registry (INTG-01 foundation)
+- [ ] 10-02-PLAN.md — IntegrationRunner with circuit breakers and parallel execution (INTG-02, INTG-03)
+- [ ] 10-03-PLAN.md — Tests for integration infrastructure
 
 ### Phase 11: Cloudflare Integration
 **Goal**: Users with Cloudflare see WAF and DNS events in their UniFi security report
@@ -202,7 +204,7 @@ Plans:
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
-| 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
+| 10. Integration Infrastructure | v0.3.4-alpha | 0/3 | Planned | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
@@ -219,3 +221,4 @@ Plans:
 *Phase 8 gap closure plan added: 2026-01-25*
 *Phase 9 planned: 2026-01-25*
 *Phase 9 complete: 2026-01-25*
+*Phase 10 planned: 2026-01-25*
