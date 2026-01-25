@@ -1,221 +1,313 @@
-# Feature Landscape: UniFi Log Analysis Service
+# Feature Landscape: Extended Analysis Rules for UniFi Scanner
 
-**Domain:** Network log analysis and monitoring for non-expert users
+**Domain:** Extended event analysis for wireless, security, device health, and optional services
 **Researched:** 2026-01-24
-**Confidence:** MEDIUM (based on WebSearch findings across multiple sources)
+**Confidence:** MEDIUM (UniFi API is undocumented; findings based on community projects and official help articles)
 
 ## Executive Summary
 
-The network monitoring and log analysis space is dominated by enterprise tools designed for IT professionals. There is a significant gap for non-expert users who own prosumer equipment like UniFi but lack the expertise to interpret logs and alerts. The core differentiator for this project is **translating technical logs into plain English with actionable remediation** — a feature notably absent from existing tools.
+This research documents UniFi event types and features needed to extend the existing analysis rules beyond the basic connectivity, security, and system events already implemented. The focus areas are:
 
-Existing solutions fall into three categories:
-1. **Enterprise SIEM/log tools** (Splunk, Graylog, LogicMonitor) — powerful but overwhelming for non-experts
-2. **Consumer network monitors** (Fing, Firewalla) — simple but don't analyze UniFi-specific logs
-3. **UniFi native tools** (Alarm Manager, Traffic Inspector) — technically capable but still require expertise to interpret
+1. **Wireless-specific events** - Roaming, channel changes, interference, signal quality
+2. **Security events** - IDS/IPS alerts with Suricata signatures, threat categories
+3. **Device health** - Temperature, CPU, memory, PoE, port status
+4. **CyberSecure** - Premium threat intelligence (Proofpoint) and content filtering (Cloudflare)
+5. **Cloudflare tunnel** - VPN/tunnel connectivity status
 
-This project fills the gap between "too complex" and "too simple."
+**Key Finding:** UniFi does not publish official API documentation. Event types are derived from community projects ([oznu/unifi-events](https://github.com/oznu/unifi-events), [dim13/unifi](https://github.com/dim13/unifi)) and the controller's `eventStrings.json` file. Event availability varies by device type and firmware version.
 
----
-
-## Table Stakes
-
-Features users expect. Missing = product feels incomplete or unusable.
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **Log collection from UniFi** | Core functionality; can't analyze without data | Medium | UniFi API or syslog; API undocumented but stable |
-| **Severity categorization** | Users need to know what's urgent vs informational | Low | Standard syslog levels (0-7) map to low/med/severe |
-| **Scheduled reports** | Periodic digest is the primary use case | Low | Cron-based; daily/weekly configurable |
-| **Email delivery** | Primary output channel for v1 | Low | SMTP integration; well-understood pattern |
-| **File output** | Alternative to email; useful for archival | Low | Write to configurable directory |
-| **Human-readable explanations** | Core value prop; differentiates from raw log viewers | Medium | Requires knowledge base of log patterns and meanings |
-| **Issue deduplication** | Same issue shouldn't appear 100x in report | Medium | Group by signature/pattern, report count |
-| **Timestamps and context** | When did this happen? What device? | Low | Extract from log metadata |
-| **Docker deployment** | Target users run services in containers | Low | Standard Docker patterns |
-
-### Why These Are Table Stakes
-
-From research, users of network monitoring tools consistently expect:
-- **Search and filtering** — ability to find specific entries
-- **Customizable output** — tailor to their needs
-- **Multi-channel delivery** — email, file, etc.
-- **User-friendly interface** — minimal learning curve
-
-UniFi's own Alarm Manager already provides device offline notifications, threat alerts, and connectivity monitoring via email/push. Our tool must at minimum match this baseline, then exceed it with explanation quality.
+**Recommendation:** Implement rules in priority order: Wireless (high user impact) > IDS/IPS (actionable security) > Device Health (preventive maintenance) > CyberSecure/Cloudflare (optional features).
 
 ---
 
-## Differentiators
+## Already Implemented (Existing Rules)
 
-Features that set product apart. Not expected, but highly valued by target users.
+These rules exist in the current codebase and should NOT be duplicated:
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| **Plain English explanations** | "ET SCAN Zmap User-Agent" becomes "Someone scanned your network looking for vulnerable services" | High | Core differentiator; requires pattern→explanation mapping |
-| **Actionable remediation steps** | For severe issues: "Here's how to fix it" | High | Requires domain expertise encoded in rules |
-| **Risk context for non-experts** | "This is serious because..." not just severity number | Medium | Educational framing; builds user knowledge over time |
-| **Issue trend tracking** | "This issue increased 3x since last week" | Medium | Requires historical storage and comparison |
-| **False positive guidance** | "This might be a false positive if..." | Medium | Helps users avoid unnecessary panic |
-| **Network health score** | Single number summarizing overall health | Medium | Aggregate metric; easy to communicate |
-| **Device-specific insights** | "Your access point AP-Living-Room had issues" | Low | Already in logs; just needs human-friendly display |
-| **Threat category explanations** | Explain IDS categories (Initial Access, Lateral Movement, etc.) | Medium | Map MITRE ATT&CK to plain language |
-| **Prioritized action items** | "Do this first, then this" | Medium | Rank by severity and fixability |
-| **Learning resources** | Links to relevant documentation for self-education | Low | Curated links in reports |
+### Connectivity Rules (connectivity.py)
+| Event Type | Severity | Status |
+|------------|----------|--------|
+| EVT_AP_Lost_Contact, EVT_AP_DISCONNECTED | SEVERE | Implemented |
+| EVT_SW_Lost_Contact, EVT_SW_DISCONNECTED | SEVERE | Implemented |
+| EVT_GW_WAN_DISCONNECTED, EVT_WAN_FAILOVER | SEVERE | Implemented |
+| EVT_AP_Isolated | SEVERE | Implemented |
+| EVT_AP_Connected | LOW | Implemented |
+| EVT_WU_Connected, EVT_WG_Connected, EVT_LU_Connected | LOW | Implemented |
+| EVT_WU_Disconnected, EVT_WG_Disconnected, EVT_LU_Disconnected | LOW | Implemented |
 
-### Why These Differentiate
+### Security Rules (security.py)
+| Event Type | Severity | Status |
+|------------|----------|--------|
+| EVT_AD_LOGIN_FAILED | SEVERE | Implemented |
+| EVT_AP_RogueAPDetected | SEVERE | Implemented |
+| EVT_IPS_Alert (generic) | SEVERE | Implemented |
+| EVT_AD_Login | LOW | Implemented |
 
-From research, these gaps exist in current solutions:
+### System Rules (system.py)
+| Event Type | Severity | Status |
+|------------|----------|--------|
+| EVT_*_Upgraded | LOW | Implemented |
+| EVT_*_Restarted | LOW | Implemented |
+| EVT_*_RestartedUnknown | MEDIUM | Implemented |
+| EVT_*_Adopted | LOW | Implemented |
+| EVT_CONFIG_CHANGED | LOW | Implemented |
+| EVT_BACKUP_CREATED | LOW | Implemented |
+| EVT_*_UPDATE_AVAILABLE | LOW | Implemented |
 
-1. **Alert fatigue is epidemic**: 67% of alerts are ignored due to false positives and noise. Plain English explanations + prioritization directly address this.
-
-2. **Non-experts can't interpret**: Firewalla users note it "requires much more depth of knowledge" — the same applies to UniFi's native tools.
-
-3. **No translation layer exists**: Search for "plain English network log translation" returns nothing relevant. This is a genuine gap.
-
-4. **Remediation is manual research**: Users must Google each alert type. Pre-packaged remediation saves hours.
+### Performance Rules (performance.py)
+| Event Type | Severity | Status |
+|------------|----------|--------|
+| EVT_AP_Interference, EVT_AP_RADAR_DETECTED | MEDIUM | Implemented |
+| EVT_*_HIGH_CPU | MEDIUM | Implemented |
+| EVT_*_HIGH_MEMORY | MEDIUM | Implemented |
+| EVT_SPEED_TEST_* | MEDIUM | Implemented |
+| EVT_AP_CHANNEL_UTIL_HIGH | MEDIUM | Implemented |
 
 ---
 
-## Anti-Features
+## Table Stakes (Must Have)
 
-Features to explicitly NOT build. Common mistakes in this domain.
+Features users expect for comprehensive network monitoring. Missing = reports feel incomplete.
+
+### Wireless Events
+
+| Event Type | Category | Severity | Why Expected | API Source | User Explanation |
+|------------|----------|----------|--------------|------------|------------------|
+| **EVT_WU_Roam** | WIRELESS | LOW | Users want to see if devices are successfully roaming between APs | stat/event | "Your device [device] moved from [AP1] to [AP2]. This is normal behavior as you move around." |
+| **EVT_WU_RoamRadio** | WIRELESS | LOW | Channel/band changes on same AP indicate potential issues if frequent | stat/event | "Your device [device] switched from [channel_from] to [channel_to] on the same AP. Frequent switches may indicate interference." |
+| **EVT_WG_Roam** | WIRELESS | LOW | Guest network roaming visibility | stat/event | "A guest device moved between access points. Normal network behavior." |
+| **EVT_AP_ChannelChange** | WIRELESS | MEDIUM | Unexpected channel changes affect connected clients | stat/event | "Access point [AP] changed from channel [from] to [to]. This may briefly interrupt connections." |
+| **DFS Radar Detected** | WIRELESS | MEDIUM | Radar detection forces channel changes; users need awareness | stat/event, message pattern | "Radar was detected on channel [channel]. Your AP must vacate this channel for 30 minutes per FCC rules." |
+
+**Complexity:** Low - These are standard EVT_ events available in stat/event API.
+
+### Enhanced IDS/IPS Events
+
+| Event Type | Category | Severity | Why Expected | API Source | User Explanation |
+|------------|----------|----------|--------------|------------|------------------|
+| **EVT_IPS_Alert (with signature details)** | SECURITY | SEVERE | Current implementation is generic; users need specific threat info | stat/event + message parsing | "Threat detected: [signature_name]. Risk level: [high/medium/low]. Source: [src_ip] to [dst_ip]." |
+| **Signature Categories** | SECURITY | Varies | Map Suricata categories to plain English | Message parsing | See Threat Category Mapping below |
+| **Blocked vs Detected** | SECURITY | SEVERE/MEDIUM | Users need to know if threat was blocked (IPS) or just detected (IDS) | Message parsing | "This threat was [blocked/detected]. [If blocked: No action needed. If detected: Consider enabling IPS.]" |
+
+**Threat Category Mapping (Suricata/ET):**
+
+| Suricata Category | Plain English | Suggested Severity |
+|-------------------|---------------|-------------------|
+| ET SCAN | "Network scanning activity - someone probing your network" | MEDIUM |
+| ET TROJAN | "Potential malware communication detected" | SEVERE |
+| ET MALWARE | "Known malicious software signature" | SEVERE |
+| ET DOS | "Denial of service attempt" | SEVERE |
+| ET EXPLOIT | "Attempt to exploit a vulnerability" | SEVERE |
+| ET POLICY | "Policy violation (may be normal, e.g., P2P)" | LOW |
+| ET INFO | "Informational - unusual but not necessarily malicious" | LOW |
+| ET USER_AGENTS | "Suspicious browser/software identifier" | MEDIUM |
+| ET CURRENT_EVENTS | "Matches current threat intelligence" | SEVERE |
+| ET HUNTING | "Potentially suspicious behavior worth investigating" | MEDIUM |
+
+**Complexity:** Medium - Requires parsing signature strings from IPS alerts.
+
+### Device Health Events
+
+| Event Type | Category | Severity | Why Expected | API Source | User Explanation |
+|------------|----------|----------|--------------|------------|------------------|
+| **Temperature alerts** | DEVICE_HEALTH | MEDIUM/SEVERE | Overheating can cause failures; users need early warning | stat/device (general_temperature field) | "Device [name] is running hot at [temp]C. Ensure adequate ventilation." |
+| **EVT_SW_PoeDisconnect** | DEVICE_HEALTH | MEDIUM | PoE failures affect powered devices | stat/event | "Power over Ethernet disconnected on [switch] port [port]. Device on that port lost power." |
+| **PoE Overload** | DEVICE_HEALTH | SEVERE | Budget exceeded means devices lose power | stat/event, message pattern | "PoE power budget exceeded on [switch]. Some devices may lose power. Consider a PoE injector or larger switch." |
+| **Port Up/Down** | DEVICE_HEALTH | MEDIUM | Physical connectivity changes | stat/event | "Port [port] on [switch] [came up/went down]. Check physical connections if unexpected." |
+
+**Note:** Temperature data requires polling `stat/device` endpoint rather than events. CPU temperature is available via `general_temperature` field on device objects.
+
+**Complexity:** Medium - Temperature requires device polling; PoE events are standard EVT_ types.
+
+---
+
+## Differentiators (Should Have)
+
+Features that make reports especially valuable compared to UniFi's native alerts.
+
+### Enhanced Wireless Intelligence
+
+| Feature | Value Proposition | Complexity | Implementation Notes |
+|---------|-------------------|------------|---------------------|
+| **Roaming quality assessment** | "Client [device] roamed 15 times in 1 hour - may indicate sticky client or coverage gap" | Medium | Track roaming frequency per client; threshold-based alerts |
+| **Signal strength context** | Include RSSI values in disconnect explanations | Low | RSSI available in disconnect events; translate to quality (excellent/good/fair/poor) |
+| **Min-RSSI kick explanation** | "Client was disconnected because signal dropped below threshold" | Low | Pattern match on disconnect reason |
+| **Band steering events** | "Client was encouraged to move from 2.4GHz to 5GHz" | Low | EVT_AP events for steering |
+
+**RSSI to Quality Mapping (for non-experts):**
+
+| RSSI Range | Quality | User Explanation |
+|------------|---------|------------------|
+| > -50 dBm | Excellent | "Very strong signal, right next to the access point" |
+| -50 to -60 dBm | Good | "Strong signal, good performance expected" |
+| -60 to -70 dBm | Fair | "Moderate signal, may experience occasional issues" |
+| -70 to -80 dBm | Poor | "Weak signal, expect slower speeds and possible disconnects" |
+| < -80 dBm | Very Poor | "Very weak signal, connection unreliable" |
+
+### IPS/IDS Context
+
+| Feature | Value Proposition | Complexity | Implementation Notes |
+|---------|-------------------|------------|---------------------|
+| **Threat severity translation** | Map Suricata severity 1-4 to low/medium/severe | Low | Direct mapping from alert fields |
+| **Source device identification** | "This threat came FROM your device [name]" vs "came TO your device" | Medium | Cross-reference src/dst IP with client list |
+| **False positive likelihood** | "This is commonly a false positive when using [VPN/P2P/gaming]" | Medium | Maintain list of known FP signatures |
+| **Remediation by category** | Different action steps for malware vs scanning vs policy | High | Category-specific remediation templates |
+
+### Device Health Intelligence
+
+| Feature | Value Proposition | Complexity | Implementation Notes |
+|---------|-------------------|------------|---------------------|
+| **Temperature trend warnings** | "Device temperature has increased 10C over last week" | Medium | Requires historical tracking |
+| **Uptime monitoring** | "Device [name] has been running for 90 days - consider scheduled restart" | Low | Uptime available in stat/device |
+| **Firmware age alerts** | "Device [name] is 3 versions behind current firmware" | Medium | Compare running vs available firmware |
+
+---
+
+## Optional Features (CyberSecure & Cloudflare)
+
+These features require paid subscriptions or specific configurations. Mark clearly as optional in reports.
+
+### CyberSecure by Proofpoint (Subscription Required)
+
+**Prerequisite:** CyberSecure subscription ($99/year standard, $499/year enterprise)
+
+| Feature | Category | Severity | Detection Method | User Explanation |
+|---------|----------|----------|------------------|------------------|
+| **Enhanced threat signatures** | SECURITY | Varies | Same IPS events, more signatures | "Your CyberSecure subscription detected [threat] using enterprise threat intelligence." |
+| **Proofpoint category blocks** | SECURITY | MEDIUM | IPS events with Proofpoint signatures | "Blocked by Proofpoint threat intelligence: [category]" |
+| **Weekly signature updates** | SECURITY | LOW | Informational | "CyberSecure updated with [X] new threat signatures this week." |
+
+**Implementation Notes:**
+- CyberSecure uses same IPS event format but with more signatures (55K+ standard, 95K+ enterprise)
+- Signature categories expand to 50+ with CyberSecure vs ~20 without
+- Detection: Check if signature ID falls in Proofpoint range or contains Proofpoint identifier
+- No separate API endpoint - same stat/event with richer signatures
+
+**Complexity:** Low - Same event format, just more signatures. Add "CyberSecure" badge to relevant alerts.
+
+### Cloudflare Content Filtering (CyberSecure Required)
+
+**Prerequisite:** CyberSecure subscription
+
+| Feature | Category | Severity | Detection Method | User Explanation |
+|---------|----------|----------|------------------|------------------|
+| **Content category blocks** | CONTENT_FILTER | LOW | DNS query logs | "Access to [domain] was blocked. Category: [Adult Content/Malware/etc]" |
+| **Ad blocking events** | CONTENT_FILTER | LOW | DNS query logs | "Advertisement blocked from [domain]" |
+| **Policy violations** | CONTENT_FILTER | MEDIUM | DNS query logs | "Access attempt to blocked category: [category]" |
+
+**Content Filtering Categories (100+ available with CyberSecure):**
+
+| Category Group | Examples | Default Action |
+|----------------|----------|----------------|
+| Security Threats | Malware, Phishing, Spam | Block |
+| Adult Content | Adult, Gambling | Block (optional) |
+| Productivity | Social Media, Streaming, Gaming | Configurable |
+| Communication | Email, Messaging, VoIP | Allow (default) |
+
+**Implementation Notes:**
+- Content filtering events may not appear in standard stat/event API
+- Consider using SIEM/syslog integration if available (requires UniFi Network 8.5.1+)
+- DNS-level filtering means events occur at gateway level
+- Mark as "[CyberSecure]" in reports so users know this requires subscription
+
+**Complexity:** Medium - May require syslog parsing rather than API events.
+
+### Cloudflare Tunnel/Zero Trust Integration
+
+**Prerequisite:** Cloudflare Zero Trust account + IPsec VPN configuration
+
+| Feature | Category | Severity | Detection Method | User Explanation |
+|---------|----------|----------|------------------|------------------|
+| **Tunnel health** | VPN | SEVERE if down | Site-to-Site VPN status | "Cloudflare tunnel [name] is [connected/disconnected]." |
+| **Tunnel latency** | VPN | MEDIUM if high | VPN metrics | "Cloudflare tunnel latency is [X]ms. [If high: May affect remote access performance.]" |
+
+**Implementation Notes:**
+- Cloudflare tunnels appear as Site-to-Site VPN connections in UniFi
+- VPN status available via `rest/networkconf` or similar endpoint
+- Tunnel health can be monitored via Cloudflare dashboard, not UniFi events
+- Limited event visibility in UniFi - mainly connection/disconnection
+
+**Complexity:** Medium - VPN status requires different API endpoints than events.
+
+---
+
+## Anti-Features (Explicitly NOT Include)
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| **Real-time alerting in v1** | Adds complexity, alert fatigue risk, requires different architecture | Periodic reports with configurable frequency |
-| **Dashboard/GUI in v1** | Scope creep; reports are faster to ship and validate | File/email reports; defer dashboard to v2 |
-| **Automatic remediation** | Risk of breaking network; liability; user trust | Recommendations only; user decides to act |
-| **Raw log display** | Users don't want this; defeats purpose | Always translate; hide raw by default |
-| **Exhaustive alerting** | Alert fatigue kills usefulness; "4,484 alerts/day average" is industry norm | Curate and prioritize; quality over quantity |
-| **Complex configuration** | Target users are non-experts | Sensible defaults; minimal required config |
-| **Multi-gateway in v1** | Adds complexity before validating core value | Single gateway; defer multi-site to v2 |
-| **Custom rule creation** | Non-experts won't use it; adds complexity | Pre-built intelligence; no DIY rules |
-| **SIEM integration in v1** | Target users don't have SIEMs | Self-contained tool; SIEM export is v2+ |
-| **Mobile app** | Expensive to build; email works on mobile | Email reports are mobile-accessible |
-| **Subscription model** | Target users resist recurring costs (Fingbox/Firewalla are one-time) | Self-hosted, no subscription |
-
-### Why These Are Anti-Features
-
-From research:
-- **Alert fatigue**: 25-30% of alerts go uninvestigated due to overload. More alerts != better.
-- **Complexity barrier**: "Diving into Firewalla requires much more depth of knowledge than Fingbox" — complexity loses non-experts.
-- **Auto-remediation risk**: "Blocking [a device] could lead to the device not being able to work properly" — automated actions are dangerous.
-- **Subscription fatigue**: Both Fingbox and Firewalla advertise "no yearly subscription" as a feature. Users value this.
+| **Every client connect/disconnect** | Creates noise; thousands of events per day | Already implemented as LOW severity; consider aggregation |
+| **Raw signature IDs** | Non-experts can't interpret "sid:2024897" | Always translate to plain English category + explanation |
+| **Network flow details** | Technical: src:port -> dst:port is meaningless to users | Summarize as "Device [name] communicated with [service/domain]" |
+| **Per-packet statistics** | Overwhelming data; not actionable | Report high-level trends only |
+| **Configuration change details** | Too technical; changes are intentional | Report occurrence count, not content |
+| **Certificate/SSL events** | Complex to explain; often false positives | Only report expired certs causing connection failures |
 
 ---
 
-## Feature Dependencies
+## Event Sources and API Endpoints
 
-```
-Log Collection (foundation)
-    |
-    +--> Log Parsing & Normalization
-            |
-            +--> Severity Categorization
-            |       |
-            |       +--> Prioritized Action Items
-            |
-            +--> Plain English Explanations
-            |       |
-            |       +--> Risk Context for Non-Experts
-            |       |
-            |       +--> Threat Category Explanations
-            |
-            +--> Issue Deduplication
-            |       |
-            |       +--> Issue Trend Tracking (requires history)
-            |
-            +--> Remediation Steps (for severe)
-                    |
-                    +--> False Positive Guidance
+### Primary Event Source
 
-Report Generation (requires above)
-    |
-    +--> Email Delivery
-    |
-    +--> File Output
-    |
-    +--> Network Health Score (aggregates findings)
-```
+| Endpoint | Description | Use For |
+|----------|-------------|---------|
+| `api/s/{site}/stat/event` | Event log, 3000 result limit, newest first | All EVT_* events |
+| `api/s/{site}/stat/alarm` | Alarms, 3000 result limit | IPS/IDS alerts, high-priority issues |
+| `api/s/{site}/stat/device` | Device status including health metrics | Temperature, CPU, memory, uptime |
+| `api/s/{site}/stat/sta` | Connected clients | Client details for cross-referencing |
 
-**Critical path for MVP:**
-Log Collection -> Parsing -> Severity -> Explanations -> Report Generation -> Delivery
+**Note:** For UDM Pro and UCG Max, prefix all endpoints with `/proxy/network`.
 
-**Can be deferred:**
-- Trend tracking (needs historical data; add after v1)
-- Health score (nice-to-have aggregation)
-- False positive guidance (refinement after initial launch)
+### SIEM Integration (UniFi 8.5.1+)
+
+CEF-formatted logs via syslog contain richer security data:
+- IDS/IPS events with full signature details
+- Firewall rule matches
+- Admin activity
+
+**CEF fields available:** `act`, `cat`, `destinationDnsDomain`, `dhost`, `dpt`, `dst`, `duser`, `fname`, `msg`, `proto`, `shost`, `spt`, `src`, `suser`
 
 ---
 
-## MVP Recommendation
+## Implementation Priority
 
-For MVP, prioritize in this order:
+### Phase 1: Core Wireless (High Impact, Low Effort)
 
-### Must Have (Table Stakes)
-1. **Log collection from UniFi** — API-first, syslog fallback
-2. **Log parsing and normalization** — Handle UniFi CEF format
-3. **Severity categorization** — Map to low/medium/severe
-4. **Human-readable explanations** — Core value; start with top 20 most common events
-5. **Scheduled report generation** — Daily/weekly cron
-6. **Email delivery** — SMTP with configurable recipient
-7. **Docker deployment** — Standard containerization
+1. EVT_WU_Roam / EVT_WG_Roam - Roaming events
+2. EVT_WU_RoamRadio - Channel/band changes
+3. DFS radar detection (message pattern matching)
+4. EVT_AP_ChannelChange
 
-### Should Have (Key Differentiators)
-8. **Remediation steps for severe issues** — Step-by-step for top 10 severe patterns
-9. **Issue deduplication** — Group repeats, show count
-10. **Device-specific insights** — Which device had the issue
+**Estimated rules:** 4-5 new rules
+**Complexity:** Low
 
-### Defer to Post-MVP
-- **Trend tracking**: Needs persistence layer; add in v1.1
-- **Network health score**: Aggregation metric; v1.1
-- **False positive guidance**: Refinement after user feedback
-- **Dashboard/GUI**: Major scope; v2
-- **Multi-gateway**: Architectural change; v2
+### Phase 2: Enhanced IDS/IPS (Security Value)
 
----
+1. Parse Suricata signature categories from existing IPS events
+2. Map categories to plain English
+3. Add severity based on signature classification
+4. Add blocked vs detected distinction
 
-## Competitive Landscape Summary
+**Estimated rules:** 10-15 signature category mappings
+**Complexity:** Medium (regex parsing)
 
-| Solution | Strengths | Weakness for Our Users |
-|----------|-----------|------------------------|
-| **UniFi Alarm Manager** | Native, free, real-time | Alerts are technical, no explanation |
-| **Splunk** | Powerful analysis, UniFi support | Enterprise complexity, cost |
-| **Graylog** | Open source, good log analysis | Requires expertise to configure/interpret |
-| **LogicMonitor** | Good UniFi integration | Enterprise pricing, still technical |
-| **Fing/Fingbox** | Simple, consumer-friendly | Doesn't read UniFi logs, limited analysis |
-| **Firewalla** | Good security, no subscription | Requires depth of knowledge, not UniFi-specific |
-| **PRTG** | Good free tier, easy | Still requires networking knowledge |
+### Phase 3: Device Health (Preventive)
 
-**Our positioning:** The "Duolingo of network monitoring" — takes complex domain and makes it accessible through plain language and guided learning.
+1. Temperature monitoring (poll stat/device)
+2. EVT_SW_PoeDisconnect
+3. PoE overload events
+4. Uptime tracking
 
----
+**Estimated rules:** 3-4 new rules + device polling
+**Complexity:** Medium (requires device polling)
 
-## Sources
+### Phase 4: Optional Services (Premium)
 
-### Network Monitoring Features (MEDIUM confidence)
-- [UniFi Alarm Manager](https://help.ui.com/hc/en-us/articles/27721287753239-UniFi-Alarm-Manager-Customize-Alerts-Integrations-and-Automations-Across-UniFi)
-- [LogicMonitor UniFi Monitoring](https://www.logicmonitor.com/support/ubiquiti-unifi-network-monitoring)
-- [G2 Log Analysis Software for Small Business](https://www.g2.com/categories/log-analysis/small-business)
+1. CyberSecure badge for enhanced signatures
+2. Cloudflare content filtering (if syslog available)
+3. VPN tunnel status
 
-### Alert Fatigue Research (MEDIUM confidence)
-- [LogicMonitor: Avoid Alert Fatigue](https://www.logicmonitor.com/blog/network-monitoring-avoid-alert-fatigue)
-- [Kentik: Network Monitoring Alerts Best Practices](https://www.kentik.com/kentipedia/network-monitoring-alerts/)
-- [Netdata: What is Alert Fatigue](https://www.netdata.cloud/academy/what-is-alert-fatigue-and-how-to-prevent-it/)
-
-### UniFi Log Formats (MEDIUM confidence)
-- [UniFi System Logs & SIEM Integration](https://help.ui.com/hc/en-us/articles/33349041044119-UniFi-System-Logs-SIEM-Integration)
-- [Splunk Connect for Syslog - UniFi](https://splunk.github.io/splunk-connect-for-syslog/main/sources/vendor/Ubiquiti/unifi/)
-- [UniFi IDS/IPS Documentation](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS)
-
-### Consumer Network Tools (MEDIUM confidence)
-- [Fingbox vs Firewalla Comparison](https://malwaretips.com/threads/fingbox-vs-firewalla.91141/)
-- [Fing Network Monitoring](https://www.fing.com/)
-- [PRTG Home Network Monitoring](https://www.paessler.com/monitoring/network/home-network-monitoring)
-
-### Severity Levels (HIGH confidence - industry standard)
-- [Syslog Severity Levels Explained](https://www.manageengine.com/products/eventlog/logging-guide/syslog/syslog-levels.html)
-- [SigNoz Syslog Levels Guide](https://signoz.io/guides/syslog-levels/)
+**Estimated rules:** 3-5 rules
+**Complexity:** Medium-High (may require syslog)
 
 ---
 
@@ -223,22 +315,49 @@ For MVP, prioritize in this order:
 
 | Category | Confidence | Reasoning |
 |----------|------------|-----------|
-| Table stakes features | HIGH | Consistent across multiple sources, industry standard |
-| Differentiators | MEDIUM | Gap analysis based on competitive review; needs validation |
-| Anti-features | HIGH | Alert fatigue research is well-documented; complexity barrier is consistent theme |
-| MVP prioritization | MEDIUM | Based on feature dependencies and project constraints |
-| Competitive landscape | MEDIUM | Based on WebSearch; may miss niche tools |
+| Wireless events | HIGH | Documented in multiple community projects; standard EVT_ format |
+| IDS/IPS categories | MEDIUM | Suricata categories are standard; UniFi implementation details less clear |
+| Device health | MEDIUM | Temperature available in stat/device; PoE events documented |
+| CyberSecure features | LOW | Subscription-only; limited public documentation |
+| Cloudflare integration | LOW | Third-party integration; events may not surface in UniFi API |
+| Event API structure | HIGH | Consistent across community projects and testing |
 
 ---
 
-## Open Questions for Validation
+## Sources
 
-1. **Explanation coverage**: How many distinct log patterns exist? 50? 500? This determines effort for plain English mapping.
+### UniFi Event Types (MEDIUM confidence)
+- [oznu/unifi-events](https://github.com/oznu/unifi-events) - Node.js event listener with event type documentation
+- [dim13/unifi event.go](https://github.com/dim13/unifi/blob/master/event.go) - Go implementation with struct definitions
+- [Ubiquiti Community Wiki API](https://ubntwiki.com/products/software/unifi-controller/api) - Community-maintained API documentation
+- eventStrings.json (controller-local) - Complete event type definitions
 
-2. **User tolerance for gaps**: If a log type isn't in our knowledge base, do we show raw or hide it?
+### Security Features (MEDIUM confidence)
+- [UniFi IDS/IPS Help](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS) - Official IDS/IPS documentation
+- [UniFi CyberSecure](https://help.ui.com/hc/en-us/articles/25930305913751-UniFi-CyberSecure-Enhanced-by-Proofpoint-and-Cloudflare) - CyberSecure features
+- [UniFi System Logs & SIEM](https://help.ui.com/hc/en-us/articles/33349041044119-UniFi-System-Logs-SIEM-Integration) - CEF format and SIEM integration
 
-3. **Severity thresholds**: UniFi uses high/medium/low/informational. Do we map directly or create our own?
+### Wireless Features (MEDIUM confidence)
+- [UniFi WiFi SSID Settings](https://help.ui.com/hc/en-us/articles/32065480092951-UniFi-WiFi-SSID-and-AP-Settings-Overview) - Official wireless settings
+- [Min-RSSI Documentation](https://help.ui.com/hc/en-us/articles/221321728-Understanding-and-Implementing-Minimum-RSSI) - RSSI and roaming
+- [DFS Channels](https://help.ui.com/hc/en-us/articles/15510834696599-DFS-Channels) - DFS radar detection
 
-4. **Report frequency**: Is daily too often? Weekly too infrequent? Need user feedback.
+### Content Filtering (MEDIUM confidence)
+- [Content and Domain Filtering](https://help.ui.com/hc/en-us/articles/12568927589143-Content-and-Domain-Filtering-in-UniFi) - Cloudflare content filtering
 
-5. **Email vs file preference**: What percentage of users will use each? Affects prioritization of polish.
+### Cloudflare Integration (LOW confidence)
+- [Cloudflare Ubiquiti Documentation](https://developers.cloudflare.com/cloudflare-one/networks/connectors/wan-tunnels/configuration/manually/third-party/ubiquiti/) - Official integration guide
+
+---
+
+## Open Questions
+
+1. **Event availability across device types:** Do all UniFi devices emit all event types, or are some AP-only, gateway-only, etc.?
+
+2. **CyberSecure event differentiation:** How to detect if an IPS alert came from CyberSecure vs base signatures?
+
+3. **Temperature thresholds:** What temperatures are concerning for each device type? Need device-specific thresholds.
+
+4. **Cloudflare event visibility:** Are Cloudflare content filtering blocks visible via UniFi API, or only via Cloudflare dashboard/syslog?
+
+5. **Roaming event frequency:** What's the threshold for "too much roaming" that should generate a warning?

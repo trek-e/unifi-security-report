@@ -1,239 +1,311 @@
 # Project Research Summary
 
-**Project:** UniFi Scanner - v0.3-alpha State Persistence
-**Domain:** Network log analysis and monitoring service
+**Project:** UniFi Scanner v0.4-alpha - Extended Analysis & Integrations
+**Domain:** Network monitoring and log analysis service
 **Researched:** 2026-01-24
-**Confidence:** HIGH
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-The v0.3-alpha milestone adds state persistence to track the last successful report timestamp, preventing duplicate event reporting (Issue #1). This is a focused enhancement to an existing containerized Python service that polls UniFi gateways hourly, analyzes logs, and delivers reports via email/file.
+The v0.4-alpha milestone extends the existing UniFi Scanner with comprehensive wireless/security/device health rules and optional Cybersecure/Cloudflare integrations. Research confirms the **existing stack requires minimal changes**—the current Python-based sync architecture with Pydantic, httpx, and the established rules engine handles all new requirements cleanly. No new core dependencies needed for extended analysis rules; only optional Cloudflare SDK for users who want that integration.
 
-Research confirms that **no additional dependencies are required**. Python's standard library (`json`, `tempfile`, `shutil`, `pathlib`) provides everything needed for crash-safe state management. The critical success factors are: (1) atomic file writes using the write-to-temp-then-rename pattern already present in the codebase (`FileDelivery._atomic_write`), (2) integrating state read/write into the existing pipeline at the correct points (read before collection, write after delivery success), and (3) avoiding common containerized state pitfalls through proper volume mounting and concurrency controls.
+The recommended approach is **incremental expansion** of the proven rules engine pattern with strict categorization and adapter-based optional integrations. Extended analysis rules (wireless roaming, IDS signature parsing, device health) leverage existing event collection APIs—no architectural changes. Optional integrations (Cybersecure, Cloudflare) should be **parallel collectors** that fail independently without blocking core UniFi analysis. This preserves the existing reliability while adding value for advanced users.
 
-The primary risk is state file corruption or permission issues in the Docker environment. Prevention requires atomic writes (already implemented as a pattern), UTC-only timestamps, named Docker volumes (avoid bind mount permission mismatches), and scheduler-level concurrency protection (APScheduler `max_instances=1` or Ofelia `no-overlap=true`). These are well-documented patterns with HIGH confidence.
+**Key risks are preventable:** (1) Rule explosion creating maintenance burden—mitigate with rule composition patterns and categorization by domain. (2) Cloudflare API rate limits (1,200 req/5min)—mitigate with caching, circuit breakers, and graceful degradation. (3) Tight coupling of optional features—mitigate with adapter pattern and lazy imports. All three have proven mitigation patterns ready to implement.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**No new dependencies required.** The existing Python 3.12+ runtime with standard library modules provides all necessary functionality for state persistence. The project already has the atomic write pattern in place (`FileDelivery._atomic_write` at lines 61-80 uses `tempfile.mkstemp` + `shutil.move`), which can be reused for state file writes.
+The existing stack (Python 3.12+, httpx, Pydantic, structlog, APScheduler) is well-suited for all v0.4 requirements. **No new core dependencies needed** for extended analysis rules—the existing rules engine pattern handles new categories cleanly.
 
-**Core components for state management:**
-- `json` (stdlib): Simple timestamp state, no performance requirements justify external libraries
-- `tempfile` + `shutil.move` (stdlib): Atomic write pattern for crash safety
-- `pathlib.Path` (stdlib): Consistent with existing codebase style
-- APScheduler (existing dependency): Already configured, just needs `max_instances: 1` to prevent overlapping runs
+**Core technologies (existing, keep):**
+- **httpx 0.27+**: HTTP client for API calls — already handles UniFi API perfectly
+- **Pydantic 2.11+**: Data validation and models — used for log events, extends naturally to new event types
+- **structlog 25.5.0**: Structured logging — production-ready JSON output, context binding
+- **APScheduler 3.10+**: Job scheduling — proven in production, no changes needed
 
-**File locking explicitly NOT required:**
-- Single Docker container architecture (docker-compose.yml shows one instance)
-- APScheduler `max_instances: 1` prevents overlapping job execution
-- No multi-process or distributed deployment scenarios
-- Atomic write pattern provides crash safety without explicit locking
+**Optional additions (Cloudflare integration only):**
+- **cloudflare 4.3.1+**: Official SDK with typed models — only if user wants Cloudflare integration; add as `[cloudflare]` extra in pyproject.toml
 
-**Source confidence:** HIGH - Analysis of existing codebase shows pattern already exists, no external dependencies needed. Atomic write pattern verified in `src/unifi_scanner/delivery/file.py` lines 61-80.
+**NOT needed:**
+- No separate Cybersecure API—threat data flows through existing UniFi endpoints (`/stat/event`, `/stat/alarm`)
+- No log parsing libraries—UniFi events are already structured, use existing Pydantic models
+- No async complexity—sync polling architecture remains optimal
 
 ### Expected Features
 
-The v0.3-alpha milestone implements a single focused feature with clear success criteria.
+Extended analysis rules build on existing categories (SECURITY, CONNECTIVITY, PERFORMANCE, SYSTEM) with two new categories: WIRELESS and DEVICE_HEALTH.
 
 **Must have (table stakes):**
-- Read last successful report timestamp before log collection
-- Filter out events already reported (since last success)
-- Write state only after successful delivery (idempotent retry behavior)
-- Handle missing state file gracefully (first run defaults to 24h lookback)
-- Atomic writes to prevent corruption during crashes
-- UTC timestamps to avoid timezone confusion
+- **Wireless roaming events** (EVT_WU_Roam, EVT_WU_RoamRadio) — users expect visibility into client roaming behavior
+- **Enhanced IDS/IPS context** — parse Suricata signature categories (ET SCAN, ET MALWARE, etc.) into plain English
+- **Device health alerts** — temperature warnings, PoE failures prevent device outages
+- **DFS radar detection** — channel changes due to radar affect all connected clients, users need awareness
 
-**Should have (quality):**
-- Backup state file with automatic recovery (`.last_run.json.bak`)
-- Startup validation that state path is in mounted volume
-- Clear logging of state transitions (first run, state updated, recovery from backup)
-- Graceful degradation on state file corruption (log warning, use default lookback)
+**Should have (competitive):**
+- **Roaming quality assessment** — "Client roamed 15 times in 1 hour" indicates coverage gaps
+- **Signal strength context** — translate RSSI to quality labels (excellent/good/fair/poor)
+- **IDS source/destination mapping** — "This threat came FROM your device [name]" vs "came TO your device"
+- **Temperature trend warnings** — "Device temperature increased 10C over last week"
+
+**Optional (premium features, clearly marked):**
+- **Cybersecure threat intelligence** — enhanced signatures with Proofpoint categories (requires $99/year subscription, UniFi Network 9.3+)
+- **Cloudflare WAF analytics** — blocked threats, DNS analytics (requires Cloudflare Zero Trust account)
+- **Content filtering events** — blocked domains by category (requires CyberSecure subscription)
 
 **Defer (v2+):**
-- Per-device state tracking (not needed for initial scope)
-- State migration/versioning (schema_version exists but not used yet)
-- Health metrics based on state file age
-- Multi-site state management
+- Real-time alerting (current: scheduled reports only)
+- Historical trending beyond 7 days
+- Custom rule creation UI
 
 ### Architecture Approach
 
-State persistence integrates into the existing `run_report_job()` pipeline using the **checkpoint-after-delivery** pattern from stream processing systems (Apache Flink, Kafka Streams). State commits occur only after all downstream operations succeed, ensuring idempotent retries.
-
-**Integration points:**
-1. **State Read (before log collection):** Load `.last_run.json` to determine timestamp cutoff, pass to `LogCollector` as `since_timestamp` parameter
-2. **State Write (after successful delivery):** Update state file only if `DeliveryManager.deliver()` returns `True`
-3. **State Skip (on delivery failure):** Do NOT update state if delivery fails, ensuring next run retries same events
+Optional integrations follow the existing **Collector + Rules + Report** pipeline with parallel data collection and adapter-based isolation. Cybersecure and Cloudflare are **additional data sources** that produce LogEntry objects, processed by the same AnalysisEngine with source-specific rules.
 
 **Major components:**
-1. **StateManager** (new) - Read/write state file with atomic operations, backup recovery, UTC enforcement
-2. **LogCollector** (modified) - Accept `since_timestamp` parameter to filter API events
-3. **run_report_job** (modified) - Orchestrate state read → collect → analyze → deliver → state write flow
+
+1. **IntegrationManager** — orchestrates parallel collection from optional sources, ensures failures are isolated (one integration failing doesn't block others)
+
+2. **Integration collectors** (new) — CybersecureCollector, CloudflareCollector implement IntegrationCollector protocol; return `List[LogEntry]` with source metadata; gracefully degrade when unconfigured/unavailable
+
+3. **Extended rules engine** (existing, expand) — add wireless_rules.py, device_health_rules.py with dedicated event type ownership; maintain existing registry validation
+
+4. **Adapter pattern for optional dependencies** — ThreatIntelProvider interface with NullProvider fallback; CloudflareThreatIntel implementation only loaded if package installed and configured
 
 **Data flow:**
 ```
-StateManager.read_last_run() → timestamp (or None for first run)
-    ↓
-LogCollector.collect(since=timestamp) → filtered events
-    ↓
-AnalysisEngine.analyze() → findings
-    ↓
-Report → ReportGenerator → DeliveryManager
-    ↓
-If delivery success: StateManager.write_last_run(report.generated_at)
-If delivery fails: Skip state update (retry next run)
+run_report_job()
+  |
+  +---> UnifiLogCollector.collect()         [existing]
+  +---> CybersecureCollector.collect()      [new, if enabled]
+  +---> CloudflareCollector.collect()       [new, if enabled]
+  |
+  v
+all_entries merged by source
+  |
+  v
+AnalysisEngine.analyze(all_entries)
+  |-- UniFi rules (existing)
+  |-- Wireless rules (new)
+  |-- Device health rules (new)
+  |-- Cybersecure rules (new, if data present)
+  |-- Cloudflare rules (new, if data present)
+  |
+  v
+Report with mixed-source findings
 ```
 
-**State file location:** `{REPORTS_DIR}/.last_run.json` (same volume as reports, ensuring persistence across container restarts)
-
-**State file schema:**
-```json
-{
-  "last_successful_run": "2026-01-24T14:30:00Z",
-  "last_report_count": 3,
-  "schema_version": "1.0"
-}
-```
-
-**Confidence: HIGH** — Pipeline integration points clearly defined, checkpoint-after-delivery pattern well-documented in stream processing literature (Apache Flink, Kafka Streams, Airbyte).
+**Key principle:** Integrations are isolated modules. Core scanner works without them. No integration can crash the pipeline.
 
 ### Critical Pitfalls
 
-Research identified 8 pitfalls specific to file-based state in containerized services. The top 5 require prevention measures:
+1. **Rule explosion and maintenance burden** — Starting with 15 rules, expanding to 50+ creates unpredictable behavior and testing burden. **Avoid with:** Rule categorization by domain (wireless_rules.py, device_health_rules.py), rule composition helpers for common patterns, quarterly review process, event type ownership table to prevent category overlap.
 
-1. **Partial writes during crashes** - Power failure mid-write corrupts JSON, service loses state and re-processes all events. **Prevention:** Atomic write pattern (write to temp file, fsync, rename). Already exists in codebase at `FileDelivery._atomic_write()`, reuse for state.
+2. **Cloudflare API rate limits (1,200 req/5min)** — Per-event API calls exceed global rate limit, causing 5-minute service outage. **Avoid with:** Aggressive caching (1-hour TTL for threat data), rate limiter decorator (4 req/sec sustainable), circuit breaker to fail fast on repeated errors, graceful degradation returning None when rate limited.
 
-2. **Permission mismatches on volume mounts** - Container runs as non-root user (UID 1000), bind mount owned by different user causes `PermissionError`. **Prevention:** Use Docker named volumes (not bind mounts) which handle permissions automatically. Document bind mount ownership requirements if users choose that route.
+3. **Tight coupling of optional integrations** — Direct Cloudflare calls in core business logic make testing fragile and feature addition complex. **Avoid with:** Adapter pattern (ThreatIntelProvider interface), Null provider for disabled integrations, lazy imports (don't crash if optional package missing), factory function selects provider at startup.
 
-3. **Concurrent container instances** - Manual trigger during scheduled run causes race condition, duplicate reports, state corruption. **Prevention:** APScheduler `max_instances=1` (prevents overlapping jobs) or Ofelia `no-overlap=true` (scheduler-level protection).
+4. **UniFi API rate limiting (undocumented)** — Aggressive polling triggers silent data loss or auth failures. **Avoid with:** Conservative 5-minute minimum poll interval, request spacing (500ms between different API calls), exponential backoff on 403 errors, detection logic for zero events despite history request.
 
-4. **Container ephemeral filesystem confusion** - State file stored in container writable layer (not volume) disappears on restart. **Prevention:** Startup validation that `STATE_FILE_PATH` is in mounted volume, fail fast if not writable.
-
-5. **Timezone confusion in state timestamps** - Mixing UTC and local time in comparisons causes events to be skipped or duplicated. **Prevention:** Always use `datetime.now(timezone.utc)`, store ISO 8601 UTC in state file, parse with timezone awareness.
-
-**Additional moderate pitfalls:**
-- Missing state file treated as error (should be normal first-run behavior)
-- State file in `.gitignore` breakage (overly broad patterns)
-- No state file backup/recovery (corruption has no fallback)
-
-**Source confidence:** HIGH - Pitfalls verified through official Docker docs, production experience articles (DEV Community crash-safe JSON), and analysis of existing codebase patterns.
+5. **False positive explosion** — New rules tested with synthetic data generate 40% false positive rate in production. **Avoid with:** Shadow mode for new rules (logged but not reported), 2-week baseline period before alerting, configurable thresholds per environment, false positive feedback mechanism in remediation templates.
 
 ## Implications for Roadmap
 
-This is a single-phase milestone with clear implementation scope and high confidence.
+Based on research, v0.4-alpha should be structured as three sequential phases with optional integration phases at the end. This ordering prioritizes high-impact user-facing features first while establishing infrastructure for later extensibility.
 
-### Phase 1: State Persistence Implementation
+### Phase 1: Extended Wireless Analysis
 
-**Rationale:** All research confirms this is a straightforward enhancement with well-established patterns. The atomic write mechanism already exists in the codebase, concurrency control is trivial (one-line config), and no new dependencies are required. High confidence allows single-phase delivery.
+**Rationale:** High user impact, low implementation complexity. Wireless events use standard EVT_ format with existing collection APIs. No new dependencies. Builds on proven rules engine.
 
 **Delivers:**
-- StateManager module with read/write/backup operations
-- Modified LogCollector accepting `since_timestamp` parameter
-- Modified run_report_job orchestrating state lifecycle
-- Tests for first run, corruption recovery, concurrent protection
-- Documentation for Docker volume requirements
+- Roaming visibility (EVT_WU_Roam, EVT_WG_Roam, EVT_WU_RoamRadio)
+- Channel change alerts (EVT_AP_ChannelChange)
+- DFS radar detection (pattern matching on existing events)
+- Signal strength context (RSSI translation to quality labels)
 
-**Addresses:**
-- Issue #1: Don't send previous logs
-- Table stakes: Idempotent retry behavior
-- Quality: Graceful degradation, backup recovery
+**Addresses features:** All "Must have" wireless events from research, "Should have" roaming quality assessment
 
-**Avoids:**
-- Pitfall #1: Atomic writes prevent corruption
-- Pitfall #2: Documentation covers volume permissions
-- Pitfall #3: APScheduler config prevents concurrency
-- Pitfall #4: Startup validation ensures volume mount
-- Pitfall #5: UTC enforcement prevents timezone bugs
+**Avoids pitfalls:** Rule categorization established (wireless_rules.py), event type ownership documented before adding rules, shadow mode support implemented for new wireless rules
 
-**Implementation order:**
-1. Create `StateManager` module (reuse atomic write pattern from FileDelivery)
-2. Add `since_timestamp` parameter to LogCollector
-3. Modify `run_report_job()` to integrate state read/write
-4. Add startup validation for volume writability
-5. Configure APScheduler `max_instances=1`
-6. Write tests (first run, corruption, concurrency)
-7. Update documentation (volume requirements, first-run behavior)
+**Research flag:** LOW—wireless events well-documented in community projects, standard EVT_ patterns
+
+### Phase 2: Enhanced Security Context (IDS/IPS)
+
+**Rationale:** Builds on existing security rules. Parses Suricata signatures already present in EVT_IPS_Alert events. High security value with no API changes needed.
+
+**Delivers:**
+- Signature category mapping (ET SCAN → "Network scanning activity")
+- Severity translation (Suricata 1-4 → LOW/MEDIUM/SEVERE)
+- Blocked vs detected distinction (IPS vs IDS mode)
+- Source/destination device identification (cross-reference with client list)
+
+**Uses:** Existing httpx for API calls, Pydantic for signature models, regex for message parsing
+
+**Implements:** Security rules expansion in existing security_rules.py with signature category mappings
+
+**Avoids pitfalls:** Clear category ownership (all EVT_IPS_* events stay in SECURITY category), false positive mitigation with signature-specific severity overrides
+
+**Research flag:** MEDIUM—Suricata categories standard, but UniFi implementation details less documented; may need real-world testing
+
+### Phase 3: Device Health Monitoring
+
+**Rationale:** Preventive maintenance value. Requires device polling (stat/device) in addition to events, establishing pattern for future non-event data sources.
+
+**Delivers:**
+- Temperature monitoring (poll general_temperature field)
+- PoE failure alerts (EVT_SW_PoeDisconnect, overload patterns)
+- Port status tracking (up/down events)
+- Uptime monitoring (identify long-running devices needing restart)
+
+**Addresses features:** "Must have" device health alerts, "Should have" temperature trend warnings
+
+**Implements:** New device_health_rules.py category, device polling in collector (extends existing pattern)
+
+**Avoids pitfalls:** Rule composition for temperature thresholds by device type, configurable threshold overrides to reduce false positives
+
+**Research flag:** MEDIUM—Device polling adds new collection pattern; temperature thresholds vary by hardware model
+
+### Phase 4: Optional Integrations Infrastructure (if desired)
+
+**Rationale:** Establishes adapter pattern for all future integrations. No user-facing features yet—pure infrastructure to avoid technical debt.
+
+**Delivers:**
+- IntegrationCollector protocol
+- IntegrationManager for parallel collection
+- ThreatIntelProvider adapter interface
+- Null provider implementations
+- Lazy import handling
+- Circuit breaker pattern
+
+**Addresses:** Pitfall #3 (tight coupling), #4 (missing circuit breaker), #7 (import failures)
+
+**Uses:** pybreaker for circuit breaker, existing structlog for health tracking
+
+**Research flag:** LOW—standard patterns, well-documented in architecture research
+
+### Phase 5: Cloudflare Integration (optional)
+
+**Rationale:** Most requested optional integration. Official SDK with good docs. Independent from Cybersecure (different API).
+
+**Delivers:**
+- WAF event collection (GraphQL firewall events)
+- DNS analytics (query volume, blocked domains)
+- Threat intelligence enrichment (IP reputation lookups)
+
+**Uses:** cloudflare 4.3.1+ SDK (as optional dependency), existing adapter infrastructure from Phase 4
+
+**Implements:** CloudflareCollector, CloudflareThreatIntel adapter, cloudflare_rules.py
+
+**Avoids pitfalls:** Rate limiter (4 req/sec), caching (1-hour TTL), circuit breaker, graceful degradation on rate limit
+
+**Research flag:** LOW—official SDK well-documented, GraphQL API examples available
+
+### Phase 6: Cybersecure Integration (optional)
+
+**Rationale:** Uses existing UniFi API, no new dependencies. Premium feature requiring subscription detection.
+
+**Delivers:**
+- Enhanced signature detection (identifies Proofpoint-powered signatures)
+- Cybersecure badge in reports for subscription-enabled findings
+- Content filtering events (if available via syslog)
+
+**Uses:** Existing UniFi client with feature detection
+
+**Implements:** CybersecureCollector (wraps existing API calls), cybersecure_rules.py for subscription-specific patterns
+
+**Avoids pitfalls:** Version detection (UniFi Network 9.3+ required), feature availability check before enabling, clear documentation of subscription requirements
+
+**Research flag:** MEDIUM—Cybersecure API poorly documented; may require real controller testing to validate event format
 
 ### Phase Ordering Rationale
 
-**Single phase is appropriate because:**
-- Scope is tightly focused (one feature: state persistence)
-- No new dependencies means no integration risk
-- Pattern already exists in codebase (atomic writes)
-- Architecture integration point is clear and non-invasive
-- All research areas have HIGH confidence
+- **Wireless first:** Highest user impact, lowest risk, establishes extended rule patterns
+- **Security second:** Builds on existing security foundation, adds immediate value to existing IPS users
+- **Device health third:** Introduces device polling pattern, more complex than events-only phases
+- **Infrastructure fourth:** Must come before any integration to avoid technical debt
+- **Cloudflare before Cybersecure:** Better documentation, official SDK, more predictable implementation
 
-**No phase dependencies exist:**
-- Feature is orthogonal to existing functionality
-- Log collection API doesn't change externally
-- Delivery system unchanged
-- Report generation unchanged
+**Dependency chain:**
+- Phases 1-3 are independent (can be reordered if priorities change)
+- Phase 4 blocks Phases 5-6 (integrations need adapter infrastructure)
+- Phases 5-6 are independent of each other (parallel implementation possible)
 
-**This avoids over-planning:**
-- Breaking into smaller phases would create artificial milestones
-- All components must be delivered together for feature to work
-- Testing requires complete state lifecycle
+**Risk reduction:**
+- Each phase delivers user value independently
+- Phases 1-3 have no external dependencies (can't be blocked by vendor issues)
+- Phases 5-6 are optional (can be skipped if not needed by users)
 
 ### Research Flags
 
-**Standard patterns (skip additional research):**
-- **State file I/O:** Atomic writes, JSON serialization, backup recovery all have official documentation and production examples
-- **Docker volumes:** Permission handling, named vs bind mounts well-documented in Docker official guides
-- **Concurrency control:** APScheduler configuration is straightforward, documented in existing codebase
-- **Timezone handling:** UTC enforcement pattern consistent with existing `utils/timestamps.py`
+**Phases needing deeper research during planning:**
+- **Phase 2 (IDS/IPS):** MEDIUM confidence on signature format parsing; recommend capturing real IPS events from multiple UniFi versions to validate regex patterns
+- **Phase 3 (Device Health):** MEDIUM confidence on device-specific temperature thresholds; need hardware model matrix for safe operating ranges
+- **Phase 6 (Cybersecure):** LOW confidence on event differentiation from base IPS; may need subscription access for testing
 
-**No phases need deeper research:**
-- All technical decisions validated with official sources (Python docs, Docker docs, APScheduler docs)
-- Patterns verified in existing codebase (atomic writes, timezone handling)
-- Pitfalls cross-referenced with production experience articles (DEV Community, Medium)
+**Phases with standard patterns (skip research-phase):**
+- **Phase 1 (Wireless):** Well-documented event types, multiple community projects confirm format
+- **Phase 4 (Infrastructure):** Standard adapter and circuit breaker patterns from architecture research
+- **Phase 5 (Cloudflare):** Official SDK with comprehensive documentation and examples
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new dependencies required, stdlib sufficient. Existing codebase already has atomic write pattern. |
-| Features | HIGH | Clear scope from Issue #1, well-defined success criteria, no feature ambiguity. |
-| Architecture | HIGH | Integration points identified in existing pipeline, checkpoint-after-delivery pattern well-documented. |
-| Pitfalls | HIGH | 8 pitfalls identified from official Docker docs, production experience articles, existing codebase analysis. |
+| Stack | HIGH | Existing stack verified sufficient; Cloudflare SDK vetted |
+| Features | MEDIUM | Wireless/security events documented; Cybersecure events less clear |
+| Architecture | HIGH | Adapter pattern proven in existing codebase (delivery channels) |
+| Pitfalls | HIGH | Rate limits documented (Cloudflare official), mitigation patterns verified |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
+
+Research is solid on technical approach and architecture. Medium confidence areas are operational details (signature formats, temperature thresholds, Cybersecure event structure) that require validation during implementation but won't change the overall architecture.
 
 ### Gaps to Address
 
-**Minor validation needed during implementation:**
+**During Phase 1 planning:**
+- Validate RSSI threshold ranges across different AP models (UniFi 6, WiFi 7, etc.)
+- Establish roaming frequency baseline ("too much roaming" threshold varies by environment)
 
-- **UniFi Events API timestamp filtering:** Assumption that API supports `start` parameter for timestamp filtering needs verification. If not supported, fallback to client-side filtering (slightly less efficient but functionally equivalent).
-  - **Resolution:** Test with actual UniFi controller during development, document if client-side filtering required.
+**During Phase 2 planning:**
+- Capture real IPS events from UniFi controllers running different firmware versions to validate signature parsing regex
+- Build test fixture library from production UniFi logs (with sensitive data scrubbed)
 
-- **State file size growth:** Assumption that state file remains ~200 bytes. If additional metadata added in future (per-device tracking, error history), may need size monitoring.
-  - **Resolution:** Keep schema_version in state for future migrations, defer size concerns until actual need emerges.
+**During Phase 3 planning:**
+- Research device-specific temperature thresholds (UDM Pro vs UCG Max vs USW switches)
+- Determine safe uptime limits (some devices handle 365-day uptime, others should restart quarterly)
 
-- **Startup validation strictness:** Decision needed whether missing volume mount should fail fast (raise exception) or warn and continue (graceful degradation).
-  - **Resolution:** Fail fast on non-writable state path (configuration error), warn on missing state file (expected first run).
+**During Phase 6 planning:**
+- Validate Cybersecure subscription detection method (feature flag in controller API?)
+- Confirm content filtering events surface in UniFi API vs requiring syslog integration
 
-**No blocking gaps exist.** All identified gaps have clear resolution strategies and do not prevent implementation.
+**Configuration management:**
+- Design configurable threshold system before Phase 1 (prevents false positive explosion)
+- Implement shadow mode infrastructure before Phase 1 (safe rollout of new rules)
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Python Official Docs**: `json`, `tempfile`, `shutil`, `pathlib` standard library documentation
-- **Docker Official Docs**: [Persisting container data](https://docs.docker.com/get-started/workshop/05_persisting_data/), volume mount permissions
-- **APScheduler Docs**: Job configuration, max_instances parameter
-- **Existing Codebase**: `FileDelivery._atomic_write()` (lines 61-80), `utils/timestamps.py`, `docker-compose.yml`
+- [PyPI cloudflare](https://pypi.org/project/cloudflare/) — v4.3.1 SDK verification
+- [Cloudflare API rate limits](https://developers.cloudflare.com/fundamentals/api/reference/limits/) — 1,200 requests per 5 minutes
+- [UniFi CyberSecure requirements](https://help.ui.com/hc/en-us/articles/30426718447639-UniFi-CyberSecure) — Network 9.3+, subscription details
+- [UniFi IDS/IPS documentation](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS) — Suricata integration
+- [Cloudflare GraphQL Analytics API](https://developers.cloudflare.com/analytics/graphql-api/) — Event collection endpoints
+- Existing codebase analysis — Rules engine patterns, delivery adapter pattern
 
 ### Secondary (MEDIUM confidence)
-- **[DEV Community: Crash-safe JSON at scale](https://dev.to/constanta/crash-safe-json-at-scale-atomic-writes-recovery-without-a-db-3aic)**: Atomic write patterns, backup recovery strategies
-- **[Airbyte: Idempotency in Data Pipelines](https://airbyte.com/data-engineering-resources/idempotency-in-data-pipelines)**: Checkpoint-after-delivery pattern
-- **[Dagster: Data Pipeline Architecture](https://dagster.io/guides/data-pipeline-architecture-5-design-patterns-with-examples)**: State management best practices
-- **[LabEx: Docker Volume Permissions](https://labex.io/tutorials/docker-how-to-resolve-permission-denied-error-when-mounting-volume-in-docker-417724)**: Permission mismatch solutions
-- **[Apache Flink Checkpointing](https://medium.com/@akash.d.goel/apache-flink-series-part-6-4ef9ad38e051)**: Watermark and checkpoint patterns
+- [oznu/unifi-events](https://github.com/oznu/unifi-events) — Event type enumeration
+- [dim13/unifi](https://github.com/dim13/unifi) — Event struct definitions
+- [Ubiquiti Community Wiki API](https://ubntwiki.com/products/software/unifi-controller/api) — Community API documentation
+- [UniFi SIEM Integration](https://help.ui.com/hc/en-us/articles/33349041044119-UniFi-System-Logs-SIEM-Integration) — CEF format for security events
+- [pybreaker](https://github.com/danielfm/pybreaker) — Circuit breaker implementation
+- [Adapter pattern for optional dependencies](https://medium.com/@hieutrantrung.it/designing-modular-python-packages-with-adapters-and-optional-dependencies-63efd8b07715)
 
-### Tertiary (LOW confidence - not applicable)
-- **[OneUpTime: Docker Cron Jobs](https://oneuptime.com/blog/post/2026-01-06-docker-cron-jobs/view)**: Ofelia no-overlap configuration (not applicable if using APScheduler)
-- **[Baeldung: File Locking in Linux](https://www.baeldung.com/linux/file-locking)**: Advisory locks (determined unnecessary for single-instance architecture)
+### Tertiary (LOW confidence, needs validation)
+- UniFi API rate limiting — Undocumented, based on community reports; needs production testing
+- Cybersecure event format differentiation — Inferred from description; needs subscription access to validate
+- Temperature thresholds by device model — Needs hardware-specific research
 
 ---
-**Research completed:** 2026-01-24
-**Ready for roadmap:** Yes
-**Implementation confidence:** HIGH - All technical decisions validated, no new dependencies, pattern exists in codebase
+*Research completed: 2026-01-24*
+*Ready for roadmap: yes*

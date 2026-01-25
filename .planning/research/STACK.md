@@ -523,6 +523,263 @@ shutil.move(temp_path, target_path)  # Atomic on same filesystem
 
 ---
 
+## Milestone Addition: Extended Analysis & Integrations (v0.4+)
+
+**Added:** 2026-01-24 (v0.4 milestone research)
+**Confidence:** HIGH
+
+### Summary
+
+The existing stack is well-suited for the new requirements. **No new core dependencies needed** for extended analysis rules---the existing rules engine pattern handles new rule categories cleanly. For optional integrations:
+
+- **Cybersecure:** No separate API---threat data comes through existing UniFi API endpoints (`/stat/event`, `/stat/alarm`). No new dependencies.
+- **Cloudflare:** Official Python SDK (`cloudflare>=4.3.1`) provides typed API access. Already uses httpx/pydantic---aligns with existing stack.
+
+**Key recommendation:** Add Cloudflare SDK as optional dependency (`[cloudflare]` extra). Keep core lean for users who don't need integrations.
+
+---
+
+### Current Stack Versions (Verified 2026-01-24)
+
+| Package | pyproject.toml | Latest Stable | Action |
+|---------|----------------|---------------|--------|
+| httpx | >=0.27 | 0.28.1 | Keep (compatible) |
+| pydantic | >=2.11 | 2.12.5 | Keep (compatible) |
+| structlog | >=25.5 | 25.5.0 | Keep (current) |
+| tenacity | >=8.3 | 9.1.2 | Keep (compatible) |
+| APScheduler | >=3.10,<4.0 | 3.11.2 | Keep (3.x constraint correct) |
+
+All current version constraints are valid. No updates required.
+
+---
+
+### Extended Analysis Rules: No Stack Changes
+
+The existing rules engine (`analysis/rules/base.py`) is well-designed for extension:
+
+```python
+# Existing pattern - works for all new categories
+Rule(
+    name="...",
+    event_types=["EVT_..."],
+    category=Category.WIRELESS,  # Add new enum values
+    severity=Severity.MEDIUM,
+    title_template="...",
+    description_template="...",
+    remediation_template="...",
+    pattern=r"..."  # Optional regex for message filtering
+)
+```
+
+**New rule categories (no new dependencies):**
+
+| Category | Event Types | Implementation |
+|----------|-------------|----------------|
+| Wireless | `EVT_WU_ROAM`, `EVT_WU_ROAM_RADIO`, `EVT_AP_ChannelChange` | Pattern matching on existing events |
+| Device Health | CPU/memory alerts, firmware status | Existing API data |
+| Security (extended) | IDS/IPS events via `EVT_IPS_Alert`, threat categories | Existing `/stat/event` endpoint |
+
+**Key wireless events available from UniFi API:**
+- `EVT_WU_ROAM` - Client roamed between APs
+- `EVT_WU_ROAM_RADIO` - Client changed channel on same AP
+- `EVT_AP_ChannelChange` - AP channel change
+- `EVT_WG_ROAM` - Guest client roamed
+- `EVT_WG_AUTHORIZATION_ENDED` - Guest authorization expired
+
+**Source:** [UniFi Events Module](https://github.com/oznu/unifi-events) - Event type reference
+
+---
+
+### UniFi Cybersecure Integration: No Stack Changes
+
+**Key Finding:** Cybersecure does NOT have a separate API. It enhances the gateway's IDS/IPS capabilities, and threat events flow through the standard UniFi API endpoints:
+
+| Endpoint | Data | Already Implemented |
+|----------|------|---------------------|
+| `POST /api/s/{site}/stat/event` | IPS/IDS alerts with threat categories | Yes |
+| `GET /api/s/{site}/stat/alarm` | Active threat alarms | Yes |
+
+**Cybersecure-specific data in events:**
+- Enhanced threat signatures (55,000+ in standard, 95,000+ in Enterprise)
+- Threat category classification (Proofpoint-powered)
+- Blocked domain information (Cloudflare-powered content filtering)
+
+**What to implement (code only, no new dependencies):**
+1. Extended rule patterns for Cybersecure-specific event types
+2. Optional configuration to enable/disable Cybersecure-specific analysis
+3. Report sections for threat intelligence summaries
+
+**Configuration approach:**
+```python
+class CybersecureSettings(BaseSettings):
+    enabled: bool = False  # Only analyze if user has subscription
+    include_blocked_domains: bool = True
+    threat_category_filter: list[str] | None = None
+```
+
+**Sources:**
+- [UniFi CyberSecure Overview](https://help.ui.com/hc/en-us/articles/30426718447639-UniFi-CyberSecure)
+- [UniFi IDS/IPS Documentation](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS)
+- [UniFi Controller API (Community Wiki)](https://ubntwiki.com/products/software/unifi-controller/api)
+
+---
+
+### Cloudflare Integration: Add Optional Dependency
+
+**Recommended:** Add `cloudflare` package as optional dependency.
+
+```toml
+# pyproject.toml addition
+[project.optional-dependencies]
+cloudflare = [
+    "cloudflare>=4.3.1",  # Official SDK, v4.x is current stable
+]
+```
+
+**Why Cloudflare SDK (not raw httpx):**
+1. **Type safety** - All request/response types are Pydantic models
+2. **Pagination handled** - Auto-paginating iterators for list endpoints
+3. **Auth handled** - Token management built-in
+4. **Sync/async** - Both clients available (uses httpx internally)
+5. **Maintained** - Official Cloudflare library, frequent updates
+
+**SDK Details:**
+
+| Aspect | Details |
+|--------|---------|
+| Package | `cloudflare` (PyPI) |
+| Version | >=4.3.1 (released 2025-06-16) |
+| Python | >=3.8 |
+| Dependencies | httpx, pydantic (already in our stack) |
+| Repository | https://github.com/cloudflare/cloudflare-python |
+
+**Cloudflare API capabilities relevant to scanner:**
+
+| Feature | API Method | Use Case |
+|---------|------------|----------|
+| DNS Analytics | `client.dns.analytics.reports.get()` | Query volume, blocked queries |
+| DNS Records | `client.dns.records.list()` | Zone configuration |
+| Firewall Events | `client.firewall.analytics.*` | Blocked threats (Enterprise) |
+
+**Configuration approach:**
+```python
+class CloudflareSettings(BaseSettings):
+    enabled: bool = False
+    api_token: str | None = None  # From env: CLOUDFLARE_API_TOKEN
+    zone_id: str | None = None
+    include_dns_analytics: bool = True
+    include_blocked_domains: bool = True
+```
+
+**Graceful degradation pattern:**
+```python
+# In integration module
+try:
+    from cloudflare import Cloudflare
+    CLOUDFLARE_AVAILABLE = True
+except ImportError:
+    CLOUDFLARE_AVAILABLE = False
+
+def get_cloudflare_client(settings: CloudflareSettings) -> "Cloudflare | None":
+    if not CLOUDFLARE_AVAILABLE:
+        logger.warning("cloudflare_not_installed",
+                       hint="pip install unifi-scanner[cloudflare]")
+        return None
+    if not settings.enabled or not settings.api_token:
+        return None
+    return Cloudflare(api_token=settings.api_token)
+```
+
+**Sources:**
+- [Official Python SDK Repository](https://github.com/cloudflare/cloudflare-python) - v4.3.1 verified
+- [Cloudflare SDK Documentation](https://developers.cloudflare.com/fundamentals/api/reference/sdks/)
+- [DNS Analytics API](https://developers.cloudflare.com/api/python/resources/dns/subresources/analytics/)
+
+---
+
+### What NOT to Add (v0.4)
+
+| Package | Why Not |
+|---------|---------|
+| `aiounifi` | We use sync httpx; would add async complexity for no benefit |
+| `unifi-controller-api` | Third-party wrapper; we have our own client that handles CSRF properly |
+| `python-cloudflare` (old) | Archived; replaced by `cloudflare` (official v4.x) |
+| `requests` | httpx already handles all HTTP needs |
+| `aiohttp` | No async requirements; httpx handles sync fine |
+
+---
+
+### Recommended pyproject.toml Changes
+
+```toml
+[project.optional-dependencies]
+# Existing dev dependencies unchanged
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+# NEW: Optional integrations
+cloudflare = [
+    "cloudflare>=4.3.1",
+]
+
+# NEW: All optional features
+all = [
+    "cloudflare>=4.3.1",
+]
+```
+
+**Installation scenarios:**
+
+```bash
+# Core functionality (no integrations)
+pip install unifi-scanner
+
+# With Cloudflare integration
+pip install "unifi-scanner[cloudflare]"
+
+# Everything
+pip install "unifi-scanner[all]"
+```
+
+---
+
+### Integration Architecture
+
+```
+unifi_scanner/
+  integrations/           # NEW: Optional integration modules
+    __init__.py
+    cloudflare/
+      __init__.py
+      client.py           # Cloudflare client wrapper
+      analytics.py        # DNS analytics fetching
+      models.py           # Integration-specific models
+    cybersecure/
+      __init__.py
+      rules.py            # Cybersecure-specific analysis rules
+      models.py           # Threat category models
+```
+
+**Key principle:** Integrations are isolated. Core scanner works without them.
+
+---
+
+### Confidence Assessment (v0.4)
+
+| Area | Confidence | Rationale |
+|------|------------|-----------|
+| Extended rules | HIGH | Existing pattern proven; just adding more rules |
+| Cybersecure | HIGH | Verified uses existing UniFi API endpoints |
+| Cloudflare SDK | HIGH | Official SDK, verified current version, good docs |
+| No new core deps | HIGH | Analysis confirmed existing stack sufficient |
+
+---
+
 ## Sources
 
 ### HIGH Confidence (Official/Verified)
@@ -547,6 +804,17 @@ shutil.move(temp_path, target_path)  # Atomic on same filesystem
 - [portalocker PyPI](https://pypi.org/project/portalocker/) - v3.2.0, Python 3.9+ compatible
 - [Crash-safe JSON at scale](https://dev.to/constanta/crash-safe-json-at-scale-atomic-writes-recovery-without-a-db-3aic) - Atomic write patterns (2026)
 - [File locking in Linux](https://gavv.net/articles/file-locks/) - Advisory locks and single-process scenarios
+
+### v0.4 Extended Analysis & Integrations Sources (HIGH Confidence)
+- [Official Cloudflare Python SDK](https://github.com/cloudflare/cloudflare-python) - v4.3.1 verified
+- [Cloudflare SDK Documentation](https://developers.cloudflare.com/fundamentals/api/reference/sdks/)
+- [Cloudflare DNS Analytics API](https://developers.cloudflare.com/api/python/resources/dns/subresources/analytics/)
+- [UniFi CyberSecure Overview](https://help.ui.com/hc/en-us/articles/30426718447639-UniFi-CyberSecure)
+- [UniFi IDS/IPS Documentation](https://help.ui.com/hc/en-us/articles/360006893234-UniFi-Gateway-Intrusion-Detection-and-Prevention-IDS-IPS)
+- [UniFi Controller API Wiki](https://ubntwiki.com/products/software/unifi-controller/api)
+- [PyPI httpx](https://pypi.org/project/httpx/) - v0.28.1 verified
+- [PyPI pydantic](https://pypi.org/project/pydantic/) - v2.12.5 verified
+- [PyPI tenacity](https://pypi.org/project/tenacity/) - v9.1.2 verified
 
 ### LOW Confidence (Needs Validation)
 - WeasyPrint version (PyPI fetch failed, verify during implementation)
