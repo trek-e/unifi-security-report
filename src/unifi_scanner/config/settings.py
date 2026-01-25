@@ -222,6 +222,18 @@ class UnifiSettings(BaseSettings):
         le=720,  # Max 30 days to match API limits
     )
 
+    # WebSocket settings (for UniFi Network 10.x+ real-time events)
+    websocket_enabled: bool = Field(
+        default=True,
+        description="Enable WebSocket for real-time WiFi events (required for UniFi 10.x+)",
+    )
+    websocket_buffer_size: int = Field(
+        default=10000,
+        description="Maximum WebSocket events to buffer between reports",
+        ge=100,
+        le=100000,
+    )
+
     @classmethod
     def settings_customise_sources(
         cls,
