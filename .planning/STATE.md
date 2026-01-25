@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 12 of 13 (Cybersecure Integration)
-Plan: 1 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-25 — Completed 12-01-PLAN.md
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-01-25 — Completed 12-03-PLAN.md
 
-Progress: [####################] 100% (12/13 phases, plan 1/3 in phase 12)
+Progress: [####################] 100% (12/13 phases complete)
 
 ## Milestones
 
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 45
+- Total plans completed: 48
 - Average duration: 4 min
-- Total execution time: 188 min
+- Total execution time: 191 min
 
 **By Phase:**
 
@@ -55,6 +55,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 09-device-health | 4 | 17 min | 4 min |
 | 10-integration-infrastructure | 3 | 15 min | 5 min |
 | 11-cloudflare-integration | 4 | 22 min | 6 min |
+| 12-cybersecure-integration | 3 | 3 min | 1 min |
 
 ## Accumulated Context
 
@@ -119,6 +120,10 @@ Recent decisions affecting current work:
 - [v0.3.5-alpha]: Async report generation for integration runner await
 - [v0.4-alpha]: Pydantic computed_field for derived boolean properties (is_cybersecure)
 - [v0.4-alpha]: ET PRO SID range 2800000-2899999 identifies Cybersecure signatures
+- [v0.4-alpha]: ThreatSummary.is_cybersecure = True if ANY event in group is Cybersecure
+- [v0.4-alpha]: ThreatSummary.cybersecure_count tracks exact count of ET PRO events
+- [v0.4-alpha]: Purple (#6f42c1) badge differentiates Cybersecure from severity badges
+- [v0.4-alpha]: Cybersecure badge tooltip explains "Detected by CyberSecure enhanced signatures"
 
 ### Pending Todos
 
@@ -148,10 +153,11 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 12-01-PLAN.md (Cybersecure SID detection)
+Stopped at: Completed 12-02-PLAN.md (Cybersecure attribution in ThreatSummary)
 Resume file: None
 
 ## Next Steps
 
 1. Plan 12-01 (Cybersecure SID Detection) COMPLETE - is_cybersecure computed field added
-2. Continue with Plan 12-02 (Cybersecure section in threat output)
+2. Plan 12-02 (Cybersecure Attribution) COMPLETE - ThreatSummary has is_cybersecure and cybersecure_count
+3. Plan 12-03 (Report Badge) appears complete - verify and ship v0.4-alpha
