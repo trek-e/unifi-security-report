@@ -19,8 +19,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Report Generation** - Create human-readable HTML and text reports from findings
 - [x] **Phase 5: Delivery & Scheduling** - Email reports, save files, run on schedule in Docker
 
-### v0.3-alpha (Current)
-- [ ] **Phase 6: State Persistence** - Track last report timestamp to prevent duplicate event reporting
+### v0.3-alpha (Complete)
+- [x] **Phase 6: State Persistence** - Track last report timestamp to prevent duplicate event reporting
 
 ## Phase Details
 
@@ -123,8 +123,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — StateManager module with atomic writes and configuration
-- [ ] 06-02-PLAN.md — Log collector integration and pipeline state lifecycle
+- [x] 06-01-PLAN.md — StateManager module with atomic writes and configuration
+- [x] 06-02-PLAN.md — Log collector integration and pipeline state lifecycle
 
 ## Progress
 
@@ -138,7 +138,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Analysis Engine | 4/4 | Complete | 2026-01-24 |
 | 4. Report Generation | 3/3 | Complete | 2026-01-24 |
 | 5. Delivery & Scheduling | 5/5 | Complete | 2026-01-24 |
-| 6. State Persistence | 0/2 | Planned | — |
+| 6. State Persistence | 2/2 | Complete | 2026-01-24 |
 
 ---
 *Roadmap created: 2026-01-24 (v0.2-alpha)*
@@ -154,5 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 *Phase 5 complete: 2026-01-24*
 *v0.3-alpha Phase 6 added: 2026-01-24*
 *Phase 6 planned: 2026-01-24*
+*Phase 6 complete: 2026-01-24*
+*v0.3-alpha COMPLETE: 2026-01-24*
 *Depth: comprehensive*
 *Total requirements: 25 (16 v0.2 + 9 v0.3) | Total phases: 6 | Total plans: 21*
