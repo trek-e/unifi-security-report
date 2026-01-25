@@ -422,10 +422,13 @@ class UnifiClient:
         if start is None:
             start = now_ms - (24 * 60 * 60 * 1000)  # 24 hours ago
 
-        # Build request body
+        # Build request body - try both parameter formats
+        # Some UniFi versions use start/end, others use _start/_end
         body = {
             "start": start,
             "end": end,
+            "_start": start,
+            "_end": end,
             "_limit": min(limit, 3000),
         }
 
@@ -445,6 +448,19 @@ class UnifiClient:
 
         response = self._request("POST", endpoint, json=body)
         data = response.json()
+
+        # If no results, try without time filter to check if endpoint works at all
+        if isinstance(data, dict) and len(data.get("data", [])) == 0:
+            logger.debug("ips_events_retry_no_filter", message="Retrying without time filter")
+            response2 = self._request("POST", endpoint, json={"_limit": 100})
+            data2 = response2.json()
+            if isinstance(data2, dict) and len(data2.get("data", [])) > 0:
+                logger.info(
+                    "ips_events_found_without_filter",
+                    count=len(data2["data"]),
+                    message="Events exist but time filter excluded them",
+                )
+                data = data2
 
         # Debug: Log raw response structure
         logger.debug(

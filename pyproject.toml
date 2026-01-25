@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "unifi-scanner"
-version = "0.5.1b2"
+version = "0.5.1b3"
 description = "Translate cryptic UniFi logs into understandable findings with actionable remediation"
 readme = "README.md"
 license = "MIT"
