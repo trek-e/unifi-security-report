@@ -143,16 +143,16 @@ class TestDeviceStatsFromApiResponse:
         """Uptime with partial days should format with days, hours, minutes."""
         from unifi_scanner.analysis.device_health.models import DeviceStats
 
-        # 2 days, 5 hours, 30 minutes = 2*86400 + 5*3600 + 30*60 = 191400 seconds
+        # 2 days, 5 hours, 30 minutes = 2*86400 + 5*3600 + 30*60 = 192600 seconds
         raw_response = {
             "mac": "11:22:33:44:55:66",
-            "uptime": 191400,
+            "uptime": 192600,
         }
 
         device = DeviceStats.from_api_response(raw_response)
 
-        assert device.uptime_seconds == 191400
-        assert device.uptime_days == pytest.approx(2.21528, rel=0.01)
+        assert device.uptime_seconds == 192600
+        assert device.uptime_days == pytest.approx(2.2292, rel=0.01)
         assert device.uptime_display == "2d 5h 30m"
 
     def test_missing_mac_uses_default(self):
