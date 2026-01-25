@@ -9,7 +9,7 @@
 - **v0.3.3-alpha** -- Phase 9 (planned) -- Device health monitoring
 - **v0.3.4-alpha** -- Phase 10 (planned) -- Integration infrastructure
 - **v0.3.15-alpha** -- Phase 13 (planned) -- WebSocket support for UniFi Network 10.x events
-- **v0.3.5-alpha** -- Phase 11 (planned) -- Cloudflare integration
+- **v0.3.5-alpha** -- Phase 11 (shipped 2026-01-25) -- Cloudflare integration
 - **v0.4-alpha** -- Phase 12 (planned) -- Cybersecure integration
 
 See `.planning/MILESTONES.md` for detailed milestone history.
@@ -70,9 +70,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.3.5-alpha Cloudflare Integration (Planned)
+<details>
+<summary>v0.3.5-alpha Cloudflare Integration (Phase 11) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 11: Cloudflare Integration** - WAF events, DNS analytics, tunnel status monitoring
+- [x] Phase 11: Cloudflare Integration (4/4 plans) -- completed 2026-01-25
+
+</details>
 
 ### v0.4-alpha Cybersecure Integration (Planned)
 
@@ -210,11 +213,11 @@ Plans:
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
 | 10. Integration Infrastructure | v0.3.4-alpha | 3/3 | Complete | 2026-01-25 |
-| 11. Cloudflare Integration | v0.3.5-alpha | 0/4 | Planned | - |
+| 11. Cloudflare Integration | v0.3.5-alpha | 4/4 | Complete | 2026-01-25 |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 11 complete, 2 planned across v0.3.5 through v0.4
+**Summary:** 13 phases total -- 12 complete, 1 planned (v0.4)
 
 ---
 *Roadmap created: 2026-01-24*
