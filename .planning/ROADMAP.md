@@ -165,11 +165,15 @@ Plans:
   2. WiFi events (roaming, connections, disconnections) stream in real-time
   3. Events are buffered and processed on report generation schedule
   4. Graceful fallback to REST API for controllers that don't support WebSocket
-**Plans**: TBD
+**Plans**: 6 plans
 
 Plans:
-- [ ] 13-01: TBD
-- [ ] 13-02: TBD
+- [ ] 13-01-PLAN.md — Core WebSocket client with cookie auth and event buffer
+- [ ] 13-02-PLAN.md — TDD: Event parsing and buffer tests
+- [ ] 13-03-PLAN.md — WebSocket manager and WS log collector
+- [ ] 13-04-PLAN.md — Collector fallback chain integration (WS -> REST -> SSH)
+- [ ] 13-05-PLAN.md — Service lifecycle and configuration
+- [ ] 13-06-PLAN.md — Integration tests and verification
 
 ## Progress
 
@@ -187,7 +191,7 @@ Plans:
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
-| 13. WebSocket Support | v0.5-alpha | 0/TBD | Not started | - |
+| 13. WebSocket Support | v0.5-alpha | 0/6 | Planned | - |
 
 **Summary:** 13 phases total -- 7 complete, 6 planned across v0.3.2 through v0.5
 
@@ -196,3 +200,4 @@ Plans:
 *v0.2-alpha complete: 2026-01-24*
 *v0.3-alpha complete: 2026-01-24*
 *v0.3.1 through v0.4 roadmap created: 2026-01-24*
+*Phase 13 planned: 2026-01-25*
