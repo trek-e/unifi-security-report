@@ -79,7 +79,7 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 ### v0.4-alpha Cybersecure Integration (Planned)
 
-- [ ] **Phase 12: Cybersecure Integration** - Subscription detection, enhanced signatures, threat badging
+- [ ] **Phase 12: Cybersecure Integration** - ET PRO signature detection, threat badging
 
 ## Phase Details
 
@@ -162,23 +162,25 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Cloudflare SDK, settings fields, data models, and API client
-- [ ] 11-02-PLAN.md — CloudflareIntegration implementing Integration Protocol
-- [ ] 11-03-PLAN.md — Cloudflare section template and report wiring
-- [ ] 11-04-PLAN.md — Tests and report generator integration
+- [x] 11-01-PLAN.md — Cloudflare SDK, settings fields, data models, and API client
+- [x] 11-02-PLAN.md — CloudflareIntegration implementing Integration Protocol
+- [x] 11-03-PLAN.md — Cloudflare section template and report wiring
+- [x] 11-04-PLAN.md — Tests and report generator integration
 
 ### Phase 12: Cybersecure Integration
 **Goal**: Users with Cybersecure subscription see enhanced threat intelligence in reports
-**Depends on**: Phase 10 (requires integration infrastructure)
+**Depends on**: Phase 8 (extends IPS models and analyzer)
 **Requirements**: CYBS-01, CYBS-02, CYBS-03
 **Success Criteria** (what must be TRUE):
-  1. Service detects whether Cybersecure subscription is active on the gateway
+  1. IPS findings from ET PRO signatures (SID 2800000-2899999) are identified as Cybersecure
   2. Findings from enhanced Cybersecure signatures are marked as such in report
   3. Cybersecure-powered findings display a badge indicating premium threat intelligence
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 12-01: TBD
+- [ ] 12-01-PLAN.md — TDD: Add is_cybersecure computed field to IPSEvent model
+- [ ] 12-02-PLAN.md — TDD: Extend ThreatSummary and IPSAnalyzer for Cybersecure propagation
+- [ ] 12-03-PLAN.md — Add Cybersecure badge to threat_section template
 
 ### Phase 13: WebSocket Support
 **Goal**: Users running UniFi Network 10.x+ receive WiFi events via WebSocket API
@@ -214,7 +216,7 @@ Plans:
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
 | 10. Integration Infrastructure | v0.3.4-alpha | 3/3 | Complete | 2026-01-25 |
 | 11. Cloudflare Integration | v0.3.5-alpha | 4/4 | Complete | 2026-01-25 |
-| 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
+| 12. Cybersecure Integration | v0.4-alpha | 0/3 | Planned | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
 **Summary:** 13 phases total -- 12 complete, 1 planned (v0.4)
@@ -231,3 +233,4 @@ Plans:
 *Phase 9 complete: 2026-01-25*
 *Phase 10 planned: 2026-01-25*
 *Phase 11 planned: 2026-01-25*
+*Phase 12 planned: 2026-01-25*
