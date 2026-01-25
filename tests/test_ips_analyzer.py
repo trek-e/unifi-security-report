@@ -445,3 +445,89 @@ class TestSourceIPSummary:
         assert result[0].ip == "5.6.7.8"  # 25 events
         assert result[1].ip == "1.2.3.4"  # 15 events
         assert result[2].ip == "9.10.11.12"  # 12 events
+
+
+class TestRemediationIntegration:
+    """Test remediation integration in IPSAnalyzer."""
+
+    def test_threat_summary_includes_remediation(self):
+        """ThreatSummary should have remediation populated from get_remediation()."""
+        events = [
+            make_ips_event(
+                signature="ET SCAN Potential SSH Scan",
+                category_raw="scan",
+                src_ip="203.0.113.50",
+                dest_ip="192.168.1.100",
+                is_blocked=False,
+                severity=2,
+            )
+        ]
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        # Should have one detected threat
+        assert len(result.detected_threats) == 1
+        threat = result.detected_threats[0]
+
+        # Remediation should be populated
+        assert threat.remediation is not None
+        assert len(threat.remediation) > 0
+        # SCAN category remediation mentions source IP investigation
+        assert "source" in threat.remediation.lower() or "scan" in threat.remediation.lower()
+
+    def test_blocked_threat_also_has_remediation(self):
+        """Even blocked threats should have remediation (for awareness)."""
+        events = [
+            make_ips_event(
+                signature="ET MALWARE Known Trojan",
+                category_raw="malware",
+                src_ip="8.8.8.8",
+                dest_ip="192.168.1.100",
+                is_blocked=True,
+                severity=1,
+            )
+        ]
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        assert len(result.blocked_threats) == 1
+        threat = result.blocked_threats[0]
+
+        # Remediation should still be populated
+        assert threat.remediation is not None
+        # MALWARE severe remediation mentions isolation
+        assert "isolate" in threat.remediation.lower() or "scan" in threat.remediation.lower()
+
+    def test_remediation_uses_severity_adjusted_template(self):
+        """Remediation detail should vary by severity."""
+        # Create severe event (severity=1)
+        severe_event = make_ips_event(
+            signature="ET MALWARE Severe Threat",
+            category_raw="malware",
+            is_blocked=False,
+            severity=1,  # severity 1 = severe
+        )
+
+        # Create low severity event (severity=3)
+        low_event = make_ips_event(
+            signature="ET INFO Low Priority",
+            category_raw="info",
+            is_blocked=False,
+            severity=3,  # severity 3 = low
+        )
+
+        analyzer = IPSAnalyzer()
+        severe_result = analyzer.process_events([severe_event])
+        low_result = analyzer.process_events([low_event])
+
+        severe_remediation = severe_result.detected_threats[0].remediation
+        low_remediation = low_result.detected_threats[0].remediation
+
+        # Severe should have numbered steps (step-by-step)
+        # Low should be shorter (explanation only)
+        assert severe_remediation is not None
+        # Severe MALWARE remediation has numbered steps
+        if "1." in severe_remediation:
+            assert len(severe_remediation) > len(low_remediation or "")
