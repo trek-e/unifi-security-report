@@ -297,6 +297,17 @@ class UnifiClient:
         response = self._request("POST", endpoint, json=body)
         data = response.json()
 
+        # Debug: Log raw response structure to diagnose empty results
+        logger.debug(
+            "events_raw_response",
+            response_type=type(data).__name__,
+            has_data_key="data" in data if isinstance(data, dict) else False,
+            has_meta_key="meta" in data if isinstance(data, dict) else False,
+            top_level_keys=list(data.keys()) if isinstance(data, dict) else None,
+            is_list=isinstance(data, list),
+            list_length=len(data) if isinstance(data, list) else None,
+        )
+
         # Extract events from response wrapper
         if isinstance(data, dict) and "data" in data:
             events = data["data"]
@@ -364,6 +375,71 @@ class UnifiClient:
 
         logger.debug("alarms_retrieved", count=len(alarms), site=site)
         return alarms
+
+    def get_ips_events(
+        self,
+        site: str,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        limit: int = 3000,
+    ) -> List[Dict[str, Any]]:
+        """Get IDS/IPS (Intrusion Detection/Prevention) events from the controller.
+
+        Retrieves security events such as threat detections and blocks from
+        the dedicated IPS endpoint. This is separate from regular events.
+
+        Args:
+            site: Site name to retrieve IPS events from.
+            start: Start timestamp in milliseconds (default: 24 hours ago).
+            end: End timestamp in milliseconds (default: now).
+            limit: Maximum number of events to retrieve (default/max: 3000).
+
+        Returns:
+            List of IPS event dictionaries, each containing timestamp,
+            signature info, source/destination IPs, and action taken.
+
+        Raises:
+            UnifiAPIError: API request failed.
+            RuntimeError: Not connected.
+
+        Example:
+            >>> ips_events = client.get_ips_events("default")
+            >>> for event in ips_events[:5]:
+            ...     print(f"{event.get('signature', 'Unknown')}: {event.get('action')}")
+        """
+        import time
+
+        self._ensure_connected()
+        assert self.device_type is not None  # For type checker
+
+        endpoints = get_endpoints(self.device_type)
+        endpoint = endpoints.ips_events.format(site=site)
+
+        # Default time range: last 24 hours
+        now_ms = int(time.time() * 1000)
+        if end is None:
+            end = now_ms
+        if start is None:
+            start = now_ms - (24 * 60 * 60 * 1000)  # 24 hours ago
+
+        # Build request body
+        body = {
+            "start": start,
+            "end": end,
+            "_limit": min(limit, 3000),
+        }
+
+        response = self._request("POST", endpoint, json=body)
+        data = response.json()
+
+        # Extract IPS events from response wrapper
+        if isinstance(data, dict) and "data" in data:
+            events = data["data"]
+        else:
+            events = data if isinstance(data, list) else []
+
+        logger.debug("ips_events_retrieved", count=len(events), site=site)
+        return events
 
     def _raw_request(
         self,

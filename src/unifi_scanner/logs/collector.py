@@ -103,6 +103,7 @@ class LogCollector:
         api_error: Optional[Exception] = None
         ssh_error: Optional[Exception] = None
         entries: List[LogEntry] = []
+        api_succeeded = False  # Track whether API collection succeeded (even with 0 results)
 
         # Try API first unless forced to SSH
         if not force_ssh:
@@ -114,6 +115,7 @@ class LogCollector:
                     since_timestamp=since_timestamp,
                 )
                 entries = api_collector.collect()
+                api_succeeded = True  # API call succeeded, even if 0 entries
 
                 # Check if we got enough entries
                 if len(entries) >= self.min_entries:
@@ -196,16 +198,18 @@ class LogCollector:
         else:
             logger.debug("ssh_fallback_disabled")
 
-        # If we have any entries from API, return them even if SSH failed
-        if entries:
+        # If API succeeded (even with 0 entries), return what we got
+        # 0 entries is valid - may just be no events in the time window
+        if api_succeeded:
             logger.info(
                 "log_collection_partial",
                 source="api",
                 entries=len(entries),
+                note="SSH fallback unavailable or failed",
             )
             return entries
 
-        # All sources failed
+        # All sources failed (API threw exception and SSH failed/disabled)
         raise LogCollectionError(
             message="All log collection sources failed",
             api_error=api_error,

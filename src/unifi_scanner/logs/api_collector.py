@@ -70,14 +70,16 @@ class APILogCollector:
         self,
         include_events: bool = True,
         include_alarms: bool = True,
+        include_ips_events: bool = True,
     ) -> List[LogEntry]:
         """Collect logs from the API.
 
-        Retrieves events and/or alarms and parses into LogEntry objects.
+        Retrieves events, alarms, and IPS events and parses into LogEntry objects.
 
         Args:
             include_events: Include event logs (default True).
             include_alarms: Include alarms (default True).
+            include_ips_events: Include IDS/IPS security events (default True).
 
         Returns:
             List of LogEntry objects from API.
@@ -93,6 +95,7 @@ class APILogCollector:
             history_hours=self.history_hours,
             include_events=include_events,
             include_alarms=include_alarms,
+            include_ips_events=include_ips_events,
         )
 
         try:
@@ -103,11 +106,20 @@ class APILogCollector:
                 )
                 parsed_events = self._parser.parse_api_events(events)
                 entries.extend(parsed_events)
-                logger.debug(
-                    "api_events_collected",
-                    raw_count=len(events),
-                    parsed_count=len(parsed_events),
-                )
+                # Log at INFO if no events found to help diagnose issues
+                if len(events) == 0:
+                    logger.info(
+                        "api_events_empty",
+                        site=self.site,
+                        history_hours=self.history_hours,
+                        hint="Controller may have no events, or API endpoint may differ",
+                    )
+                else:
+                    logger.debug(
+                        "api_events_collected",
+                        raw_count=len(events),
+                        parsed_count=len(parsed_events),
+                    )
 
             if include_alarms:
                 alarms = self.client.get_alarms(site=self.site)
@@ -117,6 +129,27 @@ class APILogCollector:
                     "api_alarms_collected",
                     raw_count=len(alarms),
                     parsed_count=len(parsed_alarms),
+                )
+
+            if include_ips_events:
+                # IPS events use start/end timestamps in ms, not history_hours
+                # Calculate based on history_hours for consistency
+                import time
+                end_ms = int(time.time() * 1000)
+                start_ms = end_ms - (self.history_hours * 60 * 60 * 1000)
+
+                ips_events = self.client.get_ips_events(
+                    site=self.site,
+                    start=start_ms,
+                    end=end_ms,
+                )
+                parsed_ips = self._parser.parse_api_events(ips_events)
+                entries.extend(parsed_ips)
+                # Log IPS events count at INFO level for visibility
+                logger.info(
+                    "api_ips_events_collected",
+                    raw_count=len(ips_events),
+                    parsed_count=len(parsed_ips),
                 )
 
         except Exception as e:

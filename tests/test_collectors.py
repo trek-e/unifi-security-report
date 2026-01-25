@@ -251,3 +251,51 @@ class TestLogCollector:
 
             # Should return the 1 entry from API even though SSH failed
             assert len(entries) == 1
+
+    def test_zero_api_entries_returned_when_ssh_unavailable(self) -> None:
+        """Should return empty list when API returns 0 entries and SSH fails.
+
+        This is a valid scenario: the controller may have no events in the
+        time window (new controller, events cleared, quiet network).
+        Should NOT raise LogCollectionError.
+        """
+        mock_client = MagicMock()
+        mock_client.device_type = DeviceType.UDM_PRO
+        mock_client.get_events.return_value = []  # No events
+        mock_client.get_alarms.return_value = []  # No alarms
+
+        settings = self._create_settings()
+        collector = LogCollector(
+            client=mock_client,
+            settings=settings,
+            site="default",
+            min_entries=10,  # API returns 0, below threshold
+        )
+
+        with patch.object(collector, "_collect_via_ssh") as mock_ssh:
+            mock_ssh.side_effect = SSHCollectionError("SSH port 22 not accessible")
+            entries = collector.collect()
+
+            # Should return empty list (not raise error)
+            # 0 entries is valid - API succeeded, just no events
+            assert entries == []
+
+    def test_zero_api_entries_returned_when_ssh_disabled(self) -> None:
+        """Should return empty list when API returns 0 entries and SSH disabled."""
+        mock_client = MagicMock()
+        mock_client.device_type = DeviceType.UDM_PRO
+        mock_client.get_events.return_value = []  # No events
+        mock_client.get_alarms.return_value = []  # No alarms
+
+        settings = self._create_settings(ssh_enabled=False)
+        collector = LogCollector(
+            client=mock_client,
+            settings=settings,
+            site="default",
+            min_entries=10,
+        )
+
+        entries = collector.collect()
+
+        # Should return empty list (not raise error)
+        assert entries == []
