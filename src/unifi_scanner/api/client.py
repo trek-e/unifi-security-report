@@ -466,13 +466,16 @@ class UnifiClient:
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
             # Try various alternative endpoints
             alt_configs = [
-                # v2 API endpoints (discovered from browser)
-                {"method": "GET", "endpoint": f"/proxy/network/v2/api/site/{site}/ips/events"},
-                {"method": "GET", "endpoint": f"/proxy/network/v2/api/site/{site}/intrusion-detection/events"},
-                {"method": "GET", "endpoint": f"/proxy/network/v2/api/site/{site}/security/events"},
-                {"method": "GET", "endpoint": f"/proxy/network/v2/api/site/{site}/threats"},
-                {"method": "POST", "endpoint": f"/proxy/network/v2/api/site/{site}/ips/events",
-                 "json": {"start": start, "end": end}},
+                # UniFi OS level (no /proxy/network prefix)
+                {"method": "GET", "endpoint": "/api/system/security/events"},
+                {"method": "GET", "endpoint": "/api/security/threats"},
+                {"method": "GET", "endpoint": "/api/traffic/ips"},
+                # Try the stat endpoint with POST and empty body
+                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/ips/event",
+                 "json": {}},
+                # Try report endpoints
+                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/report/hourly.ips",
+                 "json": {"attrs": ["bytes", "num_sta"], "start": start, "end": end}},
             ]
             for config in alt_configs:
                 try:
