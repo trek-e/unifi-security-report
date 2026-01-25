@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from unifi_scanner.models.enums import Severity
 from unifi_scanner.analysis.ips.models import IPSEvent
 from unifi_scanner.analysis.ips.aggregator import SourceIPSummary, aggregate_source_ips
+from unifi_scanner.analysis.ips.remediation import get_remediation
 from unifi_scanner.analysis.ips.signature_parser import (
     parse_signature_category,
     ET_CATEGORY_FRIENDLY_NAMES,
@@ -65,6 +66,7 @@ class ThreatSummary:
         severity: Severity level
         sample_signature: Sample signature from this threat type
         source_ips: List of unique source IPs for this threat
+        remediation: Category-specific remediation guidance
     """
 
     category_friendly: str
@@ -73,6 +75,7 @@ class ThreatSummary:
     severity: Severity
     sample_signature: str
     source_ips: List[str] = field(default_factory=list)
+    remediation: Optional[str] = None
 
 
 @dataclass
@@ -221,6 +224,18 @@ class IPSAnalyzer:
             min_severity_int = min(e.severity for e in event_list)
             max_severity = _int_severity_to_enum(min_severity_int)
 
+            # Get remediation guidance for this threat
+            remediation_context = {
+                "src_ip": list(data["source_ips"])[0] if data["source_ips"] else "[unknown]",
+                "dest_ip": first_event.dest_ip,
+                "signature": signature,
+            }
+            remediation_text = get_remediation(
+                first_event.category_raw,
+                max_severity,
+                remediation_context,
+            )
+
             summary = ThreatSummary(
                 category_friendly=friendly_name,
                 description=_get_category_description(first_event.category_raw),
@@ -228,6 +243,7 @@ class IPSAnalyzer:
                 severity=max_severity,
                 sample_signature=signature,
                 source_ips=list(data["source_ips"]),
+                remediation=remediation_text,
             )
             summaries.append(summary)
 
