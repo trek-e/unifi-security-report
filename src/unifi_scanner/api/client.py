@@ -462,6 +462,27 @@ class UnifiClient:
                 )
                 data = data2
 
+        # If still no results, try alternative endpoints for UDM Pro
+        if isinstance(data, dict) and len(data.get("data", [])) == 0:
+            # Try v2 threat management API (UniFi Network 7.x+)
+            alt_endpoints = [
+                f"/proxy/network/v2/api/site/{site}/threatmanagement/threats",
+                f"/proxy/network/api/s/{site}/stat/report/ips.all",
+            ]
+            for alt_endpoint in alt_endpoints:
+                try:
+                    logger.debug("ips_events_trying_alt", endpoint=alt_endpoint)
+                    alt_response = self._request("GET", alt_endpoint)
+                    alt_data = alt_response.json()
+                    alt_count = len(alt_data.get("data", [])) if isinstance(alt_data, dict) else len(alt_data) if isinstance(alt_data, list) else 0
+                    logger.debug("ips_events_alt_response", endpoint=alt_endpoint, count=alt_count)
+                    if alt_count > 0:
+                        logger.info("ips_events_found_alt_endpoint", endpoint=alt_endpoint, count=alt_count)
+                        data = alt_data
+                        break
+                except Exception as e:
+                    logger.debug("ips_events_alt_failed", endpoint=alt_endpoint, error=str(e))
+
         # Debug: Log raw response structure
         logger.debug(
             "ips_events_response",
