@@ -127,7 +127,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+1. **Improve MongoDB IPS report readability** (reports) - Show source/dest IPs instead of generic "Blocked Threat" labels
 
 ### Blockers/Concerns
 
