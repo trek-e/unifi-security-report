@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** Translate cryptic UniFi logs into understandable findings with actionable remediation steps for serious issues
-**Current focus:** v0.3.5-alpha — Cloudflare Integration (SHIPPED)
+**Current focus:** v0.4-alpha — Cybersecure Integration
 
 ## Current Position
 
-Phase: 11 of 13 (Cloudflare Integration)
-Plan: 4 of 4 in current phase
-Status: Phase SHIPPED
-Last activity: 2026-01-25 — Phase 11 verified and complete
+Phase: 12 of 13 (Cybersecure Integration)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-25 — Completed 12-01-PLAN.md
 
-Progress: [####################] 100% (12/13 phases complete, v0.3.5-alpha ready)
+Progress: [####################] 100% (12/13 phases, plan 1/3 in phase 12)
 
 ## Milestones
 
@@ -117,6 +117,8 @@ Recent decisions affecting current work:
 - [v0.3.5-alpha]: Template uses CloudflareData helper methods directly (no pre-processing)
 - [v0.3.5-alpha]: Integration sections use integrations.get_section(name) pattern
 - [v0.3.5-alpha]: Async report generation for integration runner await
+- [v0.4-alpha]: Pydantic computed_field for derived boolean properties (is_cybersecure)
+- [v0.4-alpha]: ET PRO SID range 2800000-2899999 identifies Cybersecure signatures
 
 ### Pending Todos
 
@@ -146,10 +148,10 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 11-04-PLAN.md (Phase 11 complete)
+Stopped at: Completed 12-01-PLAN.md (Cybersecure SID detection)
 Resume file: None
 
 ## Next Steps
 
-1. Phase 11 (Cloudflare Integration) COMPLETE - Tests and wiring done
-2. Continue with Phase 12 (Cybersecure Integration) when ready
+1. Plan 12-01 (Cybersecure SID Detection) COMPLETE - is_cybersecure computed field added
+2. Continue with Plan 12-02 (Cybersecure section in threat output)
