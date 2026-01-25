@@ -118,11 +118,13 @@ Plans:
   2. Report shows PoE disconnect and overload events with affected port identification
   3. Report shows device uptime with flags for devices needing restart
   4. Report alerts on high CPU/memory utilization before performance degrades
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md — TDD: Device health models (DeviceStats, DeviceHealthFinding, DeviceHealthResult)
+- [ ] 09-02-PLAN.md — PoE rules and API extension for stat/device endpoint
+- [ ] 09-03-PLAN.md — TDD: DeviceHealthAnalyzer with configurable thresholds
+- [ ] 09-04-PLAN.md — Templates and service integration
 
 ### Phase 10: Integration Infrastructure
 **Goal**: Framework for optional integrations that fail gracefully without affecting core functionality
@@ -196,7 +198,7 @@ Plans:
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
-| 9. Device Health Monitoring | v0.3.3-alpha | 0/TBD | Not started | - |
+| 9. Device Health Monitoring | v0.3.3-alpha | 0/4 | Planned | - |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
@@ -212,3 +214,4 @@ Plans:
 *Phase 13 planned: 2026-01-25*
 *Phase 8 planned: 2026-01-25*
 *Phase 8 gap closure plan added: 2026-01-25*
+*Phase 9 planned: 2026-01-25*
