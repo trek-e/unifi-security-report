@@ -70,11 +70,11 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
   3. Report shows AP channel changes with explanation of why channel changed
   4. Report flags DFS radar events as warnings requiring attention
   5. Report translates RSSI values to human-readable signal quality (Excellent/Good/Fair/Poor)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md — WIRELESS category and rules for roaming, band switch, channel change, DFS radar (WIFI-01 through WIFI-04)
+- [ ] 07-02-PLAN.md — RSSI quality translation and flapping detection (WIFI-05, WIFI-06)
 
 ### Phase 8: Enhanced Security Analysis
 **Goal**: Users understand IDS/IPS alerts in plain English with actionable context
@@ -157,7 +157,7 @@ Plans:
 | 4. Report Generation | v0.2-alpha | 3/3 | Complete | 2026-01-24 |
 | 5. Delivery & Scheduling | v0.2-alpha | 5/5 | Complete | 2026-01-24 |
 | 6. State Persistence | v0.3-alpha | 2/2 | Complete | 2026-01-24 |
-| 7. Extended Wireless Analysis | v0.3.1-alpha | 0/TBD | Not started | - |
+| 7. Extended Wireless Analysis | v0.3.1-alpha | 0/2 | Planned | - |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 0/TBD | Not started | - |
 | 9. Device Health Monitoring | v0.3.3-alpha | 0/TBD | Not started | - |
 | 10. Integration Infrastructure | v0.3.4-alpha | 0/TBD | Not started | - |
