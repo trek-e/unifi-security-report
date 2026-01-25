@@ -28,6 +28,7 @@ Progress: [###########.........] 58% (7/12 phases complete)
 | v0.3.4-alpha | Integration Infrastructure | 10 | Planned |
 | v0.3.5-alpha | Cloudflare Integration | 11 | Planned |
 | v0.4-alpha | Cybersecure Integration | 12 | Planned |
+| v0.5-alpha | WebSocket Support | 13 | Planned |
 
 See `.planning/MILESTONES.md` for full milestone history.
 
@@ -71,7 +72,11 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+- UniFi Network 10.x deprecated `/stat/event` REST endpoint; WiFi events now require WebSocket connection (Phase 13)
+
+### Roadmap Evolution
+
+- Phase 13 added: WebSocket support for UniFi Network 10.x events
 
 ## Session Continuity
 
