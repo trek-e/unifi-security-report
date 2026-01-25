@@ -21,14 +21,17 @@ import argparse
 import signal
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from types import FrameType
-    from unifi_scanner.api import UnifiClient
+    from unifi_scanner.api import UnifiClient, WebSocketManager
     from unifi_scanner.config import UnifiSettings
 
 from unifi_scanner import __version__
+
+# Module-level WebSocket manager for lifecycle management
+_ws_manager: Optional["WebSocketManager"] = None
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -144,6 +147,90 @@ def print_banner(
         print(line)
 
 
+def start_websocket(config: "UnifiSettings", log: Any) -> Optional["WebSocketManager"]:
+    """Start WebSocket manager for real-time events if enabled.
+
+    Connects to REST API to get auth cookies, then starts WebSocket
+    in background thread.
+
+    Args:
+        config: Configuration settings.
+        log: Logger instance.
+
+    Returns:
+        WebSocketManager instance if started, None if disabled or failed.
+    """
+    if not config.websocket_enabled:
+        log.info("websocket_disabled", message="WebSocket disabled via configuration")
+        return None
+
+    # Import here to avoid circular imports
+    from unifi_scanner.api import UnifiClient, WebSocketManager
+
+    try:
+        # Connect to get auth cookies
+        with UnifiClient(config) as client:
+            site = client.select_site(config.site)
+            cookies = client.get_session_cookies()
+
+            if not cookies:
+                log.warning(
+                    "websocket_no_cookies",
+                    message="No session cookies available for WebSocket",
+                )
+                return None
+
+            # Ensure we have base_url and device_type (should be set after connect)
+            if not client.base_url or not client.device_type:
+                log.warning(
+                    "websocket_missing_client_info",
+                    message="Client missing base_url or device_type after connect",
+                )
+                return None
+
+            # Create and start WebSocket manager
+            ws_manager = WebSocketManager()
+            ws_manager.start(
+                base_url=client.base_url,
+                site=site,
+                cookies=cookies,
+                device_type=client.device_type,
+                verify_ssl=config.verify_ssl,
+            )
+
+            log.info(
+                "websocket_started",
+                base_url=client.base_url,
+                site=site,
+            )
+            return ws_manager
+
+    except Exception as e:
+        log.warning(
+            "websocket_start_failed",
+            error=str(e),
+            message="WebSocket failed to start, continuing with REST-only",
+        )
+        return None
+
+
+def stop_websocket(log: Any) -> None:
+    """Stop the global WebSocket manager if running.
+
+    Args:
+        log: Logger instance.
+    """
+    global _ws_manager
+    if _ws_manager is not None:
+        try:
+            if _ws_manager.is_running():
+                _ws_manager.stop()
+                log.info("websocket_stopped")
+        except Exception as e:
+            log.warning("websocket_stop_error", error=str(e))
+        _ws_manager = None
+
+
 def run_report_job() -> None:
     """Execute one report generation and delivery cycle.
 
@@ -151,12 +238,13 @@ def run_report_job() -> None:
     or once in one-shot mode. It runs the complete pipeline:
     1. Read state (last successful run timestamp)
     2. Connect to UniFi API
-    3. Collect logs (filtered by since_timestamp)
+    3. Collect logs (filtered by since_timestamp, with WebSocket events if available)
     4. Analyze logs
     5. Generate report
     6. Deliver via configured channels
     7. Update state only after successful delivery
     """
+    global _ws_manager
     from unifi_scanner.analysis import AnalysisEngine
     from unifi_scanner.analysis.rules import get_default_registry
     from unifi_scanner.api import UnifiClient
@@ -197,11 +285,12 @@ def run_report_job() -> None:
         with UnifiClient(config) as client:
             site = client.select_site(config.site)
 
-            # Collect logs (filtered by since_timestamp)
+            # Collect logs (filtered by since_timestamp, with WebSocket events if available)
             collector = LogCollector(
                 client=client,
                 settings=config,
                 site=site,
+                ws_manager=_ws_manager,
             )
             log_entries = collector.collect(since_timestamp=since_timestamp)
             log.info("logs_collected", count=len(log_entries))
@@ -372,6 +461,7 @@ def main() -> int:
             return EXIT_CONFIG_ERROR
 
     # Normal mode - print banner and start service
+    global _ws_manager
     print_banner(config)
     log.info("starting", version=__version__)
     update_health_status(HealthStatus.STARTING)
@@ -379,6 +469,9 @@ def main() -> int:
     # Set up signal handler for config reload (Unix only)
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, handle_sighup)
+
+    # Start WebSocket manager for real-time events (if enabled)
+    _ws_manager = start_websocket(config, log)
 
     # Initialize scheduler
     runner = ScheduledRunner(timezone=config.schedule_timezone)
@@ -388,6 +481,7 @@ def main() -> int:
         schedule_preset=config.schedule_preset,
         schedule_cron=config.schedule_cron,
         timezone=config.schedule_timezone,
+        websocket_enabled=_ws_manager is not None,
     )
 
     try:
@@ -400,6 +494,7 @@ def main() -> int:
     except KeyboardInterrupt:
         log.info("shutdown", reason="keyboard interrupt")
         print("\nShutdown requested, exiting...")
+        stop_websocket(log)
         runner.shutdown()
         clear_health_status()
         return EXIT_SUCCESS
