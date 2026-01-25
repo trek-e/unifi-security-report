@@ -78,6 +78,9 @@
             <div style="margin-bottom: 4px;">
                 <span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #28a745; border-radius: 3px;">BLOCKED</span>
                 <strong style="color: #333333; font-size: 14px; margin-left: 6px;">{{ threat.category_friendly }}</strong>
+                {% if threat.is_cybersecure %}
+                <span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #ffffff; background-color: #6f42c1; border-radius: 3px; margin-left: 6px;" title="Detected by CyberSecure enhanced signatures">CYBERSECURE</span>
+                {% endif %}
             </div>
             <p style="margin: 0; color: #555555; font-size: 13px;">
                 {{ threat.description }}
