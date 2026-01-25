@@ -30,8 +30,11 @@ if TYPE_CHECKING:
 
 from unifi_scanner import __version__
 
-# Module-level WebSocket manager for lifecycle management
+# Module-level managers for lifecycle management
+# These persist across scheduled runs to share authentication state
 _ws_manager: Optional["WebSocketManager"] = None
+_rest_client: Optional["UnifiClient"] = None
+_rest_client_site: Optional[str] = None
 
 # Exit codes
 EXIT_SUCCESS = 0
@@ -147,63 +150,86 @@ def print_banner(
         print(line)
 
 
-def start_websocket(config: "UnifiSettings", log: Any) -> Optional["WebSocketManager"]:
-    """Start WebSocket manager for real-time events if enabled.
+def start_session(config: "UnifiSettings", log: Any) -> Optional["WebSocketManager"]:
+    """Start persistent REST session and WebSocket manager.
 
-    Connects to REST API to get auth cookies, then starts WebSocket
-    in background thread.
+    Creates a REST client that persists across scheduled runs, avoiding
+    repeated authentication. If WebSocket is enabled, starts the WebSocket
+    manager using cookies from the REST session.
 
     Args:
         config: Configuration settings.
         log: Logger instance.
 
     Returns:
-        WebSocketManager instance if started, None if disabled or failed.
+        WebSocketManager instance if started, None if WebSocket disabled or failed.
     """
-    if not config.websocket_enabled:
-        log.info("websocket_disabled", message="WebSocket disabled via configuration")
-        return None
+    global _rest_client, _rest_client_site
 
     # Import here to avoid circular imports
     from unifi_scanner.api import UnifiClient, WebSocketManager
 
     try:
-        # Connect to get auth cookies
-        with UnifiClient(config) as client:
-            site = client.select_site(config.site)
-            cookies = client.get_session_cookies()
+        # Create persistent REST client (not as context manager - stays alive)
+        _rest_client = UnifiClient(config)
+        _rest_client.connect()
+        _rest_client_site = _rest_client.select_site(config.site)
 
-            if not cookies:
-                log.warning(
-                    "websocket_no_cookies",
-                    message="No session cookies available for WebSocket",
-                )
-                return None
+        log.debug(
+            "rest_session_started",
+            base_url=_rest_client.base_url,
+            site=_rest_client_site,
+        )
 
-            # Ensure we have base_url and device_type (should be set after connect)
-            if not client.base_url or not client.device_type:
-                log.warning(
-                    "websocket_missing_client_info",
-                    message="Client missing base_url or device_type after connect",
-                )
-                return None
+    except Exception as e:
+        log.warning(
+            "rest_session_failed",
+            error=str(e),
+            message="REST session failed, jobs will create their own connections",
+        )
+        _rest_client = None
+        _rest_client_site = None
+        return None
 
-            # Create and start WebSocket manager
-            ws_manager = WebSocketManager()
-            ws_manager.start(
-                base_url=client.base_url,
-                site=site,
-                cookies=cookies,
-                device_type=client.device_type,
-                verify_ssl=config.verify_ssl,
+    # Start WebSocket if enabled
+    if not config.websocket_enabled:
+        log.info("websocket_disabled", message="WebSocket disabled via configuration")
+        return None
+
+    try:
+        cookies = _rest_client.get_session_cookies()
+
+        if not cookies:
+            log.warning(
+                "websocket_no_cookies",
+                message="No session cookies available for WebSocket",
             )
+            return None
 
-            log.info(
-                "websocket_started",
-                base_url=client.base_url,
-                site=site,
+        # Ensure we have base_url and device_type (should be set after connect)
+        if not _rest_client.base_url or not _rest_client.device_type:
+            log.warning(
+                "websocket_missing_client_info",
+                message="Client missing base_url or device_type after connect",
             )
-            return ws_manager
+            return None
+
+        # Create and start WebSocket manager
+        ws_manager = WebSocketManager()
+        ws_manager.start(
+            base_url=_rest_client.base_url,
+            site=_rest_client_site,
+            cookies=cookies,
+            device_type=_rest_client.device_type,
+            verify_ssl=config.verify_ssl,
+        )
+
+        log.info(
+            "websocket_started",
+            base_url=_rest_client.base_url,
+            site=_rest_client_site,
+        )
+        return ws_manager
 
     except Exception as e:
         log.warning(
@@ -214,13 +240,14 @@ def start_websocket(config: "UnifiSettings", log: Any) -> Optional["WebSocketMan
         return None
 
 
-def stop_websocket(log: Any) -> None:
-    """Stop the global WebSocket manager if running.
+def stop_session(log: Any) -> None:
+    """Stop the global WebSocket manager and REST client if running.
 
     Args:
         log: Logger instance.
     """
-    global _ws_manager
+    global _ws_manager, _rest_client, _rest_client_site
+
     if _ws_manager is not None:
         try:
             if _ws_manager.is_running():
@@ -230,6 +257,15 @@ def stop_websocket(log: Any) -> None:
             log.warning("websocket_stop_error", error=str(e))
         _ws_manager = None
 
+    if _rest_client is not None:
+        try:
+            _rest_client.disconnect()
+            log.debug("rest_session_stopped")
+        except Exception as e:
+            log.warning("rest_session_stop_error", error=str(e))
+        _rest_client = None
+        _rest_client_site = None
+
 
 def run_report_job() -> None:
     """Execute one report generation and delivery cycle.
@@ -237,7 +273,7 @@ def run_report_job() -> None:
     This function is called by the scheduler on each scheduled run,
     or once in one-shot mode. It runs the complete pipeline:
     1. Read state (last successful run timestamp)
-    2. Connect to UniFi API
+    2. Connect to UniFi API (or reuse persistent session)
     3. Collect logs (filtered by since_timestamp, with WebSocket events if available)
     4. Analyze logs
     5. Collect and analyze IPS events
@@ -245,7 +281,7 @@ def run_report_job() -> None:
     7. Deliver via configured channels
     8. Update state only after successful delivery
     """
-    global _ws_manager
+    global _ws_manager, _rest_client, _rest_client_site
     import time
 
     from unifi_scanner.analysis import AnalysisEngine
@@ -284,142 +320,159 @@ def run_report_job() -> None:
         )
         log.info("first_run", lookback_hours=config.initial_lookback_hours)
 
+    # Determine whether to use persistent client or create a new one
+    # Persistent client is available in scheduled mode after start_session()
+    # One-shot mode (--run-once) won't have a persistent client
+    use_persistent = _rest_client is not None and _rest_client_site is not None
+    own_client: Optional[UnifiClient] = None
+
     try:
-        # Connect and collect logs
-        with UnifiClient(config) as client:
+        if use_persistent:
+            client = _rest_client
+            site = _rest_client_site
+            log.debug("using_persistent_session")
+        else:
+            # Create own client (one-shot mode or session startup failed)
+            own_client = UnifiClient(config)
+            own_client.connect()
+            client = own_client
             site = client.select_site(config.site)
 
-            # Collect logs (filtered by since_timestamp, with WebSocket events if available)
-            collector = LogCollector(
-                client=client,
-                settings=config,
+        # Collect logs (filtered by since_timestamp, with WebSocket events if available)
+        collector = LogCollector(
+            client=client,
+            settings=config,
+            site=site,
+            ws_manager=_ws_manager,
+        )
+        log_entries = collector.collect(since_timestamp=since_timestamp)
+        log.info("logs_collected", count=len(log_entries))
+
+        # Handle empty result (no new events since last run)
+        if not log_entries:
+            log.info(
+                "no_new_events",
+                since=since_timestamp.isoformat(),
+                message="No new events since last report",
+            )
+
+        # Analyze logs with default rules
+        registry = get_default_registry()
+        engine = AnalysisEngine(registry=registry)
+        findings = engine.analyze(log_entries)
+        log.info("analysis_complete", findings_count=len(findings))
+
+        # Collect and analyze IPS events
+        ips_analysis = None
+        try:
+            # Get raw IPS events for IPS-specific analysis
+            # Calculate time range from since_timestamp
+            end_ms = int(time.time() * 1000)
+            hours_since = int((datetime.now(timezone.utc) - since_timestamp).total_seconds() / 3600) + 1
+            start_ms = end_ms - (hours_since * 60 * 60 * 1000)
+
+            raw_ips_events = client.get_ips_events(
                 site=site,
-                ws_manager=_ws_manager,
+                start=start_ms,
+                end=end_ms,
             )
-            log_entries = collector.collect(since_timestamp=since_timestamp)
-            log.info("logs_collected", count=len(log_entries))
 
-            # Handle empty result (no new events since last run)
-            if not log_entries:
+            if raw_ips_events:
+                # Convert to IPSEvent objects and analyze
+                ips_events = [IPSEvent.from_api_event(e) for e in raw_ips_events]
+                ips_analyzer = IPSAnalyzer(event_threshold=10)
+                ips_analysis = ips_analyzer.process_events(ips_events)
                 log.info(
-                    "no_new_events",
-                    since=since_timestamp.isoformat(),
-                    message="No new events since last report",
+                    "ips_analysis_complete",
+                    event_count=len(ips_events),
+                    blocked_threats=len(ips_analysis.blocked_threats),
+                    detected_threats=len(ips_analysis.detected_threats),
                 )
-
-            # Analyze logs with default rules
-            registry = get_default_registry()
-            engine = AnalysisEngine(registry=registry)
-            findings = engine.analyze(log_entries)
-            log.info("analysis_complete", findings_count=len(findings))
-
-            # Collect and analyze IPS events
-            ips_analysis = None
-            try:
-                # Get raw IPS events for IPS-specific analysis
-                # Calculate time range from since_timestamp
-                end_ms = int(time.time() * 1000)
-                hours_since = int((datetime.now(timezone.utc) - since_timestamp).total_seconds() / 3600) + 1
-                start_ms = end_ms - (hours_since * 60 * 60 * 1000)
-
-                raw_ips_events = client.get_ips_events(
-                    site=site,
-                    start=start_ms,
-                    end=end_ms,
-                )
-
-                if raw_ips_events:
-                    # Convert to IPSEvent objects and analyze
-                    ips_events = [IPSEvent.from_api_event(e) for e in raw_ips_events]
-                    ips_analyzer = IPSAnalyzer(event_threshold=10)
-                    ips_analysis = ips_analyzer.process_events(ips_events)
-                    log.info(
-                        "ips_analysis_complete",
-                        event_count=len(ips_events),
-                        blocked_threats=len(ips_analysis.blocked_threats),
-                        detected_threats=len(ips_analysis.detected_threats),
-                    )
-                else:
-                    log.debug("no_ips_events", since=since_timestamp.isoformat())
-
-            except Exception as e:
-                # IPS analysis is optional - don't fail the whole report
-                log.warning("ips_analysis_failed", error=str(e))
-
-            # Build report
-            now = datetime.now(timezone.utc)
-            report = Report(
-                period_start=since_timestamp,  # Use actual cutoff timestamp
-                period_end=now,
-                site_name=site,
-                controller_type=client.device_type or DeviceType.UNKNOWN,
-                findings=findings,
-                log_entry_count=len(log_entries),
-            )
-
-            # Generate report content
-            generator = ReportGenerator(
-                display_timezone=config.schedule_timezone,
-            )
-            html_content = generator.generate_html(report, ips_analysis=ips_analysis)
-            text_content = generator.generate_text(report, ips_analysis=ips_analysis)
-
-            # Set up delivery
-            email_delivery = None
-            if config.email_enabled and config.smtp_host:
-                email_delivery = EmailDelivery(
-                    smtp_host=config.smtp_host,
-                    smtp_port=config.smtp_port,
-                    smtp_user=config.smtp_user,
-                    smtp_password=config.smtp_password,
-                    use_tls=config.smtp_use_tls,
-                    from_addr=config.email_from,
-                    timezone=config.schedule_timezone,
-                )
-
-            file_delivery = None
-            if config.file_enabled and config.file_output_dir:
-                file_delivery = FileDelivery(
-                    output_dir=config.file_output_dir,
-                    file_format=config.file_format,
-                    retention_days=config.file_retention_days,
-                    timezone=config.schedule_timezone,
-                )
-
-            # Deliver
-            manager = DeliveryManager(
-                email_delivery=email_delivery,
-                file_delivery=file_delivery,
-            )
-
-            recipients = config.get_email_recipients()
-
-            success = manager.deliver(
-                report=report,
-                html_content=html_content,
-                text_content=text_content,
-                email_recipients=recipients,
-            )
-
-            if success:
-                # Update state only after successful delivery
-                state_manager.write_last_run(
-                    timestamp=report.generated_at,
-                    report_count=len(findings),
-                )
-                log.info(
-                    "job_complete",
-                    status="success",
-                    state_updated=report.generated_at.isoformat(),
-                )
-                update_health_status(HealthStatus.HEALTHY, {"last_run": "success"})
             else:
-                log.warning("job_complete", status="delivery_failed")
-                update_health_status(HealthStatus.UNHEALTHY, {"last_run": "delivery_failed"})
+                log.debug("no_ips_events", since=since_timestamp.isoformat())
+
+        except Exception as e:
+            # IPS analysis is optional - don't fail the whole report
+            log.warning("ips_analysis_failed", error=str(e))
+
+        # Build report
+        now = datetime.now(timezone.utc)
+        report = Report(
+            period_start=since_timestamp,  # Use actual cutoff timestamp
+            period_end=now,
+            site_name=site,
+            controller_type=client.device_type or DeviceType.UNKNOWN,
+            findings=findings,
+            log_entry_count=len(log_entries),
+        )
+
+        # Generate report content
+        generator = ReportGenerator(
+            display_timezone=config.schedule_timezone,
+        )
+        html_content = generator.generate_html(report, ips_analysis=ips_analysis)
+        text_content = generator.generate_text(report, ips_analysis=ips_analysis)
+
+        # Set up delivery
+        email_delivery = None
+        if config.email_enabled and config.smtp_host:
+            email_delivery = EmailDelivery(
+                smtp_host=config.smtp_host,
+                smtp_port=config.smtp_port,
+                smtp_user=config.smtp_user,
+                smtp_password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+                from_addr=config.email_from,
+                timezone=config.schedule_timezone,
+            )
+
+        file_delivery = None
+        if config.file_enabled and config.file_output_dir:
+            file_delivery = FileDelivery(
+                output_dir=config.file_output_dir,
+                file_format=config.file_format,
+                retention_days=config.file_retention_days,
+                timezone=config.schedule_timezone,
+            )
+
+        # Deliver
+        manager = DeliveryManager(
+            email_delivery=email_delivery,
+            file_delivery=file_delivery,
+        )
+
+        recipients = config.get_email_recipients()
+
+        success = manager.deliver(
+            report=report,
+            html_content=html_content,
+            text_content=text_content,
+            email_recipients=recipients,
+        )
+
+        if success:
+            # Update state only after successful delivery
+            state_manager.write_last_run(
+                timestamp=report.generated_at,
+                report_count=len(findings),
+            )
+            log.info(
+                "job_complete",
+                status="success",
+                state_updated=report.generated_at.isoformat(),
+            )
+            update_health_status(HealthStatus.HEALTHY, {"last_run": "success"})
+        else:
+            log.warning("job_complete", status="delivery_failed")
+            update_health_status(HealthStatus.UNHEALTHY, {"last_run": "delivery_failed"})
 
     except Exception as e:
         log.error("job_failed", error=str(e))
         update_health_status(HealthStatus.UNHEALTHY, {"last_run": str(e)})
+    finally:
+        # Clean up own client if we created one (one-shot mode)
+        if own_client is not None:
+            own_client.disconnect()
 
 
 def main() -> int:
@@ -507,8 +560,9 @@ def main() -> int:
     if hasattr(signal, "SIGHUP"):
         signal.signal(signal.SIGHUP, handle_sighup)
 
-    # Start WebSocket manager for real-time events (if enabled)
-    _ws_manager = start_websocket(config, log)
+    # Start persistent REST session and WebSocket manager (if enabled)
+    # This authenticates once and shares the session across scheduled runs
+    _ws_manager = start_session(config, log)
 
     # Initialize scheduler
     runner = ScheduledRunner(timezone=config.schedule_timezone)
@@ -531,7 +585,7 @@ def main() -> int:
     except KeyboardInterrupt:
         log.info("shutdown", reason="keyboard interrupt")
         print("\nShutdown requested, exiting...")
-        stop_websocket(log)
+        stop_session(log)
         runner.shutdown()
         clear_health_status()
         return EXIT_SUCCESS
