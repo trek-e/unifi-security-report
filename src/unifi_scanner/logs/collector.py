@@ -1,11 +1,11 @@
 """Orchestrating log collector with fallback chain.
 
-Tries API collection first, falls back to SSH if API fails
-or returns insufficient entries.
+Tries WebSocket first (for WiFi events), then REST API, then falls back
+to SSH if API fails or returns insufficient entries.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import structlog
 
@@ -15,6 +15,10 @@ from unifi_scanner.models import DeviceType, LogEntry
 
 from .api_collector import APICollectionError, APILogCollector
 from .ssh_collector import SSHCollectionError, SSHLogCollector
+from .ws_collector import WSCollectionError, WSLogCollector
+
+if TYPE_CHECKING:
+    from unifi_scanner.api import WebSocketManager
 
 logger = structlog.get_logger(__name__)
 
@@ -60,6 +64,7 @@ class LogCollector:
         site: str,
         device_type: Optional[DeviceType] = None,
         min_entries: int = 10,
+        ws_manager: Optional["WebSocketManager"] = None,
     ) -> None:
         """Initialize the log collector.
 
@@ -69,12 +74,14 @@ class LogCollector:
             site: Site name to collect logs from.
             device_type: Device type for SSH fallback (auto-detected if None).
             min_entries: Minimum entries required from API before fallback.
+            ws_manager: WebSocket manager for real-time WiFi events (optional).
         """
         self.client = client
         self.settings = settings
         self.site = site
         self.device_type = device_type or client.device_type
         self.min_entries = min_entries
+        self._ws_manager = ws_manager
 
     def collect(
         self,
