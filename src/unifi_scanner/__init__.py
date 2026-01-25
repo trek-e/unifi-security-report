@@ -11,5 +11,5 @@ Features:
 - Robust connection handling with retry and backoff
 """
 
-__version__ = "0.5.1b1"
+__version__ = "0.5.1b2"
 __all__ = ["__version__"]
