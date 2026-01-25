@@ -466,14 +466,14 @@ class UnifiClient:
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
             # Try various alternative endpoints
             alt_configs = [
+                # UniFi OS level endpoints (outside Network proxy)
+                {"method": "GET", "endpoint": "/api/ips/events"},
+                {"method": "GET", "endpoint": "/api/system/ips-events"},
+                {"method": "GET", "endpoint": f"/proxy/network/api/s/{site}/stat/threat"},
                 # REST endpoint for IPS records
                 {"method": "GET", "endpoint": f"/proxy/network/api/s/{site}/rest/ipsrecord"},
-                # Regular events with IPS key filter
-                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/event",
-                 "json": {"_limit": 500, "key": "EVT_IPS_IpsAlert"}},
-                # Try without key filter to see all event types
-                {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/event",
-                 "json": {"_limit": 50}},
+                # Try fingerprint/DPI related
+                {"method": "GET", "endpoint": f"/proxy/network/api/s/{site}/stat/rogueap"},
             ]
             for config in alt_configs:
                 try:
