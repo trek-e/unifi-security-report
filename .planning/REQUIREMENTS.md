@@ -34,9 +34,9 @@ Requirements for extended analysis rules and optional integrations milestone.
 
 ### Integration Infrastructure
 
-- [ ] **INTG-01**: Service supports optional integrations that gracefully skip if not configured
-- [ ] **INTG-02**: Service isolates integration failures (one failing doesn't break others)
-- [ ] **INTG-03**: Service implements circuit breakers for external API calls
+- [x] **INTG-01**: Service supports optional integrations that gracefully skip if not configured
+- [x] **INTG-02**: Service isolates integration failures (one failing doesn't break others)
+- [x] **INTG-03**: Service implements circuit breakers for external API calls
 
 ### Cybersecure Integration (Optional)
 
@@ -104,9 +104,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HLTH-03 | Phase 9 | Complete |
 | HLTH-04 | Phase 9 | Complete |
 | HLTH-05 | Phase 9 | Complete |
-| INTG-01 | Phase 10 | Pending |
-| INTG-02 | Phase 10 | Pending |
-| INTG-03 | Phase 10 | Pending |
+| INTG-01 | Phase 10 | Complete |
+| INTG-02 | Phase 10 | Complete |
+| INTG-03 | Phase 10 | Complete |
 | CLDF-01 | Phase 11 | Pending |
 | CLDF-02 | Phase 11 | Pending |
 | CLDF-03 | Phase 11 | Pending |
@@ -126,4 +126,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 after Phase 9 completion*
+*Last updated: 2026-01-25 after Phase 10 completion*

@@ -56,9 +56,12 @@ See `.planning/milestones/` for archived roadmap and requirements per milestone.
 
 </details>
 
-### v0.3.4-alpha Integration Infrastructure (Planned)
+<details>
+<summary>v0.3.4-alpha Integration Infrastructure (Phase 10) -- SHIPPED 2026-01-25</summary>
 
-- [ ] **Phase 10: Integration Infrastructure** - Optional integration framework, failure isolation, circuit breakers
+- [x] Phase 10: Integration Infrastructure (3/3 plans) -- completed 2026-01-25
+
+</details>
 
 <details>
 <summary>v0.3.15-alpha WebSocket Support (Phase 13) -- SHIPPED 2026-01-25</summary>
@@ -204,12 +207,12 @@ Plans:
 | 7. Extended Wireless Analysis | v0.3.1-alpha | 3/3 | Complete | 2026-01-25 |
 | 8. Enhanced Security Analysis | v0.3.2-alpha | 5/5 | Complete | 2026-01-25 |
 | 9. Device Health Monitoring | v0.3.3-alpha | 4/4 | Complete | 2026-01-25 |
-| 10. Integration Infrastructure | v0.3.4-alpha | 0/3 | Planned | - |
+| 10. Integration Infrastructure | v0.3.4-alpha | 3/3 | Complete | 2026-01-25 |
 | 11. Cloudflare Integration | v0.3.5-alpha | 0/TBD | Not started | - |
 | 12. Cybersecure Integration | v0.4-alpha | 0/TBD | Not started | - |
 | 13. WebSocket Support | v0.3.15-alpha | 6/6 | Complete | 2026-01-25 |
 
-**Summary:** 13 phases total -- 10 complete, 3 planned across v0.3.4 through v0.4
+**Summary:** 13 phases total -- 11 complete, 2 planned across v0.3.5 through v0.4
 
 ---
 *Roadmap created: 2026-01-24*
