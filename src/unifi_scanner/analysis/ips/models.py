@@ -7,9 +7,14 @@ including signature parsing and action classification.
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from .signature_parser import is_action_blocked, parse_signature_category
+
+# Cybersecure (Proofpoint ET PRO) signature ID range
+# ET PRO signatures are in the 2800000-2899999 range
+ET_PRO_SID_MIN = 2800000
+ET_PRO_SID_MAX = 2899999
 
 
 class IPSEvent(BaseModel):
@@ -51,6 +56,17 @@ class IPSEvent(BaseModel):
     is_blocked: bool = Field(
         default=False, description="Whether the threat was blocked"
     )
+
+    @computed_field
+    @property
+    def is_cybersecure(self) -> bool:
+        """True if detected by Cybersecure (Proofpoint ET PRO) signature.
+
+        Cybersecure uses Proofpoint's ET PRO ruleset which has signatures
+        in the 2800000-2899999 SID range. This allows identification of
+        threats detected by enhanced commercial signatures vs free ET Open.
+        """
+        return ET_PRO_SID_MIN <= self.signature_id <= ET_PRO_SID_MAX
 
     @classmethod
     def from_api_event(cls, event: dict[str, Any]) -> "IPSEvent":
