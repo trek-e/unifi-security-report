@@ -429,8 +429,30 @@ class UnifiClient:
             "_limit": min(limit, 3000),
         }
 
+        # Debug: Log the request being made
+        from datetime import datetime, timezone
+        start_dt = datetime.fromtimestamp(start / 1000, tz=timezone.utc)
+        end_dt = datetime.fromtimestamp(end / 1000, tz=timezone.utc)
+        logger.debug(
+            "ips_events_request",
+            endpoint=endpoint,
+            start_ms=start,
+            end_ms=end,
+            start_human=start_dt.isoformat(),
+            end_human=end_dt.isoformat(),
+            limit=body["_limit"],
+        )
+
         response = self._request("POST", endpoint, json=body)
         data = response.json()
+
+        # Debug: Log raw response structure
+        logger.debug(
+            "ips_events_response",
+            response_keys=list(data.keys()) if isinstance(data, dict) else "list",
+            meta=data.get("meta") if isinstance(data, dict) else None,
+            data_count=len(data.get("data", [])) if isinstance(data, dict) else len(data) if isinstance(data, list) else 0,
+        )
 
         # Extract IPS events from response wrapper
         if isinstance(data, dict) and "data" in data:
