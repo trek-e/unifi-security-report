@@ -531,3 +531,132 @@ class TestRemediationIntegration:
         # Severe MALWARE remediation has numbered steps
         if "1." in severe_remediation:
             assert len(severe_remediation) > len(low_remediation or "")
+
+
+class TestCybersecureAttribution:
+    """Tests for Cybersecure (ET PRO) attribution in ThreatSummary."""
+
+    def test_all_et_open_events_not_cybersecure(self):
+        """ThreatSummary with all ET Open events has is_cybersecure=False."""
+        # ET Open SIDs are typically in 2000000-2099999 range
+        events = [
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.51"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.52"),
+        ]
+        # Set signature_id to ET Open range
+        for e in events:
+            e.signature_id = 2001001
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        all_threats = result.blocked_threats + result.detected_threats
+        assert len(all_threats) == 1
+        assert all_threats[0].is_cybersecure is False
+        assert all_threats[0].cybersecure_count == 0
+
+    def test_all_et_pro_events_cybersecure(self):
+        """ThreatSummary with all ET PRO events has is_cybersecure=True."""
+        # ET PRO SIDs are in 2800000-2899999 range
+        events = [
+            make_ips_event(signature="ET PRO TROJAN Malware CnC", src_ip="10.0.0.1"),
+            make_ips_event(signature="ET PRO TROJAN Malware CnC", src_ip="10.0.0.2"),
+            make_ips_event(signature="ET PRO TROJAN Malware CnC", src_ip="10.0.0.3"),
+        ]
+        # Set signature_id to ET PRO range (Cybersecure)
+        for e in events:
+            e.signature_id = 2800001
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        all_threats = result.blocked_threats + result.detected_threats
+        assert len(all_threats) == 1
+        assert all_threats[0].is_cybersecure is True
+        assert all_threats[0].cybersecure_count == 3
+
+    def test_mixed_events_cybersecure_when_any_et_pro(self):
+        """ThreatSummary with mixed events has is_cybersecure=True if ANY is ET PRO."""
+        # Mix of ET Open and ET PRO events
+        et_open_events = [
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.51"),
+        ]
+        for e in et_open_events:
+            e.signature_id = 2001001
+
+        et_pro_event = make_ips_event(signature="ET SCAN Nmap", src_ip="192.168.1.52")
+        et_pro_event.signature_id = 2800100
+
+        events = et_open_events + [et_pro_event]
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        all_threats = result.blocked_threats + result.detected_threats
+        assert len(all_threats) == 1
+        # is_cybersecure True because at least one event is Cybersecure
+        assert all_threats[0].is_cybersecure is True
+        # Only 1 of 3 events is Cybersecure
+        assert all_threats[0].cybersecure_count == 1
+
+    def test_single_et_pro_among_many_et_open(self):
+        """Single ET PRO event among many ET Open still makes is_cybersecure=True."""
+        # 9 ET Open events
+        et_open_events = [
+            make_ips_event(signature="ET MALWARE Trojan", src_ip=f"192.168.1.{i}")
+            for i in range(9)
+        ]
+        for e in et_open_events:
+            e.signature_id = 2001500
+
+        # 1 ET PRO event
+        et_pro_event = make_ips_event(signature="ET MALWARE Trojan", src_ip="192.168.1.100")
+        et_pro_event.signature_id = 2850000
+
+        events = et_open_events + [et_pro_event]
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        all_threats = result.blocked_threats + result.detected_threats
+        assert len(all_threats) == 1
+        assert all_threats[0].is_cybersecure is True
+        assert all_threats[0].cybersecure_count == 1
+
+    def test_multiple_threat_signatures_track_cybersecure_separately(self):
+        """Each ThreatSummary tracks Cybersecure independently by signature."""
+        # ET Open signature
+        et_open_events = [
+            make_ips_event(signature="ET SCAN Open Signature", src_ip="192.168.1.50"),
+            make_ips_event(signature="ET SCAN Open Signature", src_ip="192.168.1.51"),
+        ]
+        for e in et_open_events:
+            e.signature_id = 2001001
+
+        # ET PRO signature (different signature string)
+        et_pro_events = [
+            make_ips_event(signature="ET PRO MALWARE CnC", src_ip="10.0.0.1"),
+            make_ips_event(signature="ET PRO MALWARE CnC", src_ip="10.0.0.2"),
+        ]
+        for e in et_pro_events:
+            e.signature_id = 2800500
+
+        events = et_open_events + et_pro_events
+
+        analyzer = IPSAnalyzer()
+        result = analyzer.process_events(events)
+
+        all_threats = result.blocked_threats + result.detected_threats
+        # Two different signatures = two ThreatSummary entries
+        assert len(all_threats) == 2
+
+        # Find each threat by signature
+        open_threat = next(t for t in all_threats if "Open Signature" in t.sample_signature)
+        pro_threat = next(t for t in all_threats if "CnC" in t.sample_signature)
+
+        assert open_threat.is_cybersecure is False
+        assert open_threat.cybersecure_count == 0
+        assert pro_threat.is_cybersecure is True
+        assert pro_threat.cybersecure_count == 2
