@@ -28,6 +28,7 @@ class LogSource(str, Enum):
     API = "api"
     SSH = "ssh"
     SYSLOG = "syslog"
+    WEBSOCKET = "websocket"
 
 
 class DeviceType(str, Enum):
