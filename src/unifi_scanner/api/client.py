@@ -441,6 +441,50 @@ class UnifiClient:
         logger.debug("ips_events_retrieved", count=len(events), site=site)
         return events
 
+    def get_devices(
+        self,
+        site: str,
+        device_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get device statistics from the controller.
+
+        Returns detailed device information including system stats,
+        temperatures, PoE status, and port information.
+
+        Args:
+            site: Site name to retrieve devices from.
+            device_type: Optional filter by type (uap, usw, ugw, udm).
+
+        Returns:
+            List of device dictionaries with system-stats, temps, etc.
+
+        Raises:
+            UnifiAPIError: API request failed.
+            RuntimeError: Not connected.
+
+        Example:
+            >>> devices = client.get_devices("default")
+            >>> for device in devices:
+            ...     print(f"{device['name']}: {device.get('type')}")
+        """
+        self._ensure_connected()
+        assert self.device_type is not None  # For type checker
+
+        endpoints = get_endpoints(self.device_type)
+        endpoint = endpoints.devices.format(site=site)
+
+        response = self._request("GET", endpoint)
+        data = response.json()
+
+        devices = data.get("data", data) if isinstance(data, dict) else data
+
+        # Optional type filter
+        if device_type:
+            devices = [d for d in devices if d.get("type") == device_type]
+
+        logger.debug("devices_retrieved", count=len(devices), site=site)
+        return devices
+
     def _raw_request(
         self,
         method: str,

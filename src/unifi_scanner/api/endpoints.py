@@ -24,6 +24,7 @@ class Endpoints:
         events: Events retrieval endpoint (POST)
         alarms: Alarms retrieval endpoint (GET)
         ips_events: IDS/IPS events retrieval endpoint (POST)
+        devices: Device statistics endpoint (GET)
     """
 
     login: str
@@ -34,6 +35,7 @@ class Endpoints:
     events: str
     alarms: str
     ips_events: str
+    devices: str
 
 
 # Endpoint definitions for UDM Pro, UDR, UCG Ultra, and Cloud Key Gen2+
@@ -47,6 +49,7 @@ UDM_PRO_ENDPOINTS = Endpoints(
     events="/proxy/network/api/s/{site}/stat/event",
     alarms="/proxy/network/api/s/{site}/list/alarm",
     ips_events="/proxy/network/api/s/{site}/stat/ips/event",
+    devices="/proxy/network/api/s/{site}/stat/device",
 )
 
 # Endpoint definitions for self-hosted UniFi Controller
@@ -60,6 +63,7 @@ SELF_HOSTED_ENDPOINTS = Endpoints(
     events="/api/s/{site}/stat/event",
     alarms="/api/s/{site}/list/alarm",
     ips_events="/api/s/{site}/stat/ips/event",
+    devices="/api/s/{site}/stat/device",
 )
 
 # API prefix required for site-specific endpoints
