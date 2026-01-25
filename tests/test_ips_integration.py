@@ -19,6 +19,8 @@ from unifi_scanner.models.finding import Finding
 from unifi_scanner.models.report import Report
 from unifi_scanner.reports.generator import ReportGenerator
 
+pytestmark = pytest.mark.asyncio
+
 
 # Sample IPS event matching real UniFi API structure
 # Using 8.8.8.8 as external IP (Google DNS - truly external)
@@ -90,7 +92,7 @@ def sample_report(sample_findings):
 class TestIPSAnalysisFlowsToReport:
     """Tests that IPS events are analyzed and appear in report output."""
 
-    def test_ips_analysis_appears_in_html_report(self, sample_report):
+    async def test_ips_analysis_appears_in_html_report(self, sample_report):
         """IPS events are analyzed and appear in HTML report output."""
         # Create IPS events
         ips_event = IPSEvent.from_api_event(SAMPLE_IPS_EVENT)
@@ -101,13 +103,13 @@ class TestIPSAnalysisFlowsToReport:
 
         # Generate report
         generator = ReportGenerator()
-        html = generator.generate_html(sample_report, ips_analysis=ips_analysis)
+        html = await generator.generate_html(sample_report, ips_analysis=ips_analysis)
 
         # Verify IPS section appears
         assert "Security Threat Summary" in html
         assert "Threats Blocked" in html
 
-    def test_ips_analysis_appears_in_text_report(self, sample_report):
+    async def test_ips_analysis_appears_in_text_report(self, sample_report):
         """IPS events are analyzed and appear in text report output."""
         # Create IPS events
         ips_event = IPSEvent.from_api_event(SAMPLE_IPS_EVENT)
@@ -118,7 +120,7 @@ class TestIPSAnalysisFlowsToReport:
 
         # Generate report
         generator = ReportGenerator()
-        text = generator.generate_text(sample_report, ips_analysis=ips_analysis)
+        text = await generator.generate_text(sample_report, ips_analysis=ips_analysis)
 
         # Verify IPS section appears
         assert "SECURITY THREAT SUMMARY" in text
@@ -128,10 +130,10 @@ class TestIPSAnalysisFlowsToReport:
 class TestEmptyIPSEventsHandled:
     """Tests that reports generate correctly with no IPS events."""
 
-    def test_empty_ips_events_html_report(self, sample_report):
+    async def test_empty_ips_events_html_report(self, sample_report):
         """Reports generate correctly with no IPS events (HTML)."""
         generator = ReportGenerator()
-        html = generator.generate_html(sample_report, ips_analysis=None)
+        html = await generator.generate_html(sample_report, ips_analysis=None)
 
         # Should not have IPS section heading (look for the <h2> tag content)
         # HTML comment "Security Threat Summary (IPS Analysis)" is allowed
@@ -139,23 +141,23 @@ class TestEmptyIPSEventsHandled:
         # Should still have regular report content
         assert "UniFi Network Report" in html
 
-    def test_empty_ips_events_text_report(self, sample_report):
+    async def test_empty_ips_events_text_report(self, sample_report):
         """Reports generate correctly with no IPS events (text)."""
         generator = ReportGenerator()
-        text = generator.generate_text(sample_report, ips_analysis=None)
+        text = await generator.generate_text(sample_report, ips_analysis=None)
 
         # Should not have IPS section header
         assert "SECURITY THREAT SUMMARY" not in text
         # Should still have regular content
         assert "Site: Test Site" in text
 
-    def test_empty_ips_analysis_result(self, sample_report):
+    async def test_empty_ips_analysis_result(self, sample_report):
         """Empty ThreatAnalysisResult renders correctly."""
         # Create empty result
         ips_analysis = ThreatAnalysisResult()
 
         generator = ReportGenerator()
-        html = generator.generate_html(sample_report, ips_analysis=ips_analysis)
+        html = await generator.generate_html(sample_report, ips_analysis=ips_analysis)
 
         # Section should appear but with "no threats" message
         assert "Security Threat Summary" in html
@@ -165,7 +167,7 @@ class TestEmptyIPSEventsHandled:
 class TestBlockedAndDetectedBothShown:
     """Tests that both blocked and detected threats appear in report."""
 
-    def test_blocked_and_detected_threats_in_html(self, sample_report):
+    async def test_blocked_and_detected_threats_in_html(self, sample_report):
         """Both blocked and detected threats appear in HTML report."""
         # Create mixed events
         blocked_event = IPSEvent.from_api_event(SAMPLE_IPS_EVENT)  # action=blocked
@@ -177,13 +179,13 @@ class TestBlockedAndDetectedBothShown:
 
         # Generate report
         generator = ReportGenerator()
-        html = generator.generate_html(sample_report, ips_analysis=ips_analysis)
+        html = await generator.generate_html(sample_report, ips_analysis=ips_analysis)
 
         # Both sections should appear
         assert "Threats Blocked" in html
         assert "Threats Detected" in html
 
-    def test_blocked_and_detected_threats_in_text(self, sample_report):
+    async def test_blocked_and_detected_threats_in_text(self, sample_report):
         """Both blocked and detected threats appear in text report."""
         # Create mixed events
         blocked_event = IPSEvent.from_api_event(SAMPLE_IPS_EVENT)
@@ -195,7 +197,7 @@ class TestBlockedAndDetectedBothShown:
 
         # Generate report
         generator = ReportGenerator()
-        text = generator.generate_text(sample_report, ips_analysis=ips_analysis)
+        text = await generator.generate_text(sample_report, ips_analysis=ips_analysis)
 
         # Both sections should appear
         assert "THREATS BLOCKED" in text
@@ -254,7 +256,7 @@ class TestDetectionModeNoteAppears:
         assert ips_analysis.detection_mode_note is not None
         assert "detection" in ips_analysis.detection_mode_note.lower()
 
-    def test_detection_mode_note_appears_in_html(self, sample_report):
+    async def test_detection_mode_note_appears_in_html(self, sample_report):
         """Detection mode note appears in HTML report."""
         events = [IPSEvent.from_api_event(SAMPLE_DETECTED_EVENT)]
 
@@ -262,7 +264,7 @@ class TestDetectionModeNoteAppears:
         ips_analysis = analyzer.process_events(events)
 
         generator = ReportGenerator()
-        html = generator.generate_html(sample_report, ips_analysis=ips_analysis)
+        html = await generator.generate_html(sample_report, ips_analysis=ips_analysis)
 
         assert "DETECTION MODE" in html
 
@@ -334,7 +336,7 @@ class TestReportGeneratorIPSContext:
         assert "ips_analysis" in context
         assert context["ips_analysis"] is None
 
-    def test_generate_html_accepts_ips_analysis(self, sample_report):
+    async def test_generate_html_accepts_ips_analysis(self, sample_report):
         """generate_html accepts optional ips_analysis parameter."""
         events = [IPSEvent.from_api_event(SAMPLE_IPS_EVENT)]
         analyzer = IPSAnalyzer()
@@ -342,10 +344,10 @@ class TestReportGeneratorIPSContext:
 
         generator = ReportGenerator()
         # Should not raise
-        html = generator.generate_html(sample_report, ips_analysis=ips_analysis)
+        html = await generator.generate_html(sample_report, ips_analysis=ips_analysis)
         assert isinstance(html, str)
 
-    def test_generate_text_accepts_ips_analysis(self, sample_report):
+    async def test_generate_text_accepts_ips_analysis(self, sample_report):
         """generate_text accepts optional ips_analysis parameter."""
         events = [IPSEvent.from_api_event(SAMPLE_IPS_EVENT)]
         analyzer = IPSAnalyzer()
@@ -353,5 +355,5 @@ class TestReportGeneratorIPSContext:
 
         generator = ReportGenerator()
         # Should not raise
-        text = generator.generate_text(sample_report, ips_analysis=ips_analysis)
+        text = await generator.generate_text(sample_report, ips_analysis=ips_analysis)
         assert isinstance(text, str)

@@ -23,6 +23,8 @@ from unifi_scanner.models.enums import DeviceType, Severity
 from unifi_scanner.models.report import Report
 from unifi_scanner.reports.generator import ReportGenerator
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 def sample_device_stats():
@@ -145,46 +147,46 @@ def empty_report():
 class TestHealthSectionHtmlRendering:
     """Tests for HTML template rendering with health_analysis."""
 
-    def test_html_includes_health_summary_header(self, empty_report, sample_health_result):
+    async def test_html_includes_health_summary_header(self, empty_report, sample_health_result):
         """Device Health Summary header should appear when health_analysis provided."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Device Health Summary" in html
 
-    def test_html_shows_device_counts(self, empty_report, sample_health_result):
+    async def test_html_shows_device_counts(self, empty_report, sample_health_result):
         """Executive summary should show total, healthy, warnings, critical counts."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         # Check for count values
         assert ">3</div>" in html  # total devices
         assert ">1</div>" in html  # healthy devices
 
-    def test_html_shows_critical_findings_with_badge(self, empty_report, sample_health_result):
+    async def test_html_shows_critical_findings_with_badge(self, empty_report, sample_health_result):
         """Critical findings should appear with CRITICAL badge."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Critical Issues" in html
         assert "CRITICAL" in html
         assert "Critical CPU Usage" in html
         assert "Office Switch" in html
 
-    def test_html_shows_warning_findings_with_badge(self, empty_report, sample_health_result):
+    async def test_html_shows_warning_findings_with_badge(self, empty_report, sample_health_result):
         """Warning findings should appear with WARNING badge."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Warnings" in html
         assert "WARNING" in html
         assert "High Memory Usage" in html
         assert "Main AP" in html
 
-    def test_html_shows_device_status_table(self, empty_report, sample_health_result):
+    async def test_html_shows_device_status_table(self, empty_report, sample_health_result):
         """Device status table should list all devices with status."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Device Status" in html
         assert "Office Switch" in html
@@ -194,19 +196,19 @@ class TestHealthSectionHtmlRendering:
         assert "UAP" in html
         assert "UGW" in html
 
-    def test_html_shows_remediation_boxes(self, empty_report, sample_health_result):
+    async def test_html_shows_remediation_boxes(self, empty_report, sample_health_result):
         """Remediation guidance should appear in styled boxes."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Recommended Actions" in html
         assert "Identify and address" in html
         assert "Consider scheduling" in html
 
-    def test_html_shows_current_vs_threshold_values(self, empty_report, sample_health_result):
+    async def test_html_shows_current_vs_threshold_values(self, empty_report, sample_health_result):
         """Current and threshold values should be displayed."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=sample_health_result)
+        html = await generator.generate_html(empty_report, health_analysis=sample_health_result)
 
         assert "Current:" in html
         assert "Threshold:" in html
@@ -217,20 +219,20 @@ class TestHealthSectionHtmlRendering:
 class TestHealthSectionWithoutData:
     """Tests for template rendering when health_analysis is None."""
 
-    def test_html_omits_health_section_when_none(self, empty_report):
+    async def test_html_omits_health_section_when_none(self, empty_report):
         """Health section should not appear when health_analysis is None."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=None)
+        html = await generator.generate_html(empty_report, health_analysis=None)
 
         # Check for actual rendered content, not HTML comments
         # The h2 header with blue border only appears when health_analysis is provided
         assert "Total Devices" not in html
         assert "Healthy</div>" not in html
 
-    def test_html_omits_health_section_when_not_provided(self, empty_report):
+    async def test_html_omits_health_section_when_not_provided(self, empty_report):
         """Health section should not appear when health_analysis not passed."""
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report)
+        html = await generator.generate_html(empty_report)
 
         # Check for actual rendered content, not HTML comments
         assert "Total Devices" not in html
@@ -240,7 +242,7 @@ class TestHealthSectionWithoutData:
 class TestEmptyHealthResult:
     """Tests for template rendering with empty health result."""
 
-    def test_html_shows_all_healthy_message(self, empty_report):
+    async def test_html_shows_all_healthy_message(self, empty_report):
         """When no issues, should show all healthy message."""
         healthy_result = DeviceHealthResult(
             critical_findings=[],
@@ -262,7 +264,7 @@ class TestEmptyHealthResult:
         )
 
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=healthy_result)
+        html = await generator.generate_html(empty_report, health_analysis=healthy_result)
 
         assert "Total Devices" in html  # Executive summary appears
         assert "All devices healthy" in html
@@ -270,7 +272,7 @@ class TestEmptyHealthResult:
         assert ">Critical Issues<" not in html
         assert 'color: #fd7e14; font-size: 16px; font-weight: 600;">Warnings' not in html
 
-    def test_html_shows_device_table_even_when_healthy(self, empty_report):
+    async def test_html_shows_device_table_even_when_healthy(self, empty_report):
         """Device status table should appear even when all devices healthy."""
         healthy_result = DeviceHealthResult(
             critical_findings=[],
@@ -292,7 +294,7 @@ class TestEmptyHealthResult:
         )
 
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=healthy_result)
+        html = await generator.generate_html(empty_report, health_analysis=healthy_result)
 
         assert "Device Status" in html
         assert "Healthy Switch" in html
@@ -302,56 +304,56 @@ class TestEmptyHealthResult:
 class TestHealthSectionTextRendering:
     """Tests for plain text template rendering."""
 
-    def test_text_includes_health_summary_header(self, empty_report, sample_health_result):
+    async def test_text_includes_health_summary_header(self, empty_report, sample_health_result):
         """DEVICE HEALTH SUMMARY header should appear in text output."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=sample_health_result)
+        text = await generator.generate_text(empty_report, health_analysis=sample_health_result)
 
         assert "DEVICE HEALTH SUMMARY" in text
 
-    def test_text_shows_device_counts(self, empty_report, sample_health_result):
+    async def test_text_shows_device_counts(self, empty_report, sample_health_result):
         """Executive summary line should show all counts."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=sample_health_result)
+        text = await generator.generate_text(empty_report, health_analysis=sample_health_result)
 
         assert "3 total" in text
         assert "1 healthy" in text
         assert "1 with warnings" in text
         assert "1 critical" in text
 
-    def test_text_shows_critical_issues_section(self, empty_report, sample_health_result):
+    async def test_text_shows_critical_issues_section(self, empty_report, sample_health_result):
         """CRITICAL ISSUES section should appear with findings."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=sample_health_result)
+        text = await generator.generate_text(empty_report, health_analysis=sample_health_result)
 
         assert "CRITICAL ISSUES" in text
         assert "[CRITICAL]" in text
         assert "Critical CPU Usage" in text
         assert "Office Switch" in text
 
-    def test_text_shows_warnings_section(self, empty_report, sample_health_result):
+    async def test_text_shows_warnings_section(self, empty_report, sample_health_result):
         """WARNINGS section should appear with findings."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=sample_health_result)
+        text = await generator.generate_text(empty_report, health_analysis=sample_health_result)
 
         assert "WARNINGS" in text
         assert "[WARNING]" in text
         assert "High Memory Usage" in text
         assert "Main AP" in text
 
-    def test_text_shows_device_status(self, empty_report, sample_health_result):
+    async def test_text_shows_device_status(self, empty_report, sample_health_result):
         """DEVICE STATUS section should list devices."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=sample_health_result)
+        text = await generator.generate_text(empty_report, health_analysis=sample_health_result)
 
         assert "DEVICE STATUS" in text
         assert "Office Switch" in text
         assert "USW" in text
 
-    def test_text_omits_health_section_when_none(self, empty_report):
+    async def test_text_omits_health_section_when_none(self, empty_report):
         """Health section should not appear when health_analysis is None."""
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=None)
+        text = await generator.generate_text(empty_report, health_analysis=None)
 
         assert "DEVICE HEALTH SUMMARY" not in text
 
@@ -400,14 +402,14 @@ class TestFullPipelineMock:
         assert len(memory_warning) == 1
         assert memory_warning[0].device_name == "Main AP"
 
-    def test_full_pipeline_produces_valid_html(self, sample_device_stats, empty_report):
+    async def test_full_pipeline_produces_valid_html(self, sample_device_stats, empty_report):
         """Full pipeline from raw data to HTML should work correctly."""
         # Simulate the pipeline
         analyzer = DeviceHealthAnalyzer()
         health_result = analyzer.analyze_devices(sample_device_stats)
 
         generator = ReportGenerator()
-        html = generator.generate_html(empty_report, health_analysis=health_result)
+        html = await generator.generate_html(empty_report, health_analysis=health_result)
 
         # Verify all expected content appears
         assert "Device Health Summary" in html
@@ -417,14 +419,14 @@ class TestFullPipelineMock:
         assert "Critical Issues" in html
         assert "Warnings" in html
 
-    def test_full_pipeline_produces_valid_text(self, sample_device_stats, empty_report):
+    async def test_full_pipeline_produces_valid_text(self, sample_device_stats, empty_report):
         """Full pipeline from raw data to text should work correctly."""
         # Simulate the pipeline
         analyzer = DeviceHealthAnalyzer()
         health_result = analyzer.analyze_devices(sample_device_stats)
 
         generator = ReportGenerator()
-        text = generator.generate_text(empty_report, health_analysis=health_result)
+        text = await generator.generate_text(empty_report, health_analysis=health_result)
 
         # Verify all expected content appears
         assert "DEVICE HEALTH SUMMARY" in text

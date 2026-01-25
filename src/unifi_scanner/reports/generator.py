@@ -11,6 +11,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from unifi_scanner.analysis.device_health import DeviceHealthResult
 from unifi_scanner.analysis.formatter import FindingFormatter
 from unifi_scanner.analysis.ips import ThreatAnalysisResult
+from unifi_scanner.integrations import IntegrationResults, IntegrationRunner
 from unifi_scanner.models.report import Report
 
 
@@ -30,6 +31,7 @@ class ReportGenerator:
         self,
         display_timezone: str = "UTC",
         report_title: str = "UniFi Network Report",
+        settings: Optional[Any] = None,
     ) -> None:
         """Initialize ReportGenerator with Jinja2 environment.
 
@@ -37,9 +39,12 @@ class ReportGenerator:
             display_timezone: IANA timezone name for timestamp display
                 (e.g., 'America/New_York'). Defaults to 'UTC'.
             report_title: Default title for generated reports.
+            settings: Optional settings for integration runner. If None,
+                integrations will return empty results (no integrations run).
         """
         self.report_title = report_title
         self.formatter = FindingFormatter(display_timezone=display_timezone)
+        self._settings = settings
 
         # Configure Jinja2 environment
         self.env = Environment(
@@ -54,6 +59,7 @@ class ReportGenerator:
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
         health_analysis: Optional[DeviceHealthResult] = None,
+        integrations: Optional[IntegrationResults] = None,
     ) -> Dict[str, Any]:
         """Build template context from a Report.
 
@@ -64,6 +70,7 @@ class ReportGenerator:
             report: Report containing findings to format
             ips_analysis: Optional IPS threat analysis results
             health_analysis: Optional device health analysis results
+            integrations: Optional integration results from IntegrationRunner
 
         Returns:
             Dictionary with template context:
@@ -78,6 +85,7 @@ class ReportGenerator:
             - counts: Dictionary with severity counts and total
             - ips_analysis: IPS threat analysis results (or None)
             - health_analysis: Device health analysis results (or None)
+            - integrations: Integration results (or None)
         """
         grouped = self.formatter.format_grouped_findings(report.findings)
 
@@ -98,9 +106,10 @@ class ReportGenerator:
             },
             "ips_analysis": ips_analysis,
             "health_analysis": health_analysis,
+            "integrations": integrations,
         }
 
-    def generate_html(
+    async def generate_html(
         self,
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
@@ -120,11 +129,17 @@ class ReportGenerator:
         Returns:
             Complete HTML document as string
         """
+        # Run integrations if settings provided
+        integrations = None
+        if self._settings:
+            runner = IntegrationRunner(self._settings)
+            integrations = await runner.run_all()
+
         template = self.env.get_template("report.html")
-        context = self._build_context(report, ips_analysis, health_analysis)
+        context = self._build_context(report, ips_analysis, health_analysis, integrations)
         return template.render(**context)
 
-    def generate_text(
+    async def generate_text(
         self,
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
@@ -145,6 +160,12 @@ class ReportGenerator:
         Returns:
             Plain text report as string
         """
+        # Run integrations if settings provided
+        integrations = None
+        if self._settings:
+            runner = IntegrationRunner(self._settings)
+            integrations = await runner.run_all()
+
         template = self.env.get_template("report.txt")
-        context = self._build_context(report, ips_analysis, health_analysis)
+        context = self._build_context(report, ips_analysis, health_analysis, integrations)
         return template.render(**context)

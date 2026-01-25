@@ -10,6 +10,8 @@ from unifi_scanner.models.finding import Finding
 from unifi_scanner.models.report import Report
 from unifi_scanner.reports import ReportGenerator
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 def sample_findings_mixed():
@@ -182,38 +184,38 @@ def report_no_severe():
 class TestGenerateHtmlBasics:
     """Basic tests for generate_html output."""
 
-    def test_generate_html_returns_string(self, sample_report_full):
+    async def test_generate_html_returns_string(self, sample_report_full):
         """Verify generate_html returns str type."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
         assert isinstance(html, str)
 
-    def test_generate_html_contains_doctype(self, sample_report_full):
+    async def test_generate_html_contains_doctype(self, sample_report_full):
         """Verify HTML contains DOCTYPE declaration."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
         assert "<!DOCTYPE html>" in html
 
-    def test_generate_html_contains_title(self, sample_report_full):
+    async def test_generate_html_contains_title(self, sample_report_full):
         """Verify HTML contains the report title."""
         rg = ReportGenerator(report_title="Custom Test Report")
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
         assert "Custom Test Report" in html
 
-    def test_generate_html_contains_site_name(self, sample_report_full):
+    async def test_generate_html_contains_site_name(self, sample_report_full):
         """Verify HTML contains the site name."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
         assert "Production Network" in html
 
 
 class TestSeverityOrdering:
     """Tests for severity section ordering in HTML output."""
 
-    def test_generate_html_severe_before_medium(self, sample_report_full):
+    async def test_generate_html_severe_before_medium(self, sample_report_full):
         """Verify SEVERE section appears before MEDIUM in output."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Find positions of severity sections
         severe_pos = html.find(">SEVERE<")
@@ -223,10 +225,10 @@ class TestSeverityOrdering:
         assert medium_pos > -1, "MEDIUM section not found"
         assert severe_pos < medium_pos, "SEVERE should appear before MEDIUM"
 
-    def test_generate_html_medium_before_low(self, sample_report_full):
+    async def test_generate_html_medium_before_low(self, sample_report_full):
         """Verify MEDIUM section appears before LOW in output."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         medium_pos = html.find(">MEDIUM<")
         low_pos = html.find(">LOW<")
@@ -239,10 +241,10 @@ class TestSeverityOrdering:
 class TestExecutiveSummary:
     """Tests for executive summary section."""
 
-    def test_generate_html_executive_summary_counts(self, sample_report_full):
+    async def test_generate_html_executive_summary_counts(self, sample_report_full):
         """Verify HTML contains all three severity counts."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Check for count badges in executive summary
         assert "2 Severe" in html
@@ -250,36 +252,36 @@ class TestExecutiveSummary:
         assert "3 Low" in html
         assert "7 findings total" in html
 
-    def test_generate_html_action_required_when_severe(self, sample_report_full):
+    async def test_generate_html_action_required_when_severe(self, sample_report_full):
         """Verify Action Required callout appears when severe findings exist."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
         assert "Action Required" in html
 
-    def test_generate_html_no_action_required_without_severe(self, report_no_severe):
+    async def test_generate_html_no_action_required_without_severe(self, report_no_severe):
         """Verify no Action Required callout when no severe findings."""
         rg = ReportGenerator()
-        html = rg.generate_html(report_no_severe)
+        html = await rg.generate_html(report_no_severe)
         assert "Action Required" not in html
 
 
 class TestSeverityBadges:
     """Tests for severity badges with correct colors."""
 
-    def test_generate_html_severity_badges(self, sample_report_full):
+    async def test_generate_html_severity_badges(self, sample_report_full):
         """Verify severity badges have correct inline colors."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Check for severity badge colors (inline styles)
         assert "#dc3545" in html  # red for severe
         assert "#fd7e14" in html  # orange for medium
         assert "#6c757d" in html  # gray for low
 
-    def test_generate_html_severe_badge_red(self, sample_report_full):
+    async def test_generate_html_severe_badge_red(self, sample_report_full):
         """Verify SEVERE badge uses red color."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Find a SEVERE badge with its color
         assert "background-color: #dc3545" in html
@@ -288,7 +290,7 @@ class TestSeverityBadges:
 class TestRecurringBadge:
     """Tests for recurring issue badge."""
 
-    def test_generate_html_recurring_badge(self, sample_findings_mixed):
+    async def test_generate_html_recurring_badge(self, sample_findings_mixed):
         """Verify recurring finding shows [Recurring] badge."""
         now = datetime.now(ZoneInfo("UTC"))
 
@@ -305,23 +307,23 @@ class TestRecurringBadge:
         )
 
         rg = ReportGenerator()
-        html = rg.generate_html(report)
+        html = await rg.generate_html(report)
         assert "[Recurring]" in html
 
 
 class TestRemediation:
     """Tests for remediation section display."""
 
-    def test_generate_html_remediation_displayed(self, sample_report_full):
+    async def test_generate_html_remediation_displayed(self, sample_report_full):
         """Verify severe finding remediation appears in output."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Check for remediation content from severe finding
         assert "Block the source IP" in html
         assert "Recommended Actions" in html
 
-    def test_generate_html_remediation_not_shown_for_low(self):
+    async def test_generate_html_remediation_not_shown_for_low(self):
         """Verify remediation is not displayed for LOW findings even if present."""
         now = datetime.now(ZoneInfo("UTC"))
 
@@ -347,7 +349,7 @@ class TestRemediation:
         )
 
         rg = ReportGenerator()
-        html = rg.generate_html(report)
+        html = await rg.generate_html(report)
 
         # The finding title should appear
         assert "[System] Low Finding" in html
@@ -359,19 +361,19 @@ class TestRemediation:
 class TestLowSectionToggle:
     """Tests for LOW section collapsibility."""
 
-    def test_generate_html_low_toggle_checkbox(self, sample_report_full):
+    async def test_generate_html_low_toggle_checkbox(self, sample_report_full):
         """Verify HTML contains checkbox input for LOW toggle."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         assert 'id="toggle-low"' in html
         assert 'type="checkbox"' in html
         assert "Show LOW severity findings" in html
 
-    def test_generate_html_low_content_hidden_by_default(self, sample_report_full):
+    async def test_generate_html_low_content_hidden_by_default(self, sample_report_full):
         """Verify LOW content div has class for CSS hiding."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         assert 'class="low-content"' in html
 
@@ -379,20 +381,20 @@ class TestLowSectionToggle:
 class TestEmptySections:
     """Tests for handling missing severity sections."""
 
-    def test_generate_html_no_severe_section_when_empty(self, report_no_severe):
+    async def test_generate_html_no_severe_section_when_empty(self, report_no_severe):
         """Verify no SEVERE heading when no severe findings."""
         rg = ReportGenerator()
-        html = rg.generate_html(report_no_severe)
+        html = await rg.generate_html(report_no_severe)
 
         # Should not have SEVERE section
         assert ">SEVERE<" not in html
         # But should still have MEDIUM
         assert ">MEDIUM<" in html
 
-    def test_generate_html_handles_empty_report(self, empty_report):
+    async def test_generate_html_handles_empty_report(self, empty_report):
         """Verify generate_html works with no findings."""
         rg = ReportGenerator()
-        html = rg.generate_html(empty_report)
+        html = await rg.generate_html(empty_report)
 
         assert "<!DOCTYPE html>" in html
         assert "0 Severe" in html
@@ -402,7 +404,7 @@ class TestEmptySections:
 class TestXSSPrevention:
     """Tests for HTML escaping (XSS prevention)."""
 
-    def test_generate_html_escapes_html_in_content(self):
+    async def test_generate_html_escapes_html_in_content(self):
         """Verify XSS: < and > in finding title are escaped."""
         now = datetime.now(ZoneInfo("UTC"))
 
@@ -427,7 +429,7 @@ class TestXSSPrevention:
         )
 
         rg = ReportGenerator()
-        html = rg.generate_html(report)
+        html = await rg.generate_html(report)
 
         # Script tags should be escaped
         assert "<script>" not in html
@@ -442,19 +444,19 @@ class TestXSSPrevention:
 class TestInlineStyles:
     """Tests for email compatibility (inline styles)."""
 
-    def test_generate_html_has_inline_styles(self, sample_report_full):
+    async def test_generate_html_has_inline_styles(self, sample_report_full):
         """Verify HTML has many inline style attributes."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         # Count style= occurrences
         style_count = html.count('style="')
         assert style_count >= 10, f"Expected many inline styles, found {style_count}"
 
-    def test_generate_html_uses_table_layout(self, sample_report_full):
+    async def test_generate_html_uses_table_layout(self, sample_report_full):
         """Verify HTML uses table-based layout (email safe)."""
         rg = ReportGenerator()
-        html = rg.generate_html(sample_report_full)
+        html = await rg.generate_html(sample_report_full)
 
         assert "<table" in html
         assert "role=\"presentation\"" in html

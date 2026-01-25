@@ -12,6 +12,8 @@ from unifi_scanner.models.finding import Finding
 from unifi_scanner.models.report import Report
 from unifi_scanner.reports import ReportGenerator
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 def sample_findings():
@@ -166,15 +168,15 @@ class TestBuildContext:
 class TestGenerateMethods:
     """Tests for generate methods now that they are implemented."""
 
-    def test_generate_html_returns_string(self, sample_report):
+    async def test_generate_html_returns_string(self, sample_report):
         """Verify generate_html returns string (detailed tests in test_reports_html.py)."""
         rg = ReportGenerator()
-        result = rg.generate_html(sample_report)
+        result = await rg.generate_html(sample_report)
         assert isinstance(result, str)
         assert "<!DOCTYPE html>" in result
 
-    def test_generate_text_returns_string(self, sample_report):
+    async def test_generate_text_returns_string(self, sample_report):
         """Verify generate_text returns string."""
         rg = ReportGenerator()
-        result = rg.generate_text(sample_report)
+        result = await rg.generate_text(sample_report)
         assert isinstance(result, str)
