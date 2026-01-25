@@ -61,6 +61,10 @@ class DeliveryManager:
         # Attempt email delivery
         if self.email_delivery and email_recipients:
             try:
+                log.debug(
+                    "email_delivery_attempting",
+                    recipients_count=len(email_recipients),
+                )
                 self.email_delivery.send(
                     recipients=email_recipients,
                     subject=self.email_delivery.build_subject(report),
@@ -79,6 +83,12 @@ class DeliveryManager:
                         file_format="both",
                         retention_days=30,
                     )
+        else:
+            # Log why email was skipped
+            if not self.email_delivery:
+                log.debug("email_delivery_skipped", reason="not_configured")
+            elif not email_recipients:
+                log.debug("email_delivery_skipped", reason="no_recipients")
 
         # File delivery (explicit or fallback)
         if self.file_delivery:

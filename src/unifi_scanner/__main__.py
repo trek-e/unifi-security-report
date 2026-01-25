@@ -595,6 +595,10 @@ def main() -> int:
         schedule_cron=config.schedule_cron,
         timezone=config.schedule_timezone,
         websocket_enabled=_ws_manager is not None,
+        email_enabled=config.email_enabled,
+        email_configured=bool(config.email_enabled and config.smtp_host),
+        email_recipients_count=len(config.get_email_recipients()),
+        file_enabled=config.file_enabled,
     )
 
     try:
