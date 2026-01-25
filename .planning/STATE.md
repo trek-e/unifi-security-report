@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 8 of 13 (Enhanced Security Analysis)
-Plan: 4 of 4 in current phase
-Status: Phase Complete
-Last activity: 2026-01-25 — Completed 08-04-PLAN.md (Service Integration and End-to-End Tests)
+Plan: 5 of 5 in current phase
+Status: Phase Complete (including gap closure plan)
+Last activity: 2026-01-25 — Completed 08-05-PLAN.md (Remediation Wiring Gap Closure)
 
-Progress: [################....] 80% (8/13 phases complete, Phase 8 COMPLETE)
+Progress: [################....] 80% (8/13 phases complete, Phase 8 COMPLETE with remediation gap closed)
 
 ## Milestones
 
@@ -35,9 +35,9 @@ See `.planning/MILESTONES.md` for full milestone history.
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33
+- Total plans completed: 34
 - Average duration: 4 min
-- Total execution time: 131 min
+- Total execution time: 134 min
 
 **By Phase:**
 
@@ -51,7 +51,7 @@ See `.planning/MILESTONES.md` for full milestone history.
 | 06-state-persistence | 2 | 8 min | 4 min |
 | 07-extended-wireless | 3 | 10 min | 3 min |
 | 13-websocket-support | 6 | 29 min | 5 min |
-| 08-enhanced-security | 4 | 21 min | 5 min |
+| 08-enhanced-security | 5 | 24 min | 5 min |
 
 ## Accumulated Context
 
@@ -86,6 +86,8 @@ Recent decisions affecting current work:
 - [v0.3.2-alpha]: False positive notes only for categories with common benign triggers
 - [v0.3.2-alpha]: IPS analysis is optional - failures don't prevent report generation
 - [v0.3.2-alpha]: Raw IPS events fetched separately for dedicated IPSAnalyzer processing
+- [v0.3.2-alpha]: Remediation uses first source IP from grouped threats as context
+- [v0.3.2-alpha]: Remediation shown only for detected threats in templates (blocked threats stopped)
 
 ### Pending Todos
 
@@ -114,9 +116,9 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 08-04-PLAN.md (Service Integration and End-to-End Tests)
-Resume file: None (Phase 8 complete)
+Stopped at: Completed 08-05-PLAN.md (Remediation Wiring Gap Closure)
+Resume file: None (Phase 8 fully complete with gap closure)
 
 ## Next Steps
 
-Phase 8 (Enhanced Security Analysis) complete. Ready for Phase 9 (Device Health Monitoring) or version bump to v0.3.2-alpha.
+Phase 8 (Enhanced Security Analysis) fully complete with remediation gap closed. Ready for Phase 9 (Device Health Monitoring) or version bump to v0.3.2-alpha.
