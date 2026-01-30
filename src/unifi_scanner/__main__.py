@@ -625,6 +625,11 @@ def main() -> int:
     # This authenticates once and shares the session across scheduled runs
     _ws_manager = start_session(config, log)
 
+    # Mark service as healthy now that session is established
+    # This happens before the scheduler starts, so Docker healthcheck passes
+    # while waiting for the first scheduled run
+    update_health_status(HealthStatus.HEALTHY, {"status": "waiting_for_schedule"})
+
     # Initialize scheduler
     runner = ScheduledRunner(timezone=config.schedule_timezone)
 

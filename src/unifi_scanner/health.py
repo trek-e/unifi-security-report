@@ -25,7 +25,7 @@ Example usage:
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -71,7 +71,7 @@ def update_health_status(
     """
     health_data = {
         "status": status.value,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "details": details or {},
     }
     HEALTH_FILE.write_text(json.dumps(health_data))

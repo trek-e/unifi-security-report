@@ -1,7 +1,7 @@
 """Tests for UniFi Scanner data models."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
@@ -23,7 +23,7 @@ class TestLogEntry:
     def test_creation_with_all_fields(self):
         """Test LogEntry creation with all fields populated."""
         entry = LogEntry(
-            timestamp=datetime(2026, 1, 24, 10, 0, 0),
+            timestamp=datetime(2026, 1, 24, 10, 0, 0, tzinfo=timezone.utc),
             source=LogSource.API,
             device_mac="00:11:22:33:44:55",
             device_name="Office AP",
@@ -33,7 +33,7 @@ class TestLogEntry:
             metadata={"custom": "data"},
         )
 
-        assert entry.timestamp == datetime(2026, 1, 24, 10, 0, 0)
+        assert entry.timestamp == datetime(2026, 1, 24, 10, 0, 0, tzinfo=timezone.utc)
         assert entry.source == LogSource.API
         assert entry.device_mac == "00:11:22:33:44:55"
         assert entry.device_name == "Office AP"
@@ -65,7 +65,7 @@ class TestLogEntry:
     def test_json_serialization_roundtrip(self):
         """Test LogEntry serializes to JSON and back correctly."""
         original = LogEntry(
-            timestamp=datetime(2026, 1, 24, 10, 0, 0),
+            timestamp=datetime(2026, 1, 24, 10, 0, 0, tzinfo=timezone.utc),
             source=LogSource.SSH,
             device_mac="aa:bb:cc:dd:ee:ff",
             event_type="EVT_Test",
@@ -77,8 +77,8 @@ class TestLogEntry:
         json_str = original.model_dump_json()
         data = json.loads(json_str)
 
-        # Verify serialization
-        assert data["timestamp"] == "2026-01-24T10:00:00"
+        # Verify serialization - includes timezone offset
+        assert data["timestamp"] == "2026-01-24T10:00:00+00:00"
         assert data["source"] == "ssh"
         assert isinstance(data["id"], str)
 

@@ -37,6 +37,7 @@ def _get_category_description(category: str) -> str:
         "web-application-attack": "Attack targeting web application vulnerabilities.",
         "inappropriate-content": "Content policy violation detected.",
         "misc-activity": "Suspicious but uncategorized network activity.",
+        "blocked": "Threat traffic blocked by IPS. Signature details unavailable via MongoDB.",
     }
     return descriptions.get(category.lower(), f"Security event in category: {category}")
 

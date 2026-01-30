@@ -11,6 +11,7 @@ from unifi_scanner.analysis.rules import (
     PERFORMANCE_RULES,
     SYSTEM_RULES,
     WIRELESS_RULES,
+    HEALTH_RULES,
     ALL_RULES,
     get_default_registry,
 )
@@ -23,8 +24,8 @@ class TestRuleAggregation:
     """Tests for rule aggregation and counting."""
 
     def test_all_rules_count(self):
-        """Verify total rule count is 27 (4 + 7 + 5 + 7 + 4)."""
-        assert len(ALL_RULES) == 27, f"Expected 27 rules, got {len(ALL_RULES)}"
+        """Verify total rule count is 29 (4 + 7 + 5 + 7 + 4 + 2)."""
+        assert len(ALL_RULES) == 29, f"Expected 29 rules, got {len(ALL_RULES)}"
 
     def test_security_rules_count(self):
         """Verify security has 4 rules."""
@@ -45,6 +46,10 @@ class TestRuleAggregation:
     def test_wireless_rules_count(self):
         """Verify wireless has 4 rules."""
         assert len(WIRELESS_RULES) == 4
+
+    def test_health_rules_count(self):
+        """Verify health has 2 rules (PoE disconnect/overload)."""
+        assert len(HEALTH_RULES) == 2
 
     def test_all_rules_unique_names(self):
         """Verify all rule names are unique."""
@@ -130,19 +135,20 @@ class TestTitleFormat:
     """Tests for title formatting conventions."""
 
     CATEGORY_PREFIXES = {
-        Category.SECURITY: "[Security]",
-        Category.CONNECTIVITY: "[Connectivity]",
-        Category.PERFORMANCE: "[Performance]",
-        Category.SYSTEM: "[System]",
-        Category.WIRELESS: "[Wireless]",
+        Category.SECURITY: ["[Security]"],
+        Category.CONNECTIVITY: ["[Connectivity]"],
+        Category.PERFORMANCE: ["[Performance]"],
+        Category.SYSTEM: ["[System]", "[Device Health]"],  # Health rules use Device Health
+        Category.WIRELESS: ["[Wireless]"],
     }
 
     @pytest.mark.parametrize("rule", ALL_RULES, ids=lambda r: r.name)
     def test_title_includes_category_prefix(self, rule):
-        """All titles must include category prefix in brackets."""
-        expected_prefix = self.CATEGORY_PREFIXES.get(rule.category)
-        assert expected_prefix in rule.title_template, (
-            f"Rule {rule.name} title must start with {expected_prefix}"
+        """All titles must include a valid category prefix in brackets."""
+        valid_prefixes = self.CATEGORY_PREFIXES.get(rule.category, [])
+        has_valid_prefix = any(prefix in rule.title_template for prefix in valid_prefixes)
+        assert has_valid_prefix, (
+            f"Rule {rule.name} title must include one of {valid_prefixes}"
         )
 
 

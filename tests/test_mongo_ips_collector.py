@@ -40,7 +40,7 @@ class TestMongoIPSCollector:
         assert normalized["dest_ip"] == "192.168.0.26"
         assert normalized["severity"] == 1  # HIGH maps to 1
         assert normalized["device_name"] == "Dream Machine Pro"
-        assert normalized["is_blocked"] is True or normalized["action"] == "blocked"
+        assert normalized["action"] == "blocked"  # MongoDB alerts are always blocked threats
 
     def test_normalize_alert_handles_missing_fields(self):
         """Test that missing fields are handled gracefully."""

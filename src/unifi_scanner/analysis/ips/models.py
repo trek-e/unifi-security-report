@@ -155,15 +155,25 @@ class IPSEvent(BaseModel):
 
         # Build a descriptive signature from available info
         src_ip = alert.get("src_ip", "unknown")
+        dest_ip = alert.get("dest_ip", "")
         severity_str = alert.get("severity_str", "MEDIUM")
-        signature = f"Blocked Threat from {src_ip} ({severity_str})"
+
+        # Use source IP as the signature to group by attacker
+        # This makes each source IP a separate threat summary
+        signature = f"Blocked Threat from {src_ip}"
+
+        # Create a more informative category name showing the threat direction
+        if dest_ip:
+            category_friendly = f"Blocked: {src_ip} → {dest_ip}"
+        else:
+            category_friendly = f"Blocked: {src_ip}"
 
         return cls(
             id=alert.get("_id", ""),
             timestamp=timestamp,
             src_ip=src_ip,
             src_port=alert.get("src_port"),
-            dest_ip=alert.get("dest_ip", ""),
+            dest_ip=dest_ip,
             dest_port=alert.get("dest_port"),
             proto=alert.get("proto", ""),
             signature=signature,
@@ -171,6 +181,6 @@ class IPSEvent(BaseModel):
             category_raw=alert.get("category_raw", "blocked"),
             severity=alert.get("severity", 2),
             action=alert.get("action", "blocked"),
-            category_friendly="Blocked Threat",
+            category_friendly=category_friendly,
             is_blocked=True,  # MongoDB alerts are always blocked threats
         )
