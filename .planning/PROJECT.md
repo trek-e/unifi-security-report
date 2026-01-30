@@ -65,7 +65,7 @@ Translate cryptic UniFi logs into understandable findings with actionable remedi
 
 ## Current State
 
-**Shipped:** v0.4-alpha (2026-01-25)
+**Shipped:** v0.6.0b (2026-01-29)
 
 All planned phases complete. Project has shipped:
 - v0.2-alpha: Production-ready containerized service (Phases 1-5)
@@ -77,9 +77,11 @@ All planned phases complete. Project has shipped:
 - v0.3.5-alpha: Cloudflare integration (Phase 11)
 - v0.3.15-alpha: WebSocket support (Phase 13)
 - v0.4-alpha: Cybersecure integration (Phase 12)
+- v0.5.5b: MongoDB IPS collection via SSH (Phase 14)
+- v0.6.0b: MongoDB IPS report improvements, Docker healthcheck fix
 
 **Next Milestone Goals:**
-- v0.5 planning not started
+- v0.7 planning not started
 - Potential features: Interference detection, threat intelligence enrichment, anomaly detection
 
 ## Codebase
@@ -110,4 +112,4 @@ All planned phases complete. Project has shipped:
 | Purple badge for Cybersecure | Differentiates from severity badges | Good |
 
 ---
-*Last updated: 2026-01-25 after v0.4-alpha milestone completion*
+*Last updated: 2026-01-29 after v0.6.0b release*
