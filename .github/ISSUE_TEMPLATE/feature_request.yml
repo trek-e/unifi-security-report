@@ -1,0 +1,49 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for the scanner? We'd love to hear it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What would you like to see?
+      description: Describe the feature or improvement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: How would you use this? What problem does it solve?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: controller
+    attributes:
+      label: Controller Hardware (if relevant)
+      description: Leave as "Not applicable" if this isn't hardware-specific.
+      options:
+        - Not applicable
+        - UDM Pro
+        - UDM Pro Max
+        - UDM SE
+        - UCG Ultra
+        - UCG Max
+        - Cloud Key Gen2 Plus
+        - Self-hosted Controller
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else — screenshots, links, related issues, etc.
+    validations:
+      required: false

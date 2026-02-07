@@ -1,0 +1,101 @@
+name: Bug Report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! The more detail you can provide, the faster we can help.
+
+  - type: input
+    id: version
+    attributes:
+      label: Scanner Version
+      description: Run `docker logs <container> 2>&1 | head -5` to find the version, or check the startup banner.
+      placeholder: "e.g. 0.6.1b"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: controller
+    attributes:
+      label: Controller Hardware
+      description: What UniFi device are you running?
+      options:
+        - UDM Pro
+        - UDM Pro Max
+        - UDM SE
+        - UCG Ultra
+        - UCG Max
+        - Cloud Key Gen2 Plus
+        - Self-hosted Controller
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: network_version
+    attributes:
+      label: UniFi Network Application Version
+      description: "Found in UniFi settings > System. Example: 9.0.114 or 10.1.3"
+      placeholder: "e.g. 10.1.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How are you running the scanner?
+      options:
+        - Docker with network_mode host
+        - Docker with bridge networking
+        - Docker Compose
+        - Local Python install
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: |
+        Paste your docker-compose.yml environment section or environment variables.
+        **Remove passwords and API tokens** — replace them with `REDACTED`.
+      render: yaml
+      placeholder: |
+        environment:
+          UNIFI_HOST: 192.168.1.1
+          UNIFI_USERNAME: admin
+          UNIFI_VERIFY_SSL: "false"
+          UNIFI_SCHEDULE_PRESET: daily_8am
+          # ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe what you expected to happen and what actually happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Set `UNIFI_LOG_LEVEL: DEBUG` and paste the relevant log output.
+        Run: `docker logs <container> 2>&1 | tail -50`
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else that might help (screenshots, network topology, etc.)
+    validations:
+      required: false
