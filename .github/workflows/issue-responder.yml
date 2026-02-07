@@ -1,0 +1,59 @@
+name: Issue Auto-Responder
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  respond:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Triage and respond
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.issue.title.toLowerCase();
+            const body = (context.payload.issue.body || '').toLowerCase();
+            const text = title + ' ' + body;
+            const issueNumber = context.payload.issue.number;
+
+            // Detect issue category from keywords
+            const isConnection = /connect|connection|cannot connect|can't connect|refused|timeout|unreachable/.test(text);
+            const isSSL = /ssl|certificate|verify|tls|self.signed/.test(text);
+            const isIPS = /ips|ids|intrusion|threat|suricata|mongodb|mongo/.test(text);
+            const isDocker = /docker|container|compose|image|ghcr/.test(text);
+
+            let response = `Thanks for opening this issue! :wave:\n\n`;
+
+            if (isConnection || isSSL) {
+              response += `This looks like it might be a **connection or SSL issue**. A few quick things to check while we look into it:\n\n`;
+              response += `1. **SSL verification** — UniFi devices use self-signed certificates. Make sure you have \`UNIFI_VERIFY_SSL: "false"\` in your configuration\n`;
+              response += `2. **Network access** — If running in Docker, \`network_mode: host\` is usually needed to reach the controller on your LAN\n`;
+              response += `3. **Correct port** — UDM/UCG devices use port 443, self-hosted controllers use 8443\n\n`;
+              response += `If you haven't already, setting \`UNIFI_LOG_LEVEL: DEBUG\` and sharing the output will help us pinpoint the exact failure.\n`;
+            } else if (isIPS) {
+              response += `This looks **IPS/threat-related**. A few things to note:\n\n`;
+              response += `- The UniFi API does not expose IPS events directly ([tracking issue](https://github.com/trek-e/unifi-security-report/issues/13))\n`;
+              response += `- The scanner works around this by querying MongoDB on-device via SSH (requires SSH key auth)\n`;
+              response += `- Make sure \`UNIFI_SSH_ENABLED: "true"\` and \`UNIFI_SSH_KEY_PATH\` are configured\n\n`;
+              response += `See the [SSH setup docs](https://github.com/trek-e/unifi-security-report#ssh-settings-for-ips-via-mongodb) for details.\n`;
+            } else if (isDocker) {
+              response += `This looks **Docker-related**. A few common things to check:\n\n`;
+              response += `- Use \`network_mode: host\` to allow the container to reach your UniFi controller on the LAN\n`;
+              response += `- Mount secrets as read-only: \`/run/secrets/ssh_key:ro\`\n`;
+              response += `- Check container logs: \`docker logs unifi-security-report 2>&1 | tail -50\`\n`;
+            } else {
+              response += `We'll take a look as soon as we can.\n`;
+            }
+
+            response += `\n---\n*This is an automated response to help with common issues. A maintainer will follow up shortly.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: response,
+            });
