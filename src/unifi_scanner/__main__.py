@@ -283,7 +283,6 @@ def run_report_job() -> None:
     8. Update state only after successful delivery
     """
     global _ws_manager, _rest_client, _rest_client_site
-    import time
 
     from unifi_scanner.analysis import AnalysisEngine
     from unifi_scanner.analysis.ips import IPSAnalyzer, IPSEvent
@@ -363,20 +362,10 @@ def run_report_job() -> None:
         findings = engine.analyze(log_entries)
         log.info("analysis_complete", findings_count=len(findings))
 
-        # Collect and analyze IPS events
+        # Collect and analyze IPS events (reuse events already fetched by LogCollector)
         ips_analysis = None
         try:
-            # Get raw IPS events for IPS-specific analysis
-            # Calculate time range from since_timestamp
-            end_ms = int(time.time() * 1000)
-            hours_since = int((datetime.now(timezone.utc) - since_timestamp).total_seconds() / 3600) + 1
-            start_ms = end_ms - (hours_since * 60 * 60 * 1000)
-
-            raw_ips_events = client.get_ips_events(
-                site=site,
-                start=start_ms,
-                end=end_ms,
-            )
+            raw_ips_events = collector.raw_ips_events
 
             # If API returns empty, try MongoDB via SSH (UDM Pro workaround)
             if not raw_ips_events and config.ssh_enabled and config.ssh_key_path:
@@ -466,13 +455,30 @@ def run_report_job() -> None:
             log_entry_count=len(log_entries),
         )
 
-        # Generate report content (async for integration runner support)
-        generator = ReportGenerator(
-            display_timezone=config.schedule_timezone,
-            settings=config,
-        )
-        html_content = asyncio.run(generator.generate_html(report, ips_analysis=ips_analysis, health_analysis=health_analysis))
-        text_content = asyncio.run(generator.generate_text(report, ips_analysis=ips_analysis, health_analysis=health_analysis))
+        # Generate report content in a single asyncio.run() call
+        # Integrations (e.g. Cloudflare WAF) run once and results are
+        # shared between both HTML and text generation.
+        async def _generate_reports() -> tuple[str, str]:
+            from unifi_scanner.integrations import IntegrationRunner
+            integrations = None
+            if config:
+                runner = IntegrationRunner(config)
+                integrations = await runner.run_all()
+
+            generator = ReportGenerator(
+                display_timezone=config.schedule_timezone,
+            )
+            html = await generator.generate_html(
+                report, ips_analysis=ips_analysis,
+                health_analysis=health_analysis, integrations=integrations,
+            )
+            text = await generator.generate_text(
+                report, ips_analysis=ips_analysis,
+                health_analysis=health_analysis, integrations=integrations,
+            )
+            return html, text
+
+        html_content, text_content = asyncio.run(_generate_reports())
 
         # Set up delivery
         email_delivery = None

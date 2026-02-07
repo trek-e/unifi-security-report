@@ -65,6 +65,7 @@ class APILogCollector:
         self.history_hours = history_hours
         self.since_timestamp = since_timestamp
         self._parser = LogParser()
+        self.raw_ips_events: list[dict] = []
 
     def collect(
         self,
@@ -143,6 +144,7 @@ class APILogCollector:
                     start=start_ms,
                     end=end_ms,
                 )
+                self.raw_ips_events = ips_events
                 parsed_ips = self._parser.parse_api_events(ips_events)
                 entries.extend(parsed_ips)
                 # Log IPS events count at INFO level for visibility

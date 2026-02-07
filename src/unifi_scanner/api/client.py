@@ -85,6 +85,9 @@ class UnifiClient:
         self.api_prefix: Optional[str] = None
         self._csrf_token: Optional[str] = None
 
+        # Cache for IPS endpoint discovery (avoids re-probing on every run)
+        self._ips_endpoint_cache: Optional[Dict[str, Any]] = None
+
         # Create retry decorator based on settings
         self._retry = create_retry_decorator(
             max_retries=settings.max_retries,
@@ -446,8 +449,39 @@ class UnifiClient:
             limit=body["_limit"],
         )
 
+        # Try cached endpoint first (avoids re-probing alternatives every run)
+        if self._ips_endpoint_cache is not None:
+            try:
+                cached = self._ips_endpoint_cache
+                logger.debug("ips_using_cached_endpoint", endpoint=cached["endpoint"], method=cached["method"])
+                if cached["method"] == "GET":
+                    cache_resp = self._request("GET", cached["endpoint"])
+                else:
+                    cache_resp = self._request("POST", cached["endpoint"], json=cached.get("json", body))
+                cache_data = cache_resp.json()
+
+                cache_events: list = []
+                if isinstance(cache_data, dict) and "data" in cache_data:
+                    cache_events = cache_data["data"]
+                elif isinstance(cache_data, list):
+                    cache_events = cache_data
+
+                if cache_events:
+                    logger.debug("ips_cache_hit", endpoint=cached["endpoint"], count=len(cache_events))
+                    return self._finalize_ips_events(cache_events, site)
+                else:
+                    logger.debug("ips_cache_miss_empty", endpoint=cached["endpoint"])
+                    self._ips_endpoint_cache = None
+            except Exception as e:
+                logger.debug("ips_cache_miss_error", endpoint=self._ips_endpoint_cache.get("endpoint"), error=str(e))
+                self._ips_endpoint_cache = None
+
         response = self._request("POST", endpoint, json=body)
         data = response.json()
+
+        # If primary endpoint has data, cache it
+        if isinstance(data, dict) and len(data.get("data", [])) > 0:
+            self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint, "json": body}
 
         # If no results, try without time filter to check if endpoint works at all
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
@@ -461,6 +495,8 @@ class UnifiClient:
                     message="Events exist but time filter excluded them",
                 )
                 data = data2
+                # Cache the no-filter variant so next run skips straight to it
+                self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint, "json": {"_limit": 100}}
 
         # If still no results, try alternative endpoints for UDM Pro
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
@@ -477,14 +513,14 @@ class UnifiClient:
                 {"method": "POST", "endpoint": f"/proxy/network/api/s/{site}/stat/report/hourly.ips",
                  "json": {"attrs": ["bytes", "num_sta"], "start": start, "end": end}},
             ]
-            for config in alt_configs:
+            for alt_config in alt_configs:
                 try:
-                    alt_endpoint = config["endpoint"]
-                    logger.debug("ips_events_trying_alt", endpoint=alt_endpoint, method=config["method"])
-                    if config["method"] == "GET":
+                    alt_endpoint = alt_config["endpoint"]
+                    logger.debug("ips_events_trying_alt", endpoint=alt_endpoint, method=alt_config["method"])
+                    if alt_config["method"] == "GET":
                         alt_response = self._request("GET", alt_endpoint)
                     else:
-                        alt_response = self._request("POST", alt_endpoint, json=config.get("json", {}))
+                        alt_response = self._request("POST", alt_endpoint, json=alt_config.get("json", {}))
                     alt_data = alt_response.json()
 
                     # Log what we found
@@ -506,26 +542,30 @@ class UnifiClient:
                     # For ipsrecord endpoint, any results are good
                     if "ipsrecord" in alt_endpoint and alt_count > 0:
                         logger.info("ips_events_found_alt_endpoint", endpoint=alt_endpoint, count=alt_count)
+                        self._ips_endpoint_cache = alt_config
                         data = alt_data
                         break
                 except Exception as e:
                     logger.debug("ips_events_alt_failed", endpoint=alt_endpoint, error=str(e))
 
-        # Debug: Log raw response structure
-        logger.debug(
-            "ips_events_response",
-            response_keys=list(data.keys()) if isinstance(data, dict) else "list",
-            meta=data.get("meta") if isinstance(data, dict) else None,
-            data_count=len(data.get("data", [])) if isinstance(data, dict) else len(data) if isinstance(data, list) else 0,
-        )
-
-        # Extract IPS events from response wrapper
+        # Extract and log events
         if isinstance(data, dict) and "data" in data:
             events = data["data"]
         else:
             events = data if isinstance(data, list) else []
 
-        # Debug: Log sample event structure to help troubleshoot
+        return self._finalize_ips_events(events, site)
+
+    def _finalize_ips_events(
+        self,
+        events: List[Dict[str, Any]],
+        site: str,
+    ) -> List[Dict[str, Any]]:
+        """Log IPS event details and return the event list.
+
+        Shared by both the cache path and the full discovery path
+        in get_ips_events().
+        """
         if events:
             sample = events[0]
             inner = sample.get("inner_alert", {})

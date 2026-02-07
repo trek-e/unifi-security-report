@@ -1,5 +1,5 @@
 # UniFi Security Report - Docker Compose Configuration
-# v0.5.5b - Includes MongoDB IPS collection via SSH
+# v0.6.1b - API efficiency optimizations, IPS endpoint caching
 
 services:
   unifi-security-report:

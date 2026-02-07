@@ -82,6 +82,7 @@ class LogCollector:
         self.device_type = device_type or client.device_type
         self.min_entries = min_entries
         self._ws_manager = ws_manager
+        self.raw_ips_events: list[dict] = []
 
     def collect(
         self,
@@ -150,6 +151,7 @@ class LogCollector:
                     since_timestamp=since_timestamp,
                 )
                 api_events = api_collector.collect()
+                self.raw_ips_events = api_collector.raw_ips_events
                 api_succeeded = True  # API call succeeded, even if 0 entries
 
                 if api_events:

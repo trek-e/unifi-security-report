@@ -114,6 +114,7 @@ class ReportGenerator:
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
         health_analysis: Optional[DeviceHealthResult] = None,
+        integrations: Optional[IntegrationResults] = None,
     ) -> str:
         """Generate HTML report from Report model.
 
@@ -125,13 +126,15 @@ class ReportGenerator:
             report: Report object containing findings to render
             ips_analysis: Optional IPS threat analysis results
             health_analysis: Optional device health analysis results
+            integrations: Optional pre-computed integration results.
+                If None and settings are configured, integrations are
+                run internally for backward compatibility.
 
         Returns:
             Complete HTML document as string
         """
-        # Run integrations if settings provided
-        integrations = None
-        if self._settings:
+        # Run integrations internally only if not pre-supplied
+        if integrations is None and self._settings:
             runner = IntegrationRunner(self._settings)
             integrations = await runner.run_all()
 
@@ -144,6 +147,7 @@ class ReportGenerator:
         report: Report,
         ips_analysis: Optional[ThreatAnalysisResult] = None,
         health_analysis: Optional[DeviceHealthResult] = None,
+        integrations: Optional[IntegrationResults] = None,
     ) -> str:
         """Generate plain text report from Report model.
 
@@ -156,13 +160,15 @@ class ReportGenerator:
             report: Report object containing findings to render
             ips_analysis: Optional IPS threat analysis results
             health_analysis: Optional device health analysis results
+            integrations: Optional pre-computed integration results.
+                If None and settings are configured, integrations are
+                run internally for backward compatibility.
 
         Returns:
             Plain text report as string
         """
-        # Run integrations if settings provided
-        integrations = None
-        if self._settings:
+        # Run integrations internally only if not pre-supplied
+        if integrations is None and self._settings:
             runner = IntegrationRunner(self._settings)
             integrations = await runner.run_all()
 
