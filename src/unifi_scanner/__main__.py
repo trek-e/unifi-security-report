@@ -460,10 +460,8 @@ def run_report_job() -> None:
         # shared between both HTML and text generation.
         async def _generate_reports() -> tuple[str, str]:
             from unifi_scanner.integrations import IntegrationRunner
-            integrations = None
-            if config:
-                runner = IntegrationRunner(config)
-                integrations = await runner.run_all()
+            runner = IntegrationRunner(config)
+            integrations = await runner.run_all()
 
             generator = ReportGenerator(
                 display_timezone=config.schedule_timezone,

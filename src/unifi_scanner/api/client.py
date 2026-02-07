@@ -450,14 +450,16 @@ class UnifiClient:
         )
 
         # Try cached endpoint first (avoids re-probing alternatives every run)
+        # Cache stores only endpoint+method, never the request body (which
+        # contains caller-specific timestamps that would go stale).
         if self._ips_endpoint_cache is not None:
+            cached = self._ips_endpoint_cache
             try:
-                cached = self._ips_endpoint_cache
                 logger.debug("ips_using_cached_endpoint", endpoint=cached["endpoint"], method=cached["method"])
                 if cached["method"] == "GET":
                     cache_resp = self._request("GET", cached["endpoint"])
                 else:
-                    cache_resp = self._request("POST", cached["endpoint"], json=cached.get("json", body))
+                    cache_resp = self._request("POST", cached["endpoint"], json=body)
                 cache_data = cache_resp.json()
 
                 cache_events: list = []
@@ -473,7 +475,7 @@ class UnifiClient:
                     logger.debug("ips_cache_miss_empty", endpoint=cached["endpoint"])
                     self._ips_endpoint_cache = None
             except Exception as e:
-                logger.debug("ips_cache_miss_error", endpoint=self._ips_endpoint_cache.get("endpoint"), error=str(e))
+                logger.debug("ips_cache_miss_error", endpoint=cached["endpoint"], error=str(e))
                 self._ips_endpoint_cache = None
 
         response = self._request("POST", endpoint, json=body)
@@ -481,7 +483,7 @@ class UnifiClient:
 
         # If primary endpoint has data, cache it
         if isinstance(data, dict) and len(data.get("data", [])) > 0:
-            self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint, "json": body}
+            self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint}
 
         # If no results, try without time filter to check if endpoint works at all
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
@@ -495,8 +497,8 @@ class UnifiClient:
                     message="Events exist but time filter excluded them",
                 )
                 data = data2
-                # Cache the no-filter variant so next run skips straight to it
-                self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint, "json": {"_limit": 100}}
+                # Cache the endpoint so next run tries it first
+                self._ips_endpoint_cache = {"method": "POST", "endpoint": endpoint}
 
         # If still no results, try alternative endpoints for UDM Pro
         if isinstance(data, dict) and len(data.get("data", [])) == 0:
@@ -542,7 +544,7 @@ class UnifiClient:
                     # For ipsrecord endpoint, any results are good
                     if "ipsrecord" in alt_endpoint and alt_count > 0:
                         logger.info("ips_events_found_alt_endpoint", endpoint=alt_endpoint, count=alt_count)
-                        self._ips_endpoint_cache = alt_config
+                        self._ips_endpoint_cache = {"method": alt_config["method"], "endpoint": alt_endpoint}
                         data = alt_data
                         break
                 except Exception as e:
