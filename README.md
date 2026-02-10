@@ -146,6 +146,20 @@ unifi-scanner --help
 | `UNIFI_EMAIL_ENABLED` | Enable email delivery | `false` |
 | `UNIFI_FILE_ENABLED` | Enable file output | `false` |
 
+### Email Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `UNIFI_EMAIL_ENABLED` | Enable email delivery | `false` |
+| `UNIFI_SMTP_HOST` | SMTP server hostname | Required when email enabled |
+| `UNIFI_SMTP_PORT` | SMTP port (587=STARTTLS, 465=implicit TLS) | `587` |
+| `UNIFI_SMTP_USER` | SMTP auth username | None |
+| `UNIFI_SMTP_PASSWORD` | SMTP auth password | None |
+| `UNIFI_SMTP_USE_TLS` | Enable TLS encryption | `true` |
+| `UNIFI_EMAIL_FROM` | Sender address | `unifi-scanner@localhost` |
+| `UNIFI_EMAIL_RECIPIENTS` | Comma-separated recipient addresses (sent via BCC) | None |
+| `UNIFI_TIMEZONE` | Timezone for report timestamps | `UTC` |
+
 ### SSH Settings (for IPS via MongoDB)
 
 The UniFi Network API does not expose IPS/threat events. To collect blocked threat data, the scanner can SSH into UDM Pro devices and query MongoDB directly. This requires SSH key authentication (password auth is disabled on UDM Pro).

@@ -349,7 +349,11 @@ class UnifiSettings(BaseSettings):
         If email_enabled is True, smtp_host must be set.
         """
         if self.email_enabled and not self.smtp_host:
-            raise ValueError("smtp_host is required when email_enabled is True")
+            raise ValueError(
+                "smtp_host is required when email_enabled is True. "
+                "Set UNIFI_SMTP_HOST, UNIFI_EMAIL_RECIPIENTS, and optionally "
+                "UNIFI_SMTP_USER / UNIFI_SMTP_PASSWORD for authentication."
+            )
         return self
 
     @model_validator(mode="after")

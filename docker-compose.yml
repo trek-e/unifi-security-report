@@ -32,6 +32,15 @@ services:
       UNIFI_SSH_USERNAME: root
       # UNIFI_SSH_KEY_PASSPHRASE: ""  # Uncomment if key is encrypted
 
+      # Email Delivery (uncomment to enable)
+      # UNIFI_EMAIL_ENABLED: "true"
+      # UNIFI_SMTP_HOST: smtp.gmail.com
+      # UNIFI_SMTP_PORT: "587"
+      # UNIFI_SMTP_USER: your-email@gmail.com
+      # UNIFI_SMTP_PASSWORD: your-app-password
+      # UNIFI_EMAIL_FROM: your-email@gmail.com
+      # UNIFI_EMAIL_RECIPIENTS: recipient@example.com
+
       # Logging
       UNIFI_LOG_LEVEL: INFO
       UNIFI_LOG_FORMAT: json
