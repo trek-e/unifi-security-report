@@ -28,8 +28,8 @@ class CloudflareIntegration:
     Automatically registered with IntegrationRegistry at module import.
 
     Configuration:
-        - CLOUDFLARE_API_TOKEN (required): Scoped API token
-        - CLOUDFLARE_ACCOUNT_ID (optional): Account ID for tunnels/DNS
+        - UNIFI_CLOUDFLARE_API_TOKEN (required): Scoped API token
+        - UNIFI_CLOUDFLARE_ACCOUNT_ID (optional): Account ID for tunnels/DNS
 
     Per CONTEXT.md:
         - API Token only, not legacy global API key

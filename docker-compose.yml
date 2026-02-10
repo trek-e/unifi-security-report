@@ -9,14 +9,21 @@ services:
     network_mode: host
 
     environment:
-      # Connection
+      # Connection (required)
       UNIFI_HOST: 192.168.0.1
       UNIFI_USERNAME: admin
       UNIFI_VERIFY_SSL: "false"
+      # UNIFI_PORT: "443"              # Auto-detected (443, 8443, 11443)
+      # UNIFI_SITE: default            # Auto-detected
+      # UNIFI_CONNECT_TIMEOUT: "10"    # Connection timeout (seconds)
+      # UNIFI_MAX_RETRIES: "5"         # Retry attempts on failure
 
       # Schedule (runs daily at 8am Eastern)
       UNIFI_SCHEDULE_PRESET: daily_8am
       UNIFI_SCHEDULE_TIMEZONE: America/New_York
+      # UNIFI_SCHEDULE_CRON: "0 8 * * *"         # Custom cron (overrides preset)
+      # UNIFI_POLL_INTERVAL: "300"                # Seconds between cycles
+      # UNIFI_INITIAL_LOOKBACK_HOURS: "24"        # History on first run (1-720)
 
       # File Output
       UNIFI_FILE_ENABLED: "true"
@@ -38,8 +45,18 @@ services:
       # UNIFI_SMTP_PORT: "587"
       # UNIFI_SMTP_USER: your-email@gmail.com
       # UNIFI_SMTP_PASSWORD: your-app-password
+      # UNIFI_SMTP_USE_TLS: "true"
       # UNIFI_EMAIL_FROM: your-email@gmail.com
       # UNIFI_EMAIL_RECIPIENTS: recipient@example.com
+      # UNIFI_TIMEZONE: America/New_York
+
+      # WebSocket (UniFi 10.x+ — enabled by default)
+      # UNIFI_WEBSOCKET_ENABLED: "true"
+      # UNIFI_WEBSOCKET_BUFFER_SIZE: "10000"
+
+      # Cloudflare Integration (optional)
+      # UNIFI_CLOUDFLARE_API_TOKEN: your-api-token
+      # UNIFI_CLOUDFLARE_ACCOUNT_ID: your-account-id  # Auto-detected from zones
 
       # Logging
       UNIFI_LOG_LEVEL: INFO
