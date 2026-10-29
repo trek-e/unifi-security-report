@@ -7,7 +7,7 @@ import structlog
 from unifi_scanner.models.enums import Category, Severity
 from unifi_scanner.models.finding import Finding
 from unifi_scanner.models.log_entry import LogEntry
-from unifi_scanner.analysis.rules.base import Rule, RuleRegistry
+from unifi_scanner.analysis.rules.base import Rule, RuleRegistry, StatefulRule
 from unifi_scanner.analysis.rules.wireless import rssi_to_quality, format_radio_band
 
 logger = structlog.get_logger(__name__)
@@ -77,9 +77,9 @@ class AnalysisEngine:
         """
         rule = self._registry.find_matching_rule(entry.event_type, entry.message)
 
-        if rule is None:
+        if rule is None or isinstance(rule, StatefulRule):
             # Track unknown event type
-            if not self._registry.is_known_event_type(entry.event_type):
+            if rule is None and not self._registry.is_known_event_type(entry.event_type):
                 self._unknown_event_types[entry.event_type] = (
                     self._unknown_event_types.get(entry.event_type, 0) + 1
                 )
@@ -105,29 +105,28 @@ class AnalysisEngine:
             Note: This does NOT deduplicate - use FindingStore for that.
         """
         findings = []
-        roam_events_by_client: Dict[str, List[LogEntry]] = {}
+
+        # 1. Reset all rules
+        for rule in self.registry.all_rules:
+            rule.reset()
 
         for entry in entries:
+            # 2. Stateless rules
             finding = self.analyze_entry(entry)
             if finding:
                 findings.append(finding)
 
-            # Track roaming events for flapping detection (WIFI-06)
-            if entry.event_type in ("EVT_WU_Roam", "EVT_WG_Roam"):
-                client_mac = (entry.raw_data or {}).get("user", "unknown")
-                if client_mac not in roam_events_by_client:
-                    roam_events_by_client[client_mac] = []
-                roam_events_by_client[client_mac].append(entry)
-
-        # Detect flapping (WIFI-06): 5+ roams within analysis window
-        flapping_findings = self._detect_flapping(roam_events_by_client, threshold=5)
-        findings.extend(flapping_findings)
+            # 3. Stateful rules
+            for rule in self.registry.all_rules:
+                if isinstance(rule, StatefulRule) and rule.matches(entry.event_type, entry.message):
+                    stateful_finding = rule.process(entry)
+                    if stateful_finding:
+                        findings.append(stateful_finding)
 
         logger.info(
             "analysis_complete",
             entries_processed=len(entries),
             findings_created=len(findings),
-            flapping_clients=len(flapping_findings),
             unknown_types=len(self._unknown_event_types),
         )
         return findings
@@ -257,77 +256,3 @@ class AnalysisEngine:
         """Clear the unknown event type counts."""
         self._unknown_event_types.clear()
 
-    def _detect_flapping(
-        self,
-        roam_events_by_client: Dict[str, List[LogEntry]],
-        threshold: int = 5,
-    ) -> List[Finding]:
-        """Detect clients with excessive roaming (flapping).
-
-        WIFI-06: Creates MEDIUM severity finding when client roams
-        more than threshold times within the analysis window.
-
-        Args:
-            roam_events_by_client: Dict mapping client MAC to roam events
-            threshold: Minimum roams to trigger flapping warning (default: 5)
-
-        Returns:
-            List of flapping Finding objects
-        """
-        findings = []
-
-        for client_mac, events in roam_events_by_client.items():
-            if len(events) < threshold:
-                continue
-
-            # Get unique APs involved
-            ap_names: set[str] = set()
-            for event in events:
-                raw = event.raw_data or {}
-                ap_from = raw.get("ap_from_name", raw.get("ap_from", ""))
-                ap_to = raw.get("ap_to_name", raw.get("ap_to", ""))
-                if ap_from:
-                    ap_names.add(ap_from)
-                if ap_to:
-                    ap_names.add(ap_to)
-
-            ap_list = ", ".join(sorted(ap_names)) if ap_names else "multiple APs"
-
-            finding = Finding(
-                severity=Severity.MEDIUM,
-                category=Category.WIRELESS,
-                title=f"[Wireless] Client flapping detected ({len(events)} roams)",
-                description=(
-                    f"Client {client_mac} roamed {len(events)} times during this analysis period, "
-                    f"which suggests unstable connectivity. The client moved between: {ap_list}. "
-                    "Frequent roaming (flapping) typically indicates coverage gaps, interference, "
-                    "or misconfigured roaming thresholds."
-                ),
-                remediation=(
-                    "1. Check for coverage gaps between the APs - client may be in a dead zone\n"
-                    "2. Verify AP power levels are balanced (not too high or low)\n"
-                    "3. Check for interference sources causing signal fluctuation\n"
-                    "4. Consider adjusting Min-RSSI settings if using BSS Transition\n"
-                    "5. If client is stationary, it may have a faulty wireless adapter"
-                ),
-                source_log_ids=[e.id for e in events],
-                first_seen=min(e.timestamp for e in events),
-                last_seen=max(e.timestamp for e in events),
-                device_mac=client_mac,
-                device_name=client_mac,  # Client MAC as identifier
-                metadata={
-                    "rule_name": "client_flapping",
-                    "event_type": "aggregation",
-                    "roam_count": len(events),
-                    "aps_involved": list(ap_names),
-                },
-            )
-            findings.append(finding)
-            logger.info(
-                "flapping_detected",
-                client=client_mac,
-                roam_count=len(events),
-                aps=list(ap_names),
-            )
-
-        return findings

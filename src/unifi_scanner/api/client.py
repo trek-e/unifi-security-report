@@ -259,6 +259,8 @@ class UnifiClient:
 
         Retrieves events sorted by time (newest first) within the specified
         time window. The UniFi API limits responses to 3000 events maximum.
+        This method automatically handles pagination to retrieve up to the
+        requested limit.
 
         Args:
             site: Site name to retrieve events from.
@@ -274,14 +276,10 @@ class UnifiClient:
             UnifiAPIError: API request failed.
             RuntimeError: Not connected.
 
-        Note:
-            If the response indicates truncation (meta.count > len(data)),
-            a warning is logged. Use start parameter for pagination.
-
         Example:
             >>> events = client.get_events("default", history_hours=24)
             >>> for event in events[:5]:
-            ...     print(f"{event['key']}: {event.get('msg', 'No message')}")
+            ...     print(f"{event.get('key', 'Unknown')}: {event.get('msg', 'No message')}")
         """
         self._ensure_connected()
         assert self.device_type is not None  # For type checker
@@ -289,48 +287,50 @@ class UnifiClient:
         endpoints = get_endpoints(self.device_type)
         endpoint = endpoints.events.format(site=site)
 
-        # Build request body - API enforces 3000 max
-        body = {
-            "_sort": "-time",
-            "within": history_hours,
-            "_start": start,
-            "_limit": min(limit, 3000),
-        }
+        all_events = []
+        current_start = start
+        page_size = 3000
 
-        response = self._request("POST", endpoint, json=body)
-        data = response.json()
+        while len(all_events) < limit:
+            remaining = limit - len(all_events)
+            current_page_limit = min(page_size, remaining)
 
-        # Debug: Log raw response structure to diagnose empty results
-        logger.debug(
-            "events_raw_response",
-            response_type=type(data).__name__,
-            has_data_key="data" in data if isinstance(data, dict) else False,
-            has_meta_key="meta" in data if isinstance(data, dict) else False,
-            top_level_keys=list(data.keys()) if isinstance(data, dict) else None,
-            is_list=isinstance(data, list),
-            list_length=len(data) if isinstance(data, list) else None,
-        )
+            # Build request body
+            body = {
+                "_sort": "-time",
+                "within": history_hours,
+                "_start": current_start,
+                "_limit": current_page_limit,
+            }
 
-        # Extract events from response wrapper
-        if isinstance(data, dict) and "data" in data:
-            events = data["data"]
-        else:
-            events = data if isinstance(data, list) else []
+            response = self._request("POST", endpoint, json=body)
+            data = response.json()
 
-        # Check for truncation
-        if isinstance(data, dict) and "meta" in data:
-            meta = data["meta"]
-            total_count = meta.get("count", len(events))
-            if total_count > len(events):
-                logger.warning(
-                    "events_truncated",
-                    retrieved=len(events),
-                    total_available=total_count,
-                    site=site,
-                )
+            # Extract events from response wrapper
+            if isinstance(data, dict) and "data" in data:
+                new_events = data["data"]
+            elif isinstance(data, list):
+                new_events = data
+            else:
+                new_events = []
 
-        logger.debug("events_retrieved", count=len(events), site=site)
-        return events
+            if not new_events:
+                break
+
+            all_events.extend(new_events)
+            current_start += len(new_events)
+
+            # Check for truncation/end of data
+            if isinstance(data, dict) and "meta" in data:
+                total_count = data["meta"].get("count", 0)
+                if len(all_events) >= total_count:
+                    break
+                # If we got fewer than we asked for, we've reached the end
+                if len(new_events) < current_page_limit:
+                    break
+
+        logger.debug("events_retrieved", count=len(all_events), site=site)
+        return all_events
 
     def get_alarms(
         self,
