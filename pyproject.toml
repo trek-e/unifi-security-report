@@ -29,12 +29,11 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.11",
-    "pydantic-settings>=2.0",
+    "pydantic-settings>=2.11.0",
     "httpx>=0.28.1",
     "Jinja2>=3.1.6",
     "structlog>=25.5",
     "tenacity>=8.3",
-<<<<<<< HEAD
     "pybreaker>=1.4.1",
     "pyyaml>=6.0.3",
     "python-dotenv>=1.0",
