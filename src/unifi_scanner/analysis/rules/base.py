@@ -56,6 +56,26 @@ class Rule:
             return False
         return True
 
+    def reset(self) -> None:
+        """Reset any internal state. Default is no-op."""
+        pass
+
+
+@dataclass
+class StatefulRule(Rule):
+    """A rule that maintains state across multiple LogEntry processing calls."""
+
+    def process(self, entry: "LogEntry") -> Optional["Finding"]:
+        """Process a single entry and potentially return a finding.
+
+        Args:
+            entry: The LogEntry to process.
+
+        Returns:
+            A Finding if the stateful condition is met, otherwise None.
+        """
+        ...
+
 
 class RuleRegistry:
     """Registry of rules with dictionary dispatch by event_type.

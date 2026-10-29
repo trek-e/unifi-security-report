@@ -4,10 +4,16 @@ Rules for client roaming, band switching, channel changes, and DFS radar events.
 Includes helpers for RSSI-to-quality translation and radio band formatting.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Set
+from dataclasses import dataclass, field
 
-from unifi_scanner.analysis.rules.base import Rule
+from unifi_scanner.analysis.rules.base import Rule, StatefulRule
 from unifi_scanner.models.enums import Category, Severity
+from unifi_scanner.models.finding import Finding
+from unifi_scanner.models.log_entry import LogEntry
+
+
+# RSSI thresholds for signal quality classification (WIFI-05)
 
 
 # RSSI thresholds for signal quality classification (WIFI-05)
@@ -63,6 +69,70 @@ def format_radio_band(radio_code: Optional[str]) -> str:
     if radio_code is None:
         return "Unknown"
     return RADIO_BANDS.get(radio_code, radio_code)
+
+
+@dataclass
+class ClientFlappingRule(StatefulRule):
+    """WIFI-06: Detects clients with excessive roaming (flapping)."""
+
+    threshold: int = 5
+    _roam_events_by_client: Dict[str, List[LogEntry]] = field(default_factory=dict, init=False)
+
+    def reset(self) -> None:
+        self._roam_events_by_client = {}
+
+    def process(self, entry: LogEntry) -> Optional[Finding]:
+        if entry.event_type not in ("EVT_WU_Roam", "EVT_WG_Roam"):
+            return None
+
+        client_mac = (entry.raw_data or {}).get("user", "unknown")
+        if client_mac not in self._roam_events_by_client:
+            self._roam_events_by_client[client_mac] = []
+        self._roam_events_by_client[client_mac].append(entry)
+
+        if len(self._roam_events_by_client[client_mac]) == self.threshold:
+            events = self._roam_events_by_client[client_mac]
+            
+            ap_names: Set[str] = set()
+            for e in events:
+                raw = e.raw_data or {}
+                ap_from = raw.get("ap_from_name", raw.get("ap_from", ""))
+                ap_to = raw.get("ap_to_name", raw.get("ap_to", ""))
+                if ap_from: ap_names.add(ap_from)
+                if ap_to: ap_names.add(ap_to)
+
+            ap_list = ", ".join(sorted(ap_names)) if ap_names else "multiple APs"
+
+            return Finding(
+                severity=Severity.MEDIUM,
+                category=Category.WIRELESS,
+                title=f"[Wireless] Client flapping detected ({len(events)} roams)",
+                description=(
+                    f"Client {client_mac} roamed {len(events)} times during this analysis period, "
+                    f"which suggests unstable connectivity. The client moved between: {ap_list}. "
+                    "Frequent roaming (flapping) typically indicates coverage gaps, interference, "
+                    "or misconfigured roaming thresholds."
+                ),
+                remediation=(
+                    "1. Check for coverage gaps between the APs - client may be in a dead zone\n"
+                    "2. Verify AP power levels are balanced (not too high or too low)\n"
+                    "3. Check for interference sources causing signal fluctuation\n"
+                    "4. Consider adjusting Min-RSSI settings if using BSS Transition\n"
+                    "5. If client is stationary, it may have a faulty wireless adapter"
+                ),
+                source_log_ids=[e.id for e in events],
+                first_seen=min(e.timestamp for e in events),
+                last_seen=max(e.timestamp for e in events),
+                device_mac=client_mac,
+                device_name=client_mac,
+                metadata={
+                    "rule_name": "client_flapping",
+                    "event_type": "aggregation",
+                    "roam_count": len(events),
+                    "aps_involved": list(ap_names),
+                },
+            )
+        return None
 
 
 WIRELESS_RULES: List[Rule] = [
@@ -142,5 +212,26 @@ WIRELESS_RULES: List[Rule] = [
             "5. The AP will automatically return to the channel after 30 minutes if clear"
         ),
         pattern=r"[Rr]adar.*(detected|hit)",
+    ),
+    # MEDIUM: Client flapping (WIFI-06)
+    ClientFlappingRule(
+        name="client_flapping",
+        event_types=["EVT_WU_Roam", "EVT_WG_Roam"],
+        category=Category.WIRELESS,
+        severity=Severity.MEDIUM,
+        title_template="[Wireless] Client flapping detected ({roam_count} roams)",
+        description_template=(
+            "Client {client_mac} roamed {roam_count} times during this analysis period, "
+            "which suggests unstable connectivity. The client moved between: {aps_involved}. "
+            "Frequent roaming (flapping) typically indicates coverage gaps, interference, "
+            "or misconfigured roaming thresholds."
+        ),
+        remediation_template=(
+            "1. Check for coverage gaps between the APs - client may be in a dead zone\n"
+            "2. Verify AP power levels are balanced (not too high or too low)\n"
+            "3. Check for interference sources causing signal fluctuation\n"
+            "4. Consider adjusting Min-RSSI settings if using BSS Transition\n"
+            "5. If client is stationary, it may have a faulty wireless adapter"
+        ),
     ),
 ]
